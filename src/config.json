@@ -1,0 +1,46 @@
+{
+  "name": "FSJ",
+  "datapoints": [
+    {        
+        "name": "dp01",
+        "driver": "odbc",
+        "config": "dsn=DB01",        
+        "params": [
+            { "name": "scanner", "type": "int", "mode": "in" },
+            { "name":  "rcount", "type": "int", "mode": "in" },
+            { "name":    "read", "type": "int", "mode": "in" },
+            { "name":  "ccount", "type": "int", "mode": "out" }, 
+            { "name":     "cmd", "type": "int", "mode": "out" }
+        ]
+    }
+  ],
+  "devices": [
+    {
+      "name": "plc01",
+      "driver": "s7",
+      "config": "host=192.168.1.1;rack=0;slot=0",
+      "tags": [
+        { "name": "est01_count", "address": "DB800.W00", "rate": 50, "mode": "in" },
+        { "name":  "est01_read", "address": "DB800.W02", "rate": 50, "mode": "in" },
+        { "name": "cmd01_count", "address": "DB801.W00", "rate": 50, "mode": "out" },
+        { "name":   "cmd01_cmd", "address": "DB801.W02", "rate": 50, "mode": "out" }
+      ]
+    }
+  ],
+  "transactions": [
+    {
+      "name": "est01",
+      "trigger": { "type": "on_change", "TagName": "est01_count" },
+      "datapoint": {
+        "name": "dp01",
+        "bind": [
+          { "param": "scanner", "value": "1" },
+          { "param":  "rcount", "tag": "EST01_VALUE" },
+          { "param":    "read", "tag": "CMD01_COUNT" },
+          { "param":  "ccount", "tag": "CMD01_VALUE" },
+          { "param":     "cmd", "tag": "CMD01_VALUE" }
+        ]
+      }
+    }
+  ]
+}
