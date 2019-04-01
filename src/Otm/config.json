@@ -1,0 +1,47 @@
+{
+    "Name": "AppName",
+    "DataPoints": [
+      {
+        "Name": "dp01",
+        "Driver": "odbc",
+        "Config": "dsn=DB01",
+        "Params": [
+          {
+            "Name": "p1",
+            "Type": "int",
+            "Mode": "in"
+          }
+        ]
+      }
+    ],
+    "Devices": [
+      {
+        "Name": "plc01",
+        "Driver": "snap7",
+        "Config": "host=192.168.1.1;rack=0;slot=0",
+        "Tags": [
+          {
+            "Name": "",
+            "Address": "",
+            "Rate": 50,
+            "Mode": ""
+          }
+        ]
+      }
+    ],
+    "Transactions": [
+      {
+        "Name": "tr01",
+        "TriggerType": "on_change",
+        "TriggerTagName": "",
+        "DataPointName": "",
+        "Binds": [
+          {
+            "DataPointParam": "",
+            "DeviceTag": "",
+            "Value": ""
+          }
+        ]
+      }
+    ]
+  }

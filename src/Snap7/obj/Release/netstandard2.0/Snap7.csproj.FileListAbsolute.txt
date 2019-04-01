@@ -1,0 +1,9 @@
+C:\hemerson\proj\dotnet\otm\src\Snap7\bin\Release\netstandard2.0\Snap7.deps.json
+C:\hemerson\proj\dotnet\otm\src\Snap7\bin\Release\netstandard2.0\Snap7.dll
+C:\hemerson\proj\dotnet\otm\src\Snap7\bin\Release\netstandard2.0\Snap7.pdb
+C:\hemerson\proj\dotnet\otm\src\Snap7\obj\Release\netstandard2.0\Snap7.csprojAssemblyReference.cache
+C:\hemerson\proj\dotnet\otm\src\Snap7\obj\Release\netstandard2.0\Snap7.csproj.CoreCompileInputs.cache
+C:\hemerson\proj\dotnet\otm\src\Snap7\obj\Release\netstandard2.0\Snap7.AssemblyInfoInputs.cache
+C:\hemerson\proj\dotnet\otm\src\Snap7\obj\Release\netstandard2.0\Snap7.AssemblyInfo.cs
+C:\hemerson\proj\dotnet\otm\src\Snap7\obj\Release\netstandard2.0\Snap7.dll
+C:\hemerson\proj\dotnet\otm\src\Snap7\obj\Release\netstandard2.0\Snap7.pdb
