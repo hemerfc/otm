@@ -1,13 +1,13 @@
 {
 	"folders": [
         {
-            "path": "src\\Otm"
+            "path": "src/Otm"
         },
         {
-            "path": "tests\\Otm.Test"
+            "path": "tests/Otm.Test"
         },
         {
-            "path": "src\\Snap7"
+            "path": "src/Snap7"
         }
     ],
     "settings": {

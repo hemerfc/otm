@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NLog;
 using Otm.Config;
@@ -7,9 +8,32 @@ namespace Otm.Device
 {
     public class DeviceFactory : IDeviceFactory
     {
-        public IDictionary<string, IDevice> CreateDevices(DeviceConfig[] config)
+        public IDictionary<string, IDevice> CreateDevices(DeviceConfig[] devicesConfig)
         {
-            throw new System.NotImplementedException();
+            var devices = new Dictionary<string, IDevice>();
+
+            foreach (var dvConfig in devicesConfig)
+            {
+                if (string.IsNullOrWhiteSpace(dvConfig.Name))
+                {
+                    var ex = new Exception("Invalid Device name in config. Name:" + dvConfig.Name);
+                    ex.Data.Add("field", "Name");
+                    throw ex;
+                }
+            
+                switch (dvConfig.Driver)
+                {
+                    case "odbc":
+                        devices.Add(dvConfig.Name, new S7Device(dvConfig));
+                        break;
+                    default:
+                        var ex = new Exception("Invalid DeviceDriver in config. Driver:" + dvConfig.Driver);
+                        ex.Data.Add("field", "Driver");
+                        throw ex;
+                }
+            }
+
+            return devices;
         }
     }
 }

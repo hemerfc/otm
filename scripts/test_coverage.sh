@@ -7,12 +7,13 @@ SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 ROOT_PATH=$(cd ${SCRIPTPATH}/../; pwd)
 
-cd ${ROOT_PATH}
+cd "${ROOT_PATH}"
 
 # exclude the Testhelper project:  [TestHelper]*
 # exclude all tests projects:      [*.Test]Otm.*
-COVERLET_EXCLUDE_FILTER=[TestHelper]*,[*.Test]Otm.*,[*.Tests]Otm.*,[xunit.*]*
-COVERLET_INCLUDE_FILTER=[*]Otm.*,[Otm*]*
+COVERLET_EXCLUDE_FILTER=[Otm.Tests]*,[xunit.*]* 
+# include Otm assembly and * all classes
+COVERLET_INCLUDE_FILTER=[Otm]* 
 
 echo Testing project: Otm.Test.csproj
 	
