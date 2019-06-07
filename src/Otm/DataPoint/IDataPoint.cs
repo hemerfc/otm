@@ -7,6 +7,6 @@ namespace Otm.DataPoint
 {
     public interface IDataPoint
     {
-        void Execute(IDictionary<string, object> input, Func<IEnumerable<Object>> callback);
+        IDictionary<string, object> Execute(IDictionary<string, object> values);
     }
 }

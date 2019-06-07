@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}\\otm.csproj"
+                "${workspaceFolder}\\Snap7.csproj"
             ],
             "problemMatcher": "$msCompile"
         }

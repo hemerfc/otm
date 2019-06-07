@@ -36,7 +36,7 @@ namespace Otm
                     serviceConfig.ServiceFactory((extraArguments, controller) =>
                     {
                         var appPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-                        var configPath = appPath + "\\config.json";
+                        var configPath = appPath + "/config.json";
 
                         var configString = File.ReadAllText(configPath);                        
                         var rootconfig = JsonConvert.DeserializeObject<RootConfig>(configString);

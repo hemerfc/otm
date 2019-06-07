@@ -23,7 +23,7 @@ namespace Otm.Device
             
                 switch (dvConfig.Driver)
                 {
-                    case "odbc":
+                    case "s7":
                         devices.Add(dvConfig.Name, new S7Device(dvConfig));
                         break;
                     default:

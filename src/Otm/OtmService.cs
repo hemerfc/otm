@@ -61,6 +61,7 @@ namespace Otm
 
         public void Start()
         {
+            this.Initialize();
             if (Transactions != null)
             {
                 foreach (var trans in Transactions.Values)

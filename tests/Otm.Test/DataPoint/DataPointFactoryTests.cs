@@ -50,13 +50,13 @@ namespace Otm.Test.DataPoint
             var dpConfig = new DataPointConfig[]{ 
                 new DataPointConfig {
                     Name = "dp01",
-                    Driver = "odbc",
+                    Driver = "pg",
                     Config = "dsn=DB01",
                     Params = null
                 },
                 new DataPointConfig {
                     Name = "dp02",
-                    Driver = "odbc",
+                    Driver = "pg",
                     Config = "dsn=DB02",
                     Params = null
                 }
@@ -68,9 +68,9 @@ namespace Otm.Test.DataPoint
 
             Assert.Equal(2, datapoints.Count);
 
-            Assert.IsType<OdbcDataPoint>(datapoints["dp01"]);
+            Assert.IsType<PgDataPoint>(datapoints["dp01"]);
 
-            Assert.IsType<OdbcDataPoint>(datapoints["dp02"]);
+            Assert.IsType<PgDataPoint>(datapoints["dp02"]);
         }
     }
 }

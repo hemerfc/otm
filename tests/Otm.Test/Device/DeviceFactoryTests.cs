@@ -1,8 +1,7 @@
 using System;
 using Xunit;
-using Otm.DataPoint;
-using Otm.Config;
 using Otm.Device;
+using Otm.Config;
 
 namespace Otm.Test.Device
 {
@@ -30,48 +29,47 @@ namespace Otm.Test.Device
         public void InvalidDriverName()
         {
             // prepare
-            var dpConfig = new DataPointConfig[]{ 
-                new DataPointConfig {
-                    Name = "dp01",
-                    Driver = "",
+            var dpConfig = new DeviceConfig[]{ 
+                new DeviceConfig {
+                    Name = "plc01",
+                    Driver = "xxx",
                     Config = "",
-                    Params = null
+                    Tags = null
                 }
             };        
 
-            var ex = Record.Exception(() => new DataPointFactory().CreateDataPoints(dpConfig));
-
+            var ex = Record.Exception(() => new DeviceFactory().CreateDevices(dpConfig));
             Assert.Equal("Driver", ex?.Data["field"]);
         }
 
         [Fact]
-        public void CreateOdbcDataPoint()
+        public void CreateS7Device()
         {
             // prepare
-            var dpConfig = new DataPointConfig[]{ 
-                new DataPointConfig {
-                    Name = "dp01",
-                    Driver = "odbc",
-                    Config = "dsn=DB01",
-                    Params = null
+            var dpConfig = new DeviceConfig[]{ 
+                new DeviceConfig {
+                    Name = "plc01",
+                    Driver = "s7",
+                    Config = "host=127.0.0.1;rack=0;slot=0",
+                    Tags = null
                 },
-                new DataPointConfig {
-                    Name = "dp02",
-                    Driver = "odbc",
-                    Config = "dsn=DB02",
-                    Params = null
+                new DeviceConfig {
+                    Name = "plc02",
+                    Driver = "s7",
+                    Config = "host=127.0.0.1;rack=0;slot=0",
+                    Tags = null
                 }
             };
         
-            var factory = new DataPointFactory();
+            var factory = new DeviceFactory();
 
-            var datapoints = factory.CreateDataPoints(dpConfig);
+            var devices = factory.CreateDevices(dpConfig);
 
-            Assert.Equal(2, datapoints.Count);
+            Assert.Equal(2, devices.Count);
 
-            Assert.IsType<OdbcDataPoint>(datapoints["dp01"]);
+            Assert.IsType<S7Device>(devices["plc01"]);
 
-            Assert.IsType<OdbcDataPoint>(datapoints["dp02"]);
+            Assert.IsType<S7Device>(devices["plc02"]);
         }
     }
 }

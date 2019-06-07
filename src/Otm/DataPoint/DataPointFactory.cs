@@ -22,8 +22,8 @@ namespace Otm.DataPoint
             
                 switch (dpConfig.Driver)
                 {
-                    case "odbc":
-                        datapoints.Add(dpConfig.Name, new OdbcDataPoint(dpConfig));
+                    case "pg":
+                        datapoints.Add(dpConfig.Name, new PgDataPoint(dpConfig));
                         break;
                     default:
                         var ex = new Exception("Invalid DataPointDriver in config. Driver:" + dpConfig.Driver);

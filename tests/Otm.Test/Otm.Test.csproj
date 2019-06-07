@@ -23,5 +23,9 @@
     <ProjectReference Include="..\..\src\Otm\Otm.csproj" />
     <ProjectReference Include="..\..\src\Snap7\Snap7.csproj" />
   </ItemGroup>
+  
+  <PropertyGroup>
+    <RestoreFallbackFolders>clear</RestoreFallbackFolders>
+  </PropertyGroup>
 
 </Project>

@@ -2,14 +2,19 @@
     "Name": "AppName",
     "DataPoints": [
       {
-        "Name": "dp01",
-        "Driver": "odbc",
-        "Config": "dsn=DB01",
+        "Name": "spTest01",
+        "Driver": "pg",
+        "Config": "Host=localhost;Database=otmTest;Username=otm;Password=otm",
         "Params": [
           {
             "Name": "p1",
             "Type": "int",
             "Mode": "in"
+          },
+          {
+            "Name": "p2",
+            "Type": "int",
+            "Mode": "out"
           }
         ]
       }
