@@ -22,14 +22,22 @@
     "Devices": [
       {
         "Name": "plc01",
-        "Driver": "snap7",
-        "Config": "host=192.168.1.1;rack=0;slot=0",
+        "Driver": "s7",
+        "Config": "host=127.0.0.1;rack=0;slot=0",
         "Tags": [
           {
-            "Name": "",
-            "Address": "",
+            "Name": "tag1",
+            "Address": "DB800.W10",
             "Rate": 50,
-            "Mode": ""
+            "Mode": "in",
+            "Type": "int"
+          },
+          {
+            "Name": "tag2",
+            "Address": "DB800.W12",
+            "Rate": 50,
+            "Mode": "out",
+            "Type": "int"
           }
         ]
       }

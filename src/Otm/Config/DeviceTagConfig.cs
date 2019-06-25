@@ -6,5 +6,6 @@ namespace Otm.Config
         public string Address { get; set; }
         public int Rate { get; set; }
         public string Mode { get; set; }
+        public string Type { get; set; }
     }
 }

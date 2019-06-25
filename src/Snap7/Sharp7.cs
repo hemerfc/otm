@@ -1293,63 +1293,63 @@ namespace Snap7
         #endregion
     }
 
-    public class S7Client
+    public class S7Client : IS7Client
     {
         #region [Constants and TypeDefs]
 
         // Block type
-        public const int Block_OB  = 0x38;
-        public const int Block_DB  = 0x41;
+        public const int Block_OB = 0x38;
+        public const int Block_DB = 0x41;
         public const int Block_SDB = 0x42;
-        public const int Block_FC  = 0x43;
+        public const int Block_FC = 0x43;
         public const int Block_SFC = 0x44;
-        public const int Block_FB  = 0x45;
+        public const int Block_FB = 0x45;
         public const int Block_SFB = 0x46;
 
         // Sub Block Type 
-        public const byte SubBlk_OB  = 0x08;
-        public const byte SubBlk_DB  = 0x0A;
+        public const byte SubBlk_OB = 0x08;
+        public const byte SubBlk_DB = 0x0A;
         public const byte SubBlk_SDB = 0x0B;
-        public const byte SubBlk_FC  = 0x0C;
+        public const byte SubBlk_FC = 0x0C;
         public const byte SubBlk_SFC = 0x0D;
-        public const byte SubBlk_FB  = 0x0E;
+        public const byte SubBlk_FB = 0x0E;
         public const byte SubBlk_SFB = 0x0F;
 
         // Block languages
-        public const byte BlockLangAWL   = 0x01;
-        public const byte BlockLangKOP   = 0x02;
-        public const byte BlockLangFUP   = 0x03;
-        public const byte BlockLangSCL   = 0x04;
-        public const byte BlockLangDB    = 0x05;
+        public const byte BlockLangAWL = 0x01;
+        public const byte BlockLangKOP = 0x02;
+        public const byte BlockLangFUP = 0x03;
+        public const byte BlockLangSCL = 0x04;
+        public const byte BlockLangDB = 0x05;
         public const byte BlockLangGRAPH = 0x06;
 
         // Max number of vars (multiread/write)
         public static readonly int MaxVars = 20;
-        
+
         // Result transport size
-        const byte TS_ResBit   = 0x03;
-        const byte TS_ResByte  = 0x04;
-        const byte TS_ResInt   = 0x05;
-        const byte TS_ResReal  = 0x07;
+        const byte TS_ResBit = 0x03;
+        const byte TS_ResByte = 0x04;
+        const byte TS_ResInt = 0x05;
+        const byte TS_ResReal = 0x07;
         const byte TS_ResOctet = 0x09;
 
-        const ushort Code7Ok                    = 0x0000;
-        const ushort Code7AddressOutOfRange     = 0x0005;
-        const ushort Code7InvalidTransportSize  = 0x0006;
+        const ushort Code7Ok = 0x0000;
+        const ushort Code7AddressOutOfRange = 0x0005;
+        const ushort Code7InvalidTransportSize = 0x0006;
         const ushort Code7WriteDataSizeMismatch = 0x0007;
-        const ushort Code7ResItemNotAvailable   = 0x000A;
-        const ushort Code7ResItemNotAvailable1  = 0xD209;
-        const ushort Code7InvalidValue          = 0xDC01;
-        const ushort Code7NeedPassword          = 0xD241;
-        const ushort Code7InvalidPassword       = 0xD602;
-        const ushort Code7NoPasswordToClear     = 0xD604;
-        const ushort Code7NoPasswordToSet       = 0xD605;
-        const ushort Code7FunNotAvailable       = 0x8104;
-        const ushort Code7DataOverPDU           = 0x8500;
+        const ushort Code7ResItemNotAvailable = 0x000A;
+        const ushort Code7ResItemNotAvailable1 = 0xD209;
+        const ushort Code7InvalidValue = 0xDC01;
+        const ushort Code7NeedPassword = 0xD241;
+        const ushort Code7InvalidPassword = 0xD602;
+        const ushort Code7NoPasswordToClear = 0xD604;
+        const ushort Code7NoPasswordToSet = 0xD605;
+        const ushort Code7FunNotAvailable = 0x8104;
+        const ushort Code7DataOverPDU = 0x8500;
 
         // Client Connection Type
-        public static readonly UInt16 CONNTYPE_PG    = 0x01;  // Connect to the PLC as a PG
-        public static readonly UInt16 CONNTYPE_OP    = 0x02;  // Connect to the PLC as an OP
+        public static readonly UInt16 CONNTYPE_PG = 0x01;  // Connect to the PLC as a PG
+        public static readonly UInt16 CONNTYPE_OP = 0x02;  // Connect to the PLC as an OP
         public static readonly UInt16 CONNTYPE_BASIC = 0x03;  // Basic connection 
 
         public int _LastError = 0;
@@ -1454,7 +1454,7 @@ namespace Snap7
 
         // S7 Protection
         // See §33.19 of "System Software for S7-300/400 System and Standard Functions"
-        public struct S7Protection  
+        public struct S7Protection
         {
             public ushort sch_schal;
             public ushort sch_par;
@@ -1504,18 +1504,18 @@ namespace Snap7
 
         // S7 PDU Negotiation Telegram (contains also ISO Header and COTP Header)
         byte[] S7_PN = {
-            0x03, 0x00, 0x00, 0x19, 
+            0x03, 0x00, 0x00, 0x19,
             0x02, 0xf0, 0x80, // TPKT + COTP (see above for info)
-            0x32, 0x01, 0x00, 0x00, 
-            0x04, 0x00, 0x00, 0x08, 
-            0x00, 0x00, 0xf0, 0x00, 
-            0x00, 0x01, 0x00, 0x01, 
+            0x32, 0x01, 0x00, 0x00,
+            0x04, 0x00, 0x00, 0x08,
+            0x00, 0x00, 0xf0, 0x00,
+            0x00, 0x01, 0x00, 0x01,
             0x00, 0x1e        // PDU Length Requested = HI-LO Here Default 480 bytes
         };
-        
+
         // S7 Read/Write Request Header (contains also ISO Header and COTP Header)
         byte[] S7_RW = { // 31-35 bytes
-            0x03,0x00, 
+            0x03,0x00,
             0x00,0x1f,       // Telegram Length (Data Size + 31 or 35)
             0x02,0xf0, 0x80, // COTP (see above for info)
             0x32,            // S7 Protocol ID 
@@ -1544,7 +1544,7 @@ namespace Snap7
 
         // S7 Variable MultiRead Header
         byte[] S7_MRD_HEADER = {
-            0x03,0x00, 
+            0x03,0x00,
             0x00,0x1f,       // Telegram Length 
             0x02,0xf0, 0x80, // COTP (see above for info)
             0x32,            // S7 Protocol ID 
@@ -1723,8 +1723,8 @@ namespace Snap7
             0x50, 0x52, 0x4f, 0x47,
             0x52, 0x41, 0x4d
         };
-        const byte pduStart          = 0x28;   // CPU start
-        const byte pduStop           = 0x29;   // CPU stop
+        const byte pduStart = 0x28;   // CPU start
+        const byte pduStop = 0x29;   // CPU stop
         const byte pduAlreadyStarted = 0x02;   // CPU already in run mode
         const byte pduAlreadyStopped = 0x07;   // CPU already in stop mode
 
@@ -1743,18 +1743,18 @@ namespace Snap7
 
         // S7 Get Block Info Request Header (contains also ISO Header and COTP Header)
         byte[] S7_BI = {
-            0x03, 0x00, 0x00, 0x25, 
-            0x02, 0xf0, 0x80, 0x32, 
-            0x07, 0x00, 0x00, 0x05, 
-            0x00, 0x00, 0x08, 0x00, 
-            0x0c, 0x00, 0x01, 0x12, 
-            0x04, 0x11, 0x43, 0x03, 
-            0x00, 0xff, 0x09, 0x00, 
-            0x08, 0x30, 
+            0x03, 0x00, 0x00, 0x25,
+            0x02, 0xf0, 0x80, 0x32,
+            0x07, 0x00, 0x00, 0x05,
+            0x00, 0x00, 0x08, 0x00,
+            0x0c, 0x00, 0x01, 0x12,
+            0x04, 0x11, 0x43, 0x03,
+            0x00, 0xff, 0x09, 0x00,
+            0x08, 0x30,
             0x41, // Block Type
             0x30, 0x30, 0x30, 0x30, 0x30, // ASCII Block Number
-            0x41 
-	    };    
+            0x41
+        };
 
         #endregion
 
@@ -1792,7 +1792,7 @@ namespace Snap7
         {
             try
             {
-                Socket = new MsgSocket(); 
+                Socket = new MsgSocket();
                 Socket.ConnectTimeout = _ConnTimeout;
                 Socket.ReadTimeout = _RecvTimeout;
                 Socket.WriteTimeout = _SendTimeout;
@@ -1803,19 +1803,19 @@ namespace Snap7
         }
 
         private int TCPConnect()
-        {           
-            if (_LastError==0)
-            try
-            {
-                _LastError=Socket.Connect(IPAddress, _PLCPort);
-            }
-            catch
-            {
-                _LastError = S7Consts.errTCPConnectionFailed;
-            }
+        {
+            if (_LastError == 0)
+                try
+                {
+                    _LastError = Socket.Connect(IPAddress, _PLCPort);
+                }
+                catch
+                {
+                    _LastError = S7Consts.errTCPConnectionFailed;
+                }
             return _LastError;
         }
-       
+
         private void RecvPacket(byte[] Buffer, int Start, int Size)
         {
             if (Connected)
@@ -1930,24 +1930,24 @@ namespace Snap7
 
         private int CpuError(ushort Error)
         {
-          switch(Error)
-          {
-            case 0                          : return 0;
-            case Code7AddressOutOfRange     : return S7Consts.errCliAddressOutOfRange;
-            case Code7InvalidTransportSize  : return S7Consts.errCliInvalidTransportSize;
-            case Code7WriteDataSizeMismatch : return S7Consts.errCliWriteDataSizeMismatch;
-            case Code7ResItemNotAvailable   :
-            case Code7ResItemNotAvailable1  : return S7Consts.errCliItemNotAvailable;
-            case Code7DataOverPDU           : return S7Consts.errCliSizeOverPDU;
-            case Code7InvalidValue          : return S7Consts.errCliInvalidValue;
-            case Code7FunNotAvailable       : return S7Consts.errCliFunNotAvailable;
-            case Code7NeedPassword          : return S7Consts.errCliNeedPassword;
-            case Code7InvalidPassword       : return S7Consts.errCliInvalidPassword;
-            case Code7NoPasswordToSet       :
-            case Code7NoPasswordToClear     : return S7Consts.errCliNoPasswordToSetOrClear;
-          default:
-            return S7Consts.errCliFunctionRefused;
-          };
+            switch (Error)
+            {
+                case 0: return 0;
+                case Code7AddressOutOfRange: return S7Consts.errCliAddressOutOfRange;
+                case Code7InvalidTransportSize: return S7Consts.errCliInvalidTransportSize;
+                case Code7WriteDataSizeMismatch: return S7Consts.errCliWriteDataSizeMismatch;
+                case Code7ResItemNotAvailable:
+                case Code7ResItemNotAvailable1: return S7Consts.errCliItemNotAvailable;
+                case Code7DataOverPDU: return S7Consts.errCliSizeOverPDU;
+                case Code7InvalidValue: return S7Consts.errCliInvalidValue;
+                case Code7FunNotAvailable: return S7Consts.errCliFunNotAvailable;
+                case Code7NeedPassword: return S7Consts.errCliNeedPassword;
+                case Code7InvalidPassword: return S7Consts.errCliInvalidPassword;
+                case Code7NoPasswordToSet:
+                case Code7NoPasswordToClear: return S7Consts.errCliNoPasswordToSetOrClear;
+                default:
+                    return S7Consts.errCliFunctionRefused;
+            };
         }
 
         #endregion
@@ -1972,10 +1972,10 @@ namespace Snap7
             if (!Connected)
             {
                 TCPConnect(); // First stage : TCP Connection
-                if (_LastError == 0) 
+                if (_LastError == 0)
                 {
                     ISOConnect(); // Second stage : ISOTCP (ISO 8073) Connection
-                    if (_LastError == 0) 
+                    if (_LastError == 0)
                     {
                         _LastError = NegotiatePduLength(); // Third stage : S7 PDU negotiation
                     }
@@ -2063,7 +2063,7 @@ namespace Snap7
         public int SetParam(Int32 ParamNumber, ref int Value)
         {
             int Result = 0;
-            switch(ParamNumber)
+            switch (ParamNumber)
             {
                 case S7Consts.p_u16_RemotePort:
                     {
@@ -2096,7 +2096,7 @@ namespace Snap7
                         break;
                     }
             }
-            return Result; 
+            return Result;
         }
 
         public delegate void S7CliCompletion(IntPtr usrPtr, int opCode, int opResult);
@@ -2150,7 +2150,7 @@ namespace Snap7
                     WordSize = 1;
                     WordLen = S7Consts.S7WLByte;
                 }
-            }        
+            }
 
             MaxElements = (_PDULength - 18) / WordSize; // 18 = Reply telegram header
             TotElements = Amount;
@@ -2196,7 +2196,7 @@ namespace Snap7
                     Length = RecvIsoPacket();
                     if (_LastError == 0)
                     {
-                        if (Length<25)
+                        if (Length < 25)
                             _LastError = S7Consts.errIsoInvalidDataSize;
                         else
                         {
@@ -2266,7 +2266,7 @@ namespace Snap7
                     WordSize = 1;
                     WordLen = S7Consts.S7WLByte;
                 }
-            }        
+            }
 
             MaxElements = (_PDULength - 35) / WordSize; // 35 = Reply telegram header
             TotElements = Amount;
@@ -2374,8 +2374,8 @@ namespace Snap7
             int Length;
             int ItemSize;
             byte[] S7Item = new byte[12];
-            byte[] S7ItemRead = new byte[1024]; 
-            
+            byte[] S7ItemRead = new byte[1024];
+
             _LastError = 0;
             Time_ms = 0;
             int Elapsed = Environment.TickCount;
@@ -2383,7 +2383,7 @@ namespace Snap7
             // Checks items
             if (ItemsCount > MaxVars)
                 return S7Consts.errCliTooManyItems;
-            
+
             // Fills Header
             Array.Copy(S7_MRD_HEADER, 0, PDU, 0, S7_MRD_HEADER.Length);
             S7.SetWordAt(PDU, 13, (ushort)(ItemsCount * S7Item.Length + 2));
@@ -2398,7 +2398,7 @@ namespace Snap7
                 if (Items[c].Area == S7Consts.S7AreaDB)
                     S7.SetWordAt(S7Item, 6, (ushort)Items[c].DBNumber);
                 S7Item[8] = (byte)Items[c].Area;
-                
+
                 // Address into the PLC
                 int Address = Items[c].Start;
                 S7Item[11] = (byte)(Address & 0x0FF);
@@ -2416,7 +2416,7 @@ namespace Snap7
 
             S7.SetWordAt(PDU, 2, (ushort)Offset); // Whole size
             SendPacket(PDU, Offset);
-            
+
             if (_LastError != 0)
                 return _LastError;
             // Get Answer
@@ -2435,17 +2435,17 @@ namespace Snap7
                 return _LastError;
             // Get true ItemsCount
             int ItemsRead = S7.GetByteAt(PDU, 20);
-            if ((ItemsRead != ItemsCount) || (ItemsRead>MaxVars))
+            if ((ItemsRead != ItemsCount) || (ItemsRead > MaxVars))
             {
                 _LastError = S7Consts.errCliInvalidPlcAnswer;
                 return _LastError;
             }
             // Get Data
-            Offset = 21;           
+            Offset = 21;
             for (int c = 0; c < ItemsCount; c++)
             {
                 // Get the Item
-                Array.Copy(PDU, Offset, S7ItemRead, 0, Length-Offset);
+                Array.Copy(PDU, Offset, S7ItemRead, 0, Length - Offset);
                 if (S7ItemRead[0] == 0xff)
                 {
                     ItemSize = (int)S7.GetWordAt(S7ItemRead, 2);
@@ -2462,7 +2462,7 @@ namespace Snap7
                     Items[c].Result = CpuError(S7ItemRead[0]);
                     Offset += 4; // Skip the Item header                           
                 }
-            }         
+            }
             Time_ms = Environment.TickCount - Elapsed;
             return _LastError;
         }
@@ -2490,7 +2490,7 @@ namespace Snap7
             PDU[18] = (byte)ItemsCount;
             // Fills Params
             Offset = S7_MWR_HEADER.Length;
-            for (int c=0; c<ItemsCount; c++)
+            for (int c = 0; c < ItemsCount; c++)
             {
                 Array.Copy(S7_MWR_PARAM, 0, S7ParItem, 0, S7_MWR_PARAM.Length);
                 S7ParItem[3] = (byte)Items[c].WordLen;
@@ -2525,23 +2525,23 @@ namespace Snap7
                         S7DataItem[1] = TS_ResByte; // byte/word/dword etc.
                         break;
                 };
-                if ((Items[c].WordLen==S7Consts.S7WLTimer) || (Items[c].WordLen == S7Consts.S7WLCounter))
+                if ((Items[c].WordLen == S7Consts.S7WLTimer) || (Items[c].WordLen == S7Consts.S7WLCounter))
                     ItemDataSize = Items[c].Amount * 2;
                 else
                     ItemDataSize = Items[c].Amount;
 
                 if ((S7DataItem[1] != TS_ResOctet) && (S7DataItem[1] != TS_ResBit))
-                    S7.SetWordAt(S7DataItem, 2, (ushort)(ItemDataSize*8));
+                    S7.SetWordAt(S7DataItem, 2, (ushort)(ItemDataSize * 8));
                 else
                     S7.SetWordAt(S7DataItem, 2, (ushort)ItemDataSize);
 
                 Marshal.Copy(Items[c].pData, S7DataItem, 4, ItemDataSize);
                 if (ItemDataSize % 2 != 0)
                 {
-                    S7DataItem[ItemDataSize+4] = 0x00;
+                    S7DataItem[ItemDataSize + 4] = 0x00;
                     ItemDataSize++;
                 }
-                Array.Copy(S7DataItem, 0, PDU, Offset, ItemDataSize+4);
+                Array.Copy(S7DataItem, 0, PDU, Offset, ItemDataSize + 4);
                 Offset = Offset + ItemDataSize + 4;
                 DataLength = DataLength + ItemDataSize + 4;
             }
@@ -2555,7 +2555,7 @@ namespace Snap7
             SendPacket(PDU, Offset);
 
             RecvIsoPacket();
-            if (_LastError==0)
+            if (_LastError == 0)
             {
                 // Check Global Operation Result
                 _LastError = CpuError(S7.GetWordAt(PDU, 17));
@@ -2569,7 +2569,7 @@ namespace Snap7
                     return _LastError;
                 }
 
-                for (int c=0; c<ItemsCount; c++)
+                for (int c = 0; c < ItemsCount; c++)
                 {
                     if (PDU[c + 21] == 0xFF)
                         Items[c].Result = 0;
@@ -2654,9 +2654,9 @@ namespace Snap7
         {
             byte[] sBuffer = new byte[Amount * 2];
             int Result = ReadArea(S7Consts.S7AreaCT, 0, Start, Amount, S7Consts.S7WLCounter, sBuffer);
-            if (Result==0)
+            if (Result == 0)
             {
-                for (int c=0; c<Amount; c++)
+                for (int c = 0; c < Amount; c++)
                 {
                     Buffer[c] = (ushort)((sBuffer[c * 2 + 1] << 8) + (sBuffer[c * 2]));
                 }
@@ -2669,8 +2669,8 @@ namespace Snap7
             byte[] sBuffer = new byte[Amount * 2];
             for (int c = 0; c < Amount; c++)
             {
-                sBuffer[c * 2 + 1] = (byte)((Buffer[c] & 0xFF00)>>8);
-                sBuffer[c * 2]= (byte)(Buffer[c] & 0x00FF);
+                sBuffer[c * 2 + 1] = (byte)((Buffer[c] & 0xFF00) >> 8);
+                sBuffer[c * 2] = (byte)(Buffer[c] & 0x00FF);
             }
             return WriteArea(S7Consts.S7AreaCT, 0, Start, Amount, S7Consts.S7WLCounter, sBuffer);
         }
@@ -2686,7 +2686,7 @@ namespace Snap7
 
         private string SiemensTimestamp(long EncodedDate)
         {
-            DateTime DT = new DateTime(1984, 1, 1).AddSeconds(EncodedDate*86400);
+            DateTime DT = new DateTime(1984, 1, 1).AddSeconds(EncodedDate * 86400);
 #if WINDOWS_UWP || NETFX_CORE
             return DT.ToString(System.Globalization.DateTimeFormatInfo.CurrentInfo.ShortDatePattern);
 #else
@@ -2722,19 +2722,19 @@ namespace Snap7
                     ushort Result = S7.GetWordAt(PDU, 27);
                     if (Result == 0)
                     {
-                        Info.BlkFlags= PDU[42];
+                        Info.BlkFlags = PDU[42];
                         Info.BlkLang = PDU[43];
                         Info.BlkType = PDU[44];
                         Info.BlkNumber = S7.GetWordAt(PDU, 45);
                         Info.LoadSize = S7.GetDIntAt(PDU, 47);
                         Info.CodeDate = SiemensTimestamp(S7.GetWordAt(PDU, 59));
-                        Info.IntfDate = SiemensTimestamp(S7.GetWordAt(PDU, 65)); 
+                        Info.IntfDate = SiemensTimestamp(S7.GetWordAt(PDU, 65));
                         Info.SBBLength = S7.GetWordAt(PDU, 67);
                         Info.LocalData = S7.GetWordAt(PDU, 71);
                         Info.MC7Size = S7.GetWordAt(PDU, 73);
-                        Info.Author = S7.GetCharsAt(PDU, 75, 8).Trim(new char[]{(char)0});
-                        Info.Family = S7.GetCharsAt(PDU, 83, 8).Trim(new char[]{(char)0});
-                        Info.Header = S7.GetCharsAt(PDU, 91, 8).Trim(new char[]{(char)0}); 
+                        Info.Author = S7.GetCharsAt(PDU, 75, 8).Trim(new char[] { (char)0 });
+                        Info.Family = S7.GetCharsAt(PDU, 83, 8).Trim(new char[] { (char)0 });
+                        Info.Header = S7.GetCharsAt(PDU, 91, 8).Trim(new char[] { (char)0 });
                         Info.Version = PDU[99];
                         Info.CheckSum = S7.GetWordAt(PDU, 101);
                     }
@@ -2748,7 +2748,7 @@ namespace Snap7
                 Time_ms = Environment.TickCount - Elapsed;
 
             return _LastError;
-            
+
         }
 
         public int GetPgBlockInfo(ref S7BlockInfo Info, byte[] Buffer, int Size)
@@ -2793,7 +2793,7 @@ namespace Snap7
 
             _LastError = GetAgBlockInfo(Block_DB, DBNumber, ref BI);
 
-            if (_LastError==0)
+            if (_LastError == 0)
             {
                 int DBSize = BI.MC7Size;
                 if (DBSize <= UsrData.Length)
@@ -2804,7 +2804,7 @@ namespace Snap7
                         Size = DBSize;
                 }
                 else
-                    _LastError = S7Consts.errCliBufferTooSmall;                  
+                    _LastError = S7Consts.errCliBufferTooSmall;
             }
             if (_LastError == 0)
                 Time_ms = Environment.TickCount - Elapsed;
@@ -2816,9 +2816,9 @@ namespace Snap7
             S7BlockInfo BI = new S7BlockInfo();
             int Elapsed = Environment.TickCount;
             Time_ms = 0;
-            
+
             _LastError = GetAgBlockInfo(Block_DB, DBNumber, ref BI);
-            
+
             if (_LastError == 0)
             {
                 byte[] Buffer = new byte[BI.MC7Size];
@@ -2859,7 +2859,7 @@ namespace Snap7
                     _LastError = S7Consts.errIsoInvalidPDU;
             }
 
-            if(_LastError==0)
+            if (_LastError == 0)
                 Time_ms = Environment.TickCount - Elapsed;
 
             return _LastError;
@@ -3041,7 +3041,7 @@ namespace Snap7
                 First = false;
             }
             while (!Done && (_LastError == 0));
-            if (_LastError==0)
+            if (_LastError == 0)
             {
                 Size = SZL.Header.LENTHDR;
                 Time_ms = Environment.TickCount - Elapsed;
@@ -3127,11 +3127,11 @@ namespace Snap7
                 int Length = RecvIsoPacket();
                 if (Length > 18) // 18 is the minimum expected
                 {
-                    if (PDU[19]!=pduStop)
+                    if (PDU[19] != pduStop)
                         _LastError = S7Consts.errCliCannotStopPLC;
                     else
-                    { 
-                        if (PDU[20]== pduAlreadyStopped)
+                    {
+                        if (PDU[20] == pduAlreadyStopped)
                             _LastError = S7Consts.errCliAlreadyStop;
                         else
                             _LastError = S7Consts.errCliCannotStopPLC;
@@ -3292,10 +3292,10 @@ namespace Snap7
                 return S7Consts.errIsoInvalidPDU;
             }
             SendPacket(PDU, TPKT_ISO.Length + Size);
-            if (_LastError==0)
+            if (_LastError == 0)
             {
-                int Length=RecvIsoPacket();
-                if (_LastError==0)
+                int Length = RecvIsoPacket();
+                if (_LastError == 0)
                 {
                     Array.Copy(PDU, TPKT_ISO.Length, Buffer, 0, Length - TPKT_ISO.Length);
                     Size = Length - TPKT_ISO.Length;
@@ -3553,7 +3553,7 @@ namespace Snap7
                     value = MinPduSizeToRequest;
                 if (value > MaxPduSizeToRequest)
                     value = MaxPduSizeToRequest;
-                _PduSizeRequested = value;       
+                _PduSizeRequested = value;
             }
         }
 

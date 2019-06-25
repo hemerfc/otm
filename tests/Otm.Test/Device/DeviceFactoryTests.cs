@@ -2,6 +2,8 @@ using System;
 using Xunit;
 using Otm.Device;
 using Otm.Config;
+using Moq;
+using Otm.Logger;
 
 namespace Otm.Test.Device
 {
@@ -19,8 +21,9 @@ namespace Otm.Test.Device
                     Tags = null
                 }
             };
-        
-            var ex = Record.Exception(() => new DeviceFactory().CreateDevices(dvConfig));
+            var loggerFactory = new Mock<ILoggerFactory>();
+            
+            var ex = Record.Exception(() => new DeviceFactory().CreateDevices(dvConfig, loggerFactory.Object));
 
             Assert.Equal("Name", ex?.Data["field"]);
         }
@@ -36,9 +39,10 @@ namespace Otm.Test.Device
                     Config = "",
                     Tags = null
                 }
-            };        
+            };
 
-            var ex = Record.Exception(() => new DeviceFactory().CreateDevices(dpConfig));
+            var loggerFactory = new Mock<ILoggerFactory>();
+            var ex = Record.Exception(() => new DeviceFactory().CreateDevices(dpConfig, loggerFactory.Object));
             Assert.Equal("Driver", ex?.Data["field"]);
         }
 
@@ -63,7 +67,8 @@ namespace Otm.Test.Device
         
             var factory = new DeviceFactory();
 
-            var devices = factory.CreateDevices(dpConfig);
+            var loggerFactory = new Mock<ILoggerFactory>();
+            var devices = factory.CreateDevices(dpConfig, loggerFactory.Object);
 
             Assert.Equal(2, devices.Count);
 

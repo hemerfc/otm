@@ -48,8 +48,8 @@ namespace Otm
             try 
             {
                 DataPoints = DataPointFactory.CreateDataPoints(Config.DataPoints);
-                Devices = DeviceFactory.CreateDevices(Config.Devices);            
-                Transactions = TransactionFactory.CreateTransactions(Config.Transactions, DataPoints, Devices);
+                Devices = DeviceFactory.CreateDevices(Config.Devices, LoggerFactory);            
+                Transactions = TransactionFactory.CreateTransactions(Config.Transactions, DataPoints, Devices, LoggerFactory);
                 Logger.Info("OTM Initialized!");
             } 
             catch (Exception ex)
