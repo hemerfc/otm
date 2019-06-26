@@ -105,7 +105,7 @@ namespace Otm.Test
                 dict.Add(it.Name, new Mock<IDataPoint>().Object);
 
             var dpMock = new Mock<IDataPointFactory>();
-            dpMock.Setup(x => x.CreateDataPoints(config))
+            dpMock.Setup(x => x.CreateDataPoints(It.IsAny<DataPointConfig[]>()))
                 .Returns(dict);
         
             return dpMock.Object;
@@ -119,8 +119,8 @@ namespace Otm.Test
                 dict.Add(it.Name, new Mock<IDevice>().Object);
 
             var dvMock = new Mock<IDeviceFactory>();
-            var loggerFactoryMock = new Mock<ILoggerFactory>();
-            dvMock.Setup(x => x.CreateDevices(config, loggerFactoryMock.Object))
+            
+            dvMock.Setup(x => x.CreateDevices(It.IsAny<DeviceConfig[]>(), It.IsAny<ILoggerFactory>()))
                 .Returns(dict);
                 
             return dvMock.Object;
