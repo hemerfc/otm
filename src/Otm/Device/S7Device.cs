@@ -141,7 +141,6 @@ namespace Otm.Device
 
         public void UpdateTags()
         {
-            object currentValue;
             if (this.Connected)
             {
                 // get dbs
@@ -157,16 +156,8 @@ namespace Otm.Device
                             switch (tag.Value.Type)
                             {
                                 case "int":
-                                    currentValue = S7.GetIntAt(db.Value.Buffer, tag.Value.Offset);
+                                    tag.Value.Value = S7.GetIntAt(db.Value.Buffer, tag.Value.Offset);
 
-                                    if (tag.Value.Value != currentValue)
-                                    { 
-                                        
-                                        if (tagsAction.ContainsKey(tag.Key))
-                                        {
-                                            tagsAction[tag.Key](tag.Key, tag.Value.Value);
-                                        }
-                                    }
                                     break;
                                 case "real":
                                     tag.Value.Value = S7.GetRealAt(db.Value.Buffer, tag.Value.Offset);
@@ -178,6 +169,14 @@ namespace Otm.Device
                                     Logger.Error($"Dev {dvConfig.Name}: Get value error. Tag {tag.Key}");
                                     break;
                             }
+                            
+                            if (tag.Value.Value != tag.Value.OldValue)
+                            {
+                                if (tagsAction.ContainsKey(tag.Key))
+                                {
+                                    tagsAction[tag.Key](tag.Key, tag.Value.Value);
+                                }
+                            } 
                         }
                     }
                     else

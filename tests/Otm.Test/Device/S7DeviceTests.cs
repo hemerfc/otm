@@ -7,7 +7,7 @@ using Moq;
 using Otm.Logger;
 using NLog;
 
-namespace Otm.Test.DataPoint
+namespace Otm.Test.Device
 {
     public class S7DeviceTests
     {
@@ -37,23 +37,22 @@ namespace Otm.Test.DataPoint
                 }
             };
 
-            var connected = false;
             var buffer = new byte[13];
-            byte dw10 = 0;
+            byte dw10 = 99;
 
             var clientMock = new Mock<IS7Client>();
             // on the first call conected will be False
-            clientMock.SetupGet(x => x.Connected).Returns(true);
+            clientMock.Setup(x => x.Connected).Returns(true);
 
             clientMock.Setup(x => x.ConnectTo("127.0.01", 0, 0))
                        .Returns(0);
 
             clientMock.Setup(x => x.ErrorText(0)).Returns("No error");
-            clientMock.Setup(x => x.DBRead(800, 0, 13, It.IsAny<byte[]>()))
+            clientMock.Setup(x => x.DBRead(800, 0, 14, It.IsAny<byte[]>()))
                       .Callback<int, int, int, byte[]>((dbNumber, start, lenght, buf) => 
                       {
-                          // change second byte of dw10
-                           buf[11] = dw10;
+                          // change second byte of dw13
+                           buf[13] = dw10;
                       });
 
             var factoryMock = new Mock<IS7ClientFactory>();
@@ -61,13 +60,17 @@ namespace Otm.Test.DataPoint
 
             var loggerFactoryMock = new Mock<ILoggerFactory>();
             loggerFactoryMock.Setup(x => x.GetCurrentClassLogger()).Returns(new Mock<ILogger>().Object);
-            var devPlc01 = new S7Device(dvConfig, new S7ClientFactory(), loggerFactoryMock.Object);
+            var devPlc01 = new S7Device(dvConfig, factoryMock.Object, loggerFactoryMock.Object);
 
             devPlc01.UpdateTags();
             
-            var tag2 = 0;
+            var tag2 = -1;
+            // update tag value to 0
+            dw10 = 0;
             // assign a function to be executed when tag value is changed
-            devPlc01.OnTagChange("tag2", (str, value) => { tag2 = (int)value; });
+            devPlc01.OnTagChange("tag2", (str, value) => {
+                tag2 = (int)value;
+            });
 
             devPlc01.UpdateTags();
 
