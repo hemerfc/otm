@@ -47,7 +47,7 @@ namespace Otm
             Logger.Info("OTM Initializing...");
             try 
             {
-                DataPoints = DataPointFactory.CreateDataPoints(Config.DataPoints);
+                DataPoints = DataPointFactory.CreateDataPoints(Config.DataPoints, LoggerFactory);
                 Devices = DeviceFactory.CreateDevices(Config.Devices, LoggerFactory);            
                 Transactions = TransactionFactory.CreateTransactions(Config.Transactions, DataPoints, Devices, LoggerFactory);
                 Logger.Info("OTM Initialized!");

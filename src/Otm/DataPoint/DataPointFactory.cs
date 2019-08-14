@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using NLog;
 using Otm.Config;
+using Otm.Logger;
 
 namespace Otm.DataPoint
 {
     public class DataPointFactory : IDataPointFactory
     {
-        public IDictionary<string, IDataPoint> CreateDataPoints(IEnumerable<DataPointConfig> dataPointsConfig)
+        public IDictionary<string, IDataPoint> CreateDataPoints(IEnumerable<DataPointConfig> dataPointsConfig, ILoggerFactory loggerFactory)
         {
             var datapoints = new Dictionary<string, IDataPoint>();
 
@@ -23,7 +24,7 @@ namespace Otm.DataPoint
                 switch (dpConfig.Driver)
                 {
                     case "pg":
-                        datapoints.Add(dpConfig.Name, new PgDataPoint(dpConfig));
+                        datapoints.Add(dpConfig.Name, new PgDataPoint(dpConfig, loggerFactory));
                         break;
                     default:
                         var ex = new Exception("Invalid DataPointDriver in config. Driver:" + dpConfig.Driver);

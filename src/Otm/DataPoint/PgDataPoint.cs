@@ -4,16 +4,19 @@ using System.Collections.Generic;
 using System.Data;
 using Npgsql;
 using Otm.Config;
+using Otm.Logger;
 
 namespace Otm.DataPoint
 {
     public class PgDataPoint : IDataPoint
     {
         public DataPointConfig Config { get; set; }
+        public ILoggerFactory LoggerFactory { get; set; }
 
-        public PgDataPoint(DataPointConfig config)
+        public PgDataPoint(DataPointConfig config, ILoggerFactory loggerFactory)
         {
             Config = config;
+            LoggerFactory = loggerFactory;
         }
 
         public IDictionary<string, object> Execute(IDictionary<string, object> input)
@@ -25,10 +28,9 @@ namespace Otm.DataPoint
                 var lparam = Array.ConvertAll(Config.Params, x => $"{x.Name} => @{x.Name}");
                 var strParams = string.Join(",", lparam);
 
-                using (var command = conn.CreateCommand())
+                using (var command = new NpgsqlCommand(Config.Name, conn))
                 {
-                    var sql = $"CALL {Config.Name}({strParams})";
-                    command.CommandText = sql;
+                    command.CommandType = CommandType.StoredProcedure;
 
                     foreach(var param in Config.Params)
                     {                        
@@ -36,7 +38,7 @@ namespace Otm.DataPoint
 
                         if (param.Mode == "out")
                         {
-                            sqlParam.Direction = ParameterDirection.InputOutput;
+                            sqlParam.Direction = ParameterDirection.Output;
                         } 
                         else if (param.Mode == "in") 
                         {

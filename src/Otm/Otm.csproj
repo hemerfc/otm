@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Snap7\Snap7.csproj" />
+    <ProjectReference Include="./../Snap7/Snap7.csproj" />
   </ItemGroup>
   
 </Project>

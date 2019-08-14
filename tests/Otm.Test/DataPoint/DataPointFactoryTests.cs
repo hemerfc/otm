@@ -2,6 +2,9 @@ using System;
 using Xunit;
 using Otm.DataPoint;
 using Otm.Config;
+using Moq;
+using Otm.Logger;
+using NLog;
 
 namespace Otm.Test.DataPoint
 {
@@ -20,7 +23,10 @@ namespace Otm.Test.DataPoint
                 }
             };
         
-            var ex = Record.Exception(() => new DataPointFactory().CreateDataPoints(dpConfig));
+            var loggerFactoryMock = new Mock<ILoggerFactory>();
+            loggerFactoryMock.Setup(x => x.GetCurrentClassLogger()).Returns(new Mock<ILogger>().Object);
+
+            var ex = Record.Exception(() => new DataPointFactory().CreateDataPoints(dpConfig, loggerFactoryMock.Object));
 
             Assert.Equal("Name", ex?.Data["field"]);
         }
@@ -38,7 +44,10 @@ namespace Otm.Test.DataPoint
                 }
             };        
 
-            var ex = Record.Exception(() => new DataPointFactory().CreateDataPoints(dpConfig));
+            var loggerFactoryMock = new Mock<ILoggerFactory>();
+            loggerFactoryMock.Setup(x => x.GetCurrentClassLogger()).Returns(new Mock<ILogger>().Object);
+
+            var ex = Record.Exception(() => new DataPointFactory().CreateDataPoints(dpConfig, loggerFactoryMock.Object));
 
             Assert.Equal("Driver", ex?.Data["field"]);
         }
@@ -64,7 +73,10 @@ namespace Otm.Test.DataPoint
         
             var factory = new DataPointFactory();
 
-            var datapoints = factory.CreateDataPoints(dpConfig);
+            var loggerFactoryMock = new Mock<ILoggerFactory>();
+            loggerFactoryMock.Setup(x => x.GetCurrentClassLogger()).Returns(new Mock<ILogger>().Object);
+
+            var datapoints = factory.CreateDataPoints(dpConfig, loggerFactoryMock.Object);
 
             Assert.Equal(2, datapoints.Count);
 

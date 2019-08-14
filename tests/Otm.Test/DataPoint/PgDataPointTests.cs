@@ -3,6 +3,9 @@ using Xunit;
 using Otm.DataPoint;
 using Otm.Config;
 using System.Collections.Generic;
+using Moq;
+using Otm.Logger;
+using NLog;
 
 namespace Otm.Test.DataPoint
 {
@@ -36,7 +39,10 @@ namespace Otm.Test.DataPoint
             inParams["p1"] = 1;
             inParams["p2"] = 0;
         
-            var dpSpTest01 = new DataPointFactory().CreateDataPoints(dpConfig)["sp_test01"];
+            var loggerFactoryMock = new Mock<ILoggerFactory>();
+            loggerFactoryMock.Setup(x => x.GetCurrentClassLogger()).Returns(new Mock<ILogger>().Object);
+            
+            var dpSpTest01 = new DataPointFactory().CreateDataPoints(dpConfig, loggerFactoryMock.Object)["sp_test01"];
 
             var outParams = dpSpTest01.Execute(inParams);
             

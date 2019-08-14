@@ -105,7 +105,7 @@ namespace Otm.Test
                 dict.Add(it.Name, new Mock<IDataPoint>().Object);
 
             var dpMock = new Mock<IDataPointFactory>();
-            dpMock.Setup(x => x.CreateDataPoints(It.IsAny<DataPointConfig[]>()))
+            dpMock.Setup(x => x.CreateDataPoints(It.IsAny<DataPointConfig[]>(), It.IsAny<ILoggerFactory>()))
                 .Returns(dict);
         
             return dpMock.Object;
