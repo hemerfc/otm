@@ -38,7 +38,7 @@ namespace Otm
                         var appPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
                         var configPath = appPath + "/config.json";
 
-                        var configString = File.ReadAllText(configPath);                        
+                        var configString = File.ReadAllText(configPath);
                         var rootconfig = JsonConvert.DeserializeObject<RootConfig>(configString);
 
                         var dataPointFactory = new DataPointFactory();

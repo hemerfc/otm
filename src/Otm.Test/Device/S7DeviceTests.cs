@@ -23,15 +23,15 @@ namespace Otm.Test.Device
                     new DeviceTagConfig {  
                         Name = "tag1",
                         Type = "int",
-                        Mode = "in",
-                        Address = "DB800.DW10",
+                        Mode = "in", // write to plc
+                        Address = "db801.dw0",
                         Rate = 50                            
                     },
                     new DeviceTagConfig{
                         Name = "tag2",
                         Type = "int",
-                        Mode = "out",
-                        Address = "DB800.DW12",
+                        Mode = "out", // read from plc
+                        Address = "db800.dw12",
                         Rate = 50
                     }
                 }
@@ -68,7 +68,7 @@ namespace Otm.Test.Device
             // update tag value to 0
             dw10 = 0;
             // assign a function to be executed when tag value is changed
-            devPlc01.OnTagChange("tag2", (str, value) => {
+            devPlc01.OnTagChangeAdd("tag2", (str, value) => {
                 tag2 = (int)value;
             });
 

@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Snap7", "src\Snap7\Snap7.cs
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{243FF000-F7A2-4F40-9B17-1F3231654E6C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Otm.Test", "tests\Otm.Test\Otm.Test.csproj", "{72491E00-2BD7-4607-8A76-3DA45D0BD221}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Otm.Test", "src\Otm.Test\Otm.Test.csproj", "{72491E00-2BD7-4607-8A76-3DA45D0BD221}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

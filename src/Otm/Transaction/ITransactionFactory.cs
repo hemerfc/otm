@@ -10,7 +10,10 @@ namespace Otm.Transaction
 {
     public interface ITransactionFactory
     {
-        IDictionary<string, ITransaction> CreateTransactions(IEnumerable<TransactionConfig> config, 
-        IDictionary<string, IDataPoint> dataPoints, IDictionary<string, IDevice> devices, ILoggerFactory loggerFactory);
+        IDictionary<string, ITransaction> CreateTransactions(
+            IEnumerable<TransactionConfig> transactionsConfig, 
+            IDictionary<string, IDataPoint> dataPoints, 
+            IDictionary<string, IDevice> devices, 
+            ILoggerFactory loggerFactory);
     }
 }

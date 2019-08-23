@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "src/Otm/otm.csproj"
+                "src/otm.csproj"
             ],
             "problemMatcher": "$tsc"
         },
@@ -17,7 +17,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "src/Otm/otm.csproj"
+                "src/otm.csproj"
             ],
             "problemMatcher": "$tsc"
         },
@@ -28,7 +28,7 @@
             "args": [
                 "watch",
                 "run",
-                "src/Otm/otm.csproj"
+                "src/otm.csproj"
             ],
             "problemMatcher": "$tsc"
         },
@@ -38,7 +38,7 @@
             "type": "process",
             "args": [
                 "test",
-                "src/Otm.Test/test.csproj"
+                "test/test.csproj"
             ],
             "problemMatcher": "$msCompile",
             "group": {

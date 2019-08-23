@@ -27,14 +27,14 @@
         "Tags": [
           {
             "Name": "tag1",
-            "Address": "DB800.W10",
+            "Address": "db800.w10",
             "Rate": 50,
             "Mode": "in",
             "Type": "int"
           },
           {
             "Name": "tag2",
-            "Address": "DB800.W12",
+            "Address": "db800.w2",
             "Rate": 50,
             "Mode": "out",
             "Type": "int"
@@ -45,9 +45,10 @@
     "Transactions": [
       {
         "Name": "tr01",
-        "TriggerType": "on_change",
+        "DataPointName": "sp_test01",
+        "DeviceName": "plc01",
+        "TriggerType": "on_tag_change",
         "TriggerTagName": "",
-        "DataPointName": "",
         "Binds": [
           {
             "DataPointParam": "",

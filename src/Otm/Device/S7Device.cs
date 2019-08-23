@@ -16,10 +16,11 @@ namespace Otm.Device
         public ILogger Logger { get; private set; }
         public bool Connected { get { return client?.Connected ?? false; } }
 
-        private DeviceConfig dvConfig;
+        private DeviceConfig Config;
         private Dictionary<int, DB> dbDict;
         private readonly IS7Client client;
         private readonly Dictionary<string, Action<string, object>> tagsAction;
+        private readonly Dictionary<string, object> tagValues;
         private string host;
         private int rack;
         private int slot;
@@ -29,9 +30,10 @@ namespace Otm.Device
         {
             this.LoggerFactory = loggerFactory;
             this.Logger = LoggerFactory.GetCurrentClassLogger();
-            this.dvConfig = dvConfig;
+            this.Config = dvConfig;
             this.client = clientFactory.CreateClient();
             this.tagsAction = new Dictionary<string, Action<string, object>>();
+            this.tagValues = new Dictionary<string, object>();
             GetConfig(dvConfig);
         }
 
@@ -72,7 +74,7 @@ namespace Otm.Device
                 var validG1 = new String[] { "db" };
                 var validG3 = new String[] { "dw", "w", "x", "b" };
 
-                var match = regex.Match(t.Address.ToLower());
+                var match = regex.Match(t.Address);
                 var g = match.Groups;
                 var vg1 = validG1.Contains(g["g1"].Value);
                 var vg2 = int.TryParse(g["g2"].Value, out var dbValue);
@@ -101,9 +103,9 @@ namespace Otm.Device
                     var it = new DBItem();
                     it.Offset = byteOffset;
                     it.BitOffset = bitOffset;
-                    it.Type = t.Type.ToLower();
+                    it.Type = t.Type;
 
-                    switch (g["g3"].Value.ToLower())
+                    switch (g["g3"].Value)
                     {
                         case "dw":
                             it.Lenght = 2;
@@ -120,13 +122,21 @@ namespace Otm.Device
                     if (!dict.ContainsKey(dbValue))
                     {
                         dict[dbValue] = new DB();
+                        dict[dbValue].Mode = t.Mode;
                         dict[dbValue].Itens = new Dictionary<string, DBItem>();
+                    } else 
+                    {
+                        if (dict[dbValue].Mode != t.Mode)
+                        {
+                            var err = $"Dev {dvConfig.Name}: Tag parse error Tag {t.Name} {t.Address}, can't have in and out tag in same DB!";
+                            throw new Exception(err);
+                        }
                     }
 
                     if (!dict[dbValue].Itens.Keys.Contains(t.Name))
                         dict[dbValue].Itens[t.Name] = it;
-                    else
-                        Logger.Error($"Dev {dvConfig.Name}: Duplicated tag {t.Name}");
+                    else                
+                        throw new Exception($"Dev {dvConfig.Name}: Duplicated tag {t.Name}");
 
                     if (dict[dbValue].Lenght < it.Offset + it.Lenght)
                         dict[dbValue].Lenght = it.Offset + it.Lenght;
@@ -150,38 +160,44 @@ namespace Otm.Device
 
                     if (err == 0)
                     {
-                        foreach(var tag in db.Value.Itens)
+                        if (db.Value.Mode == "out") 
                         {
-                            tag.Value.OldValue = tag.Value.Value;
-                            switch (tag.Value.Type)
+                            foreach(var tag in db.Value.Itens)
                             {
-                                case "int":
-                                    tag.Value.Value = S7.GetIntAt(db.Value.Buffer, tag.Value.Offset);
-
-                                    break;
-                                case "real":
-                                    tag.Value.Value = S7.GetRealAt(db.Value.Buffer, tag.Value.Offset);
-                                    break;
-                                case "bool":
-                                    tag.Value.Value = S7.GetBitAt(db.Value.Buffer, tag.Value.Offset, tag.Value.BitOffset);
-                                    break;
-                                default:
-                                    Logger.Error($"Dev {dvConfig.Name}: Get value error. Tag {tag.Key}");
-                                    break;
-                            }
-                            
-                            if (tag.Value.Value != tag.Value.OldValue)
-                            {
-                                if (tagsAction.ContainsKey(tag.Key))
+                                tag.Value.OldValue = tag.Value.Value;
+                                switch (tag.Value.Type)
                                 {
-                                    tagsAction[tag.Key](tag.Key, tag.Value.Value);
+                                    case "int":
+                                        tag.Value.Value = S7.GetIntAt(db.Value.Buffer, tag.Value.Offset);                                    
+                                        tagValues[tag.Key] = tag.Value.Value;
+                                        break;
+                                    case "real":
+                                        tag.Value.Value = S7.GetRealAt(db.Value.Buffer, tag.Value.Offset);                                    
+                                        tagValues[tag.Key] = tag.Value.Value;
+                                        break;
+                                    case "bool":
+                                        tag.Value.Value = S7.GetBitAt(db.Value.Buffer, tag.Value.Offset, tag.Value.BitOffset);                                    
+                                        tagValues[tag.Key] = tag.Value.Value;
+                                        break;
+                                    default:
+                                        tagValues[tag.Key] = null;
+                                        Logger.Error($"Dev {Config.Name}: Get value error. Tag {tag.Key}");
+                                        break;
                                 }
-                            } 
+
+                                if (tag.Value.Value != tag.Value.OldValue)
+                                {
+                                    if (tagsAction.ContainsKey(tag.Key))
+                                    {
+                                        tagsAction[tag.Key](tag.Key, tag.Value.Value);
+                                    }
+                                } 
+                            }
                         }
                     }
                     else
                     {
-                        Logger.Error($"Dev {dvConfig.Name}: Error on read db {db.Value.Number}. Error {client.ErrorText(err)}");
+                        Logger.Error($"Dev {Config.Name}: Error on read db {db.Value.Number}. Error {client.ErrorText(err)}");
                     }
                 }
             }
@@ -189,6 +205,21 @@ namespace Otm.Device
             {
                 this.Reconnect();
             }
+        }
+
+        public DeviceTagConfig GetTagConfig(string name)
+        {
+            return Config.Tags.FirstOrDefault(x => x.Name == name);
+        }
+
+        public object GetTagValue(string tagName)
+        {
+            return tagValues[tagName];
+        }
+
+        public void SetTagValue(string tagName, object value)
+        {
+            tagValues[tagName] = value;
         }
 
         private void Reconnect()
@@ -202,26 +233,44 @@ namespace Otm.Device
                     var err = client.ErrorText(res);
                     connError = DateTime.Now;
 
-                    Logger.Error($"Dev {dvConfig.Name}: Connection error. {err}");
+                    Logger.Error($"Dev {Config.Name}: Connection error. {err}");
                 }
             }
             else
             {
                 connError = null;
 
-                Logger.Error($"Dev {dvConfig.Name}: Connected.");
+                Logger.Error($"Dev {Config.Name}: Connected.");
             }
         }
 
-        public void OnTagChange(string tagName, Action<string, object> triggerAction)
+        public void OnTagChangeAdd(string tagName, Action<string, object> triggerAction)
         {
-            tagsAction[tagName] = triggerAction;
+            var tagConfig = GetTagConfig(tagName);
+
+            // can't use a input tag as trigger, input put tags are writed to PLCn
+            if (tagConfig.Mode == "in") 
+            {
+                throw new Exception("Error can't put a trigger on a input tag");
+            }
+            tagsAction[tagName] += triggerAction;
+        }
+
+        public void OnTagChangeRemove(string tagName, Action<string, object> triggerAction)
+        {
+            tagsAction[tagName] -= triggerAction;
+        }
+
+        public bool ContainsTag(string tagName)
+        {
+            return tagsAction.ContainsKey(tagName);
         }
 
         public class DB
         {
             public int Number;
             public int Lenght;
+            public string Mode;
             public byte[] Buffer;
             public Dictionary<string, DBItem> Itens;
         }

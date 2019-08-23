@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using Npgsql;
 using Otm.Config;
 using Otm.Logger;
@@ -10,13 +11,18 @@ namespace Otm.DataPoint
 {
     public class PgDataPoint : IDataPoint
     {
-        public DataPointConfig Config { get; set; }
-        public ILoggerFactory LoggerFactory { get; set; }
+        private DataPointConfig Config { get; set; }
+        private ILoggerFactory LoggerFactory { get; set; }
 
         public PgDataPoint(DataPointConfig config, ILoggerFactory loggerFactory)
         {
             Config = config;
             LoggerFactory = loggerFactory;
+        }
+
+        public DataPointParamConfig GetParamConfig(string name)
+        {
+            return Config.Params.FirstOrDefault(x => x.Name == name);
         }
 
         public IDictionary<string, object> Execute(IDictionary<string, object> input)
@@ -25,8 +31,6 @@ namespace Otm.DataPoint
 
             using(var conn = CreateConnection())
             {
-                var lparam = Array.ConvertAll(Config.Params, x => $"{x.Name} => @{x.Name}");
-                var strParams = string.Join(",", lparam);
 
                 using (var command = new NpgsqlCommand(Config.Name, conn))
                 {
