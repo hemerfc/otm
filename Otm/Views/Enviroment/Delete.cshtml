@@ -1,0 +1,34 @@
+﻿@model DeleteViewModel<string>
+@{
+    ViewData["Title"] = "Excluir Ambiente?";
+    ViewData["breadcrumbs"] = new [] {"Configuração", "Excluir" };
+}
+
+<div id="basic-form" class="card card card-default scrollspy">
+  <div class="card-content">
+    <form asp-controller="Enviroment" asp-action="Delete">
+      <input type="hidden" value="@Model.Id" name="id" >
+
+      <div class="row">
+        <div class="col s12">
+          <p>
+            <label>
+              <input type="checkbox" name="confirm" value="@Model.Confirm??false" />
+              <span>Confirma a exclusão do Ambiente "@Model.Text"?</span>
+            </label>
+          </p>
+        </div>
+      </div>
+
+      <div asp-validation-summary="All" class="row"></div>
+
+      <div class="row">
+        <div class="input-field col s12">
+          <button class="btn cyan waves-effect waves-light right" type="submit" name="action">Excluir
+            <i class="material-icons left">save</i>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

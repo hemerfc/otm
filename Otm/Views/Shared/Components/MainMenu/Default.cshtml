@@ -1,0 +1,61 @@
+﻿@model IEnumerable<ConfigFile>
+
+<ul class="sidenav sidenav-collapsible leftside-navigation collapsible sidenav-fixed menu-shadow" id="slide-out" data-menu="menu-navigation" data-collapsible="menu-accordion">
+    <li class="navigation-header">
+        <a class="navigation-header-text">Ambientes</a>
+        <i class="navigation-header-icon material-icons">more_horiz</i>
+    </li>
+
+    @foreach (var config in Model)
+    {
+        <li class="bold">
+            <a class="collapsible-header waves-effect waves-cyan " href="javascript:void(0)" tabindex="0">
+                <i class="material-icons">build</i>
+                <span class="menu-title" data-i18n="Invoice">@config.Name</span>
+            </a>
+            <div class="collapsible-body">
+                <ul class="collapsible collapsible-sub" data-collapsible="accordion">
+                    <li>
+                        <a asp-controller="DataPoint" asp-action="Index" asp-route-configid="@config.Name">
+                            <i class="material-icons">radio_button_unchecked</i><span data-i18n="DataPoints">Data Points</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Device" asp-action="Index" asp-route-configid="@config.Name">
+                            <i class="material-icons">radio_button_unchecked</i><span data-i18n="Devices">Dispositivos</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Transaction" asp-action="Index" asp-route-configid="@config.Name">
+                            <i class="material-icons">radio_button_unchecked</i><span data-i18n="Devices">Transações</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Enviroment" asp-action="Edit" asp-route-configid="@config.Name">
+                            <i class="material-icons">create</i><span data-i18n="Devices">Editar</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+    }
+    <li class="bold">
+        <a class="waves-effect waves-cyan" is-active-route asp-controller="Enviroment" asp-action="Create" >
+            <i class="material-icons">add</i>
+            <span class="menu-title" data-i18n="Mail">Criar Ambiente</span>
+        </a>
+    </li>
+    <li class="bold">
+        <a class="waves-effect waves-cyan" href="">
+            <i class="material-icons">exit_to_app</i>
+            <span class="menu-title" data-i18n="Mail">Exit</span>
+        </a>
+    </li>
+
+    <div class="ps__rail-x" style="left: 0px; bottom: 0px;">
+        <div class="ps__thumb-x" tabindex="0" style="left: 0px; width: 0px;"></div>
+    </div>
+    <div class="ps__rail-y" style="top: 0px; height: 855px; right: 0px;">
+        <div class="ps__thumb-y" tabindex="0" style="top: 0px; height: 455px;"></div>
+    </div>
+</ul>

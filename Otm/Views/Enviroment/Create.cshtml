@@ -1,0 +1,40 @@
+﻿@model RootConfig
+@{
+    ViewData["Title"] = "Criar Ambiente";
+    ViewData["breadcrumbs"] = new [] {"Configuração", (string)ViewData["Type"] };
+}
+
+<div id="basic-form" class="card card card-default scrollspy">
+  <div class="card-content">
+    <form asp-controller="Enviroment" asp-action="Create">
+
+      <div class="row">
+        <div class="input-field col s12">
+          <input asp-for="Name" id="name" />
+          <label for="name">Nome</label>
+          <span asp-validation-for="Name" class="error"></span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col s12">
+          <p>
+            <label>
+              <input type="checkbox" asp-for="Enabled" />
+              <span>Habilitado</span>
+            </label>
+          </p>
+        </div>
+      </div>
+
+      <div asp-validation-summary="All" class="row"></div>
+
+      <div class="row">
+        <div class="input-field col s12">
+          <button class="btn cyan waves-effect waves-light right" type="submit" name="action">Salvar
+            <i class="material-icons left">save</i>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
