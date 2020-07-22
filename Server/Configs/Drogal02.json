@@ -1,0 +1,68 @@
+{
+  "Name": "Drogal01",
+  "Enabled": true,
+  "DataPoints": [
+    {
+      "Name": "sp_test01",
+      "Script": "p2 = p1;",
+      "Driver": "script",
+      "Config": "Server=localhost;Database=drogal;User Id=sa;Password=Aguia3220;",
+      "Params": [
+        {
+          "Name": "p1",
+          "Type": "Int",
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "p2",
+          "Type": "Int",
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        }
+      ]
+    }
+  ],
+  "Devices": [
+    {
+      "Name": "plc01",
+      "Driver": "s7",
+      "Config": "host=192.168.1.22;rack=0;slot=1",
+      "Tags": [
+        {
+          "Name": "HEARTBIT_CT",
+          "Address": "db801.x0",
+          "Rate": 1000,
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "HEARTBIT_RCV",
+          "Address": "db800.x0",
+          "Rate": 1000,
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        }
+      ]
+    }
+  ],
+  "Transactions": [
+    {
+      "Name": "HEARTBIT_PLC01",
+      "DataPointName": "sp_test01",
+      "DeviceName": "plc01",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "HEARTBIT_CT",
+      "Binds": [
+        {
+          "DataPointParam": "p1",
+          "DeviceTag": "HEARTBIT_CT"
+        },
+        {
+          "DataPointParam": "p2",
+          "DeviceTag": "HEARTBIT_RCV"
+        }
+      ]
+    }
+  ]
+}

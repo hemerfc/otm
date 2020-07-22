@@ -1,0 +1,218 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using NLog;
+using Otm.ContextConfig;
+using Otm.Logger;
+using Otm.Colector;
+using System.Diagnostics;
+using System.Net.Sockets;
+using System.Net;
+
+namespace Otm.Device.Agm
+{
+    public class AGMDevice : IDevice
+    {
+        public string Name { get { return Config.Name; } }
+
+        private BackgroundWorker Worker { get; private set; }
+
+        private readonly DeviceConfig Config;
+
+        private DeviceColector Colector { get; }
+
+        private readonly TcpClient client;
+
+        private Stopwatch Stopwatch { get; }
+        private DateTime? connError = null;
+        private static readonly ILogger Logger = LoggerFactory.GetCurrentClassLogger();
+        private bool firstLoad;
+        private NetworkStream clientStream;
+        private byte[] readBuffer;
+
+        private string Host { get; set; }
+        private int Port { get; set; }
+
+        BackgroundWorker IDevice.Worker => throw new NotImplementedException();
+
+        public AGMDevice(DeviceConfig dvConfig, DeviceColector colector)
+        {
+            this.Config = dvConfig;
+            this.Colector = colector;
+            this.client = new TcpClient();
+
+            this.Stopwatch = new Stopwatch();
+            GetConfig(dvConfig);
+            firstLoad = true;
+
+            readBuffer = new byte[1024];
+        }
+
+        private void GetConfig(DeviceConfig dvConfig)
+        {
+            // dvConfig.Config = host=192.168.1.1;port=4001
+            var cparts = dvConfig.Config.Split(';');
+
+            this.Host = (cparts.FirstOrDefault(x => x.Contains("host=")) ?? "").Replace("host=", "").Trim();
+            var strPort = (cparts.FirstOrDefault(x => x.Contains("port=")) ?? "").Replace("port=", "").Trim();
+
+            int.TryParse(strPort, out int port);
+            this.Port = port;
+        }
+
+        public void Start(BackgroundWorker worker)
+        {
+            // backgroud worker
+            Worker = worker;
+            long countRead = 0;
+            long countWrite = 0;
+
+            while (true)
+            {
+                try
+                {
+                    if (!client.Connected)
+                    {
+                        // solve host to ip address list
+                        var hostEntry = Dns.GetHostEntry(this.Host);
+                        foreach (IPAddress address in hostEntry.AddressList)
+                        {
+                            // try connect to each address
+                            client.Connect(address, this.Port);
+
+                            clientStream = client.GetStream();
+
+                            if (client.Connected)
+                            {
+                                Logger.Error($"Dev {Config.Name}: Connected.");
+                                break;
+                            }
+                        }
+
+                        // Assign the callback.
+                        AsyncCallback readCallback = null;
+                        readCallback = ar =>
+                        {
+                            // Call EndRead.
+                            int bytesRead = clientStream.EndRead(ar);
+
+                            // Process the bytes here.
+                            countRead += 1;
+
+                            // Determine if you want to read again.  If not, return.
+                            if (!bytesRead) return;
+
+                            // Read again.  This callback will be called again.
+                            clientStream.BeginRead(readBuffer, 0, readBuffer.Length, readCallback, clientStream);
+                        };
+                        clientStream.BeginRead(readBuffer, 0, readBuffer.Length, readCallback, clientStream);
+
+                        // Assign the callback.
+                        AsyncCallback writeCallback = null;
+                        writeCallback = ar =>
+                        {
+                            // Call EndWrite.
+                            clientStream.EndWrite(ar);
+
+                            // Process the bytes here.
+                            countWrite += 1;
+
+                            // Determine if you want to write again.  If not, return.
+                            if (!notMoreToWrite) return;
+
+                            // Read again.  This callback will be called again.
+                            clientStream.BeginWrite(readBuffer, 0, readBuffer.Length, writeCallback, clientStream);
+                        };
+                    }
+                    else
+                    {
+                        count = 0;
+                        readTime = 0;
+                        writeTime = 0;
+                    }
+
+                    // wait 100ms
+                    /// TODO: wait time must be equals the minimum update rate of tags
+                    var waitEvent = new ManualResetEvent(false);
+                    waitEvent.WaitOne(100);
+
+                    if (Worker.CancellationPending)
+                    {
+                        Stop();
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Dev {Config.Name}: Update Loop Error {ex.ToString()}");
+                    firstLoad = false;
+                }
+            }
+        }
+
+        public void Stop()
+        {
+            //
+        }
+
+
+        private void Reconnect()
+        {
+            firstLoad = true;
+            int res = client.ConnectTo(this.Host, this.rack, this.slot);
+
+            if (res != 0)
+            {
+                if (connError == null)
+                {
+                    var err = client.ErrorText(res);
+                    connError = DateTime.Now;
+
+                    Logger.Error($"Dev {Config.Name}: Connection error. {err}");
+                }
+            }
+            else
+            {
+                connError = null;
+
+            }
+        }
+
+
+        public void OnTagChangeAdd(string tagName, Action<string, object> triggerAction)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void OnTagChangeRemove(string tagName, Action<string, object> triggerAction)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool ContainsTag(string tagName)
+        {
+            throw new NotImplementedException();
+        }
+
+        public DeviceTagConfig GetTagConfig(string name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public object GetTagValue(string tagName)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetTagValue(string tagName, object value)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
+

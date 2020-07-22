@@ -1,0 +1,34 @@
+using System.Collections.Generic;
+using InfluxDB.Collector;
+
+namespace Otm.Server.Colector
+{
+    public class DeviceColector
+    {
+        private readonly MetricsCollector collector;
+        private readonly Dictionary<string, string> tags;
+
+        public DeviceColector(MetricsCollector collector, string configName, string deviceName)
+        {
+            this.collector = collector;
+            this.tags =
+                new Dictionary<string, string>
+                {
+                    { "env", configName },
+                    { "device", deviceName }
+                };
+        }
+
+        public void Write(double readTime, double writeTime)
+        {
+            collector.Write("devices",
+                new Dictionary<string, object>
+                {
+                    { "readTime", readTime },
+                    { "writeTime", writeTime },
+                    //{ "readsPerMin", readsPerMin },
+                    //{ "writesPerMin", writesPerMin }
+                }, tags);
+        }
+    }
+}

@@ -1,2 +1,0 @@
-# otm
-Open Transaction Manager

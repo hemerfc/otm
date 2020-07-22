@@ -1,0 +1,35 @@
+using System;
+using InfluxDB.Collector;
+using InfluxDB.LineProtocol;
+using System.Collections.Generic;
+using System.Diagnostics;
+using InfluxDB.Collector.Diagnostics;
+
+namespace Otm.Server.Colector
+{
+    public class ColectorService
+    {
+        private MetricsCollector Collector { get; }
+        private string EnviromentName { get; set; }
+        public ColectorService(string enviromentName)
+        {
+            EnviromentName = enviromentName;
+            var Database = "otm";
+            var Uri = new Uri("http://127.0.0.1:8086");
+            Collector = new CollectorConfiguration()
+                    .Batch.AtInterval(TimeSpan.FromSeconds(1))
+                    .WriteTo.InfluxDB(Uri, Database)
+                    .CreateCollector();
+
+            CollectorLog.RegisterErrorHandler((message, exception) =>
+            {
+                Console.WriteLine($"{message}: {exception}");
+            });
+        }
+
+        public DeviceColector CreateDeviceColector(string deviceName)
+        {
+            return new DeviceColector(Collector, EnviromentName, deviceName);
+        }
+    }
+}
