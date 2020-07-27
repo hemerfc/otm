@@ -1,12 +1,10 @@
 using System;
 using System.Linq;
 using Xunit;
-using Otm.Config;
-using Otm.Device;
 using Moq;
-using Otm.Logger;
-using NLog;
-using Otm.Device.S7;
+using Otm.Server.Device.S7;
+using Otm.Shared.ContextConfig;
+using Microsoft.Extensions.Logging;
 
 namespace Otm.Test.Device
 {
@@ -21,15 +19,15 @@ namespace Otm.Test.Device
                 Name = "plc01",
                 Driver = "s7",
                 Config = "host=127.0.0.1;rack=0;slot=0",
-                Tags = (new DeviceTagConfig[] 
+                Tags = (new DeviceTagConfig[]
                 {
                     new DeviceTagConfig
-                    {  
+                    {
                         Name = "tag1",
                         TypeCode = TypeCode.Int32,
                         Mode = Modes.FromOTM, // write to plc
                         Address = "db801.dw0",
-                        Rate = 50                            
+                        Rate = 50
                     },
                     new DeviceTagConfig
                     {
@@ -54,24 +52,29 @@ namespace Otm.Test.Device
 
             clientMock.Setup(x => x.ErrorText(0)).Returns("No error");
             clientMock.Setup(x => x.DBRead(800, 0, 16, It.IsAny<byte[]>()))
-                      .Callback<int, int, int, byte[]>((dbNumber, start, lenght, buf) => 
+                      .Callback<int, int, int, byte[]>((dbNumber, start, lenght, buf) =>
                       {
                           // change second byte of dw13
-                           buf[13] = dw10;
+                          buf[13] = dw10;
                       });
+            clientMock.Setup(x => x.DBRead(801, 0, 4, It.IsAny<byte[]>()))
+                .Callback<int, int, int, byte[]>((dbNumber, start, lenght, buf) =>
+                {
+                    // change second byte of dw13
+                    //buf[13] = dw10;
+                });
 
-            var factoryMock = new Mock<IS7ClientFactory>();
-            factoryMock.Setup(x => x.CreateClient()).Returns(clientMock.Object);
-
-            var devPlc01 = new S7Device(dvConfig, factoryMock.Object);
+            var loggerMock = new Mock<ILogger>();
+            var devPlc01 = new S7Device(dvConfig, clientMock.Object, loggerMock.Object);
 
             devPlc01.ReadDeviceTags();
-            
+
             var tag2 = -1;
             // update tag value to 0
             dw10 = 1;
             // assign a function to be executed when tag value is changed
-            devPlc01.OnTagChangeAdd("tag2", (str, value) => {
+            devPlc01.OnTagChangeAdd("tag2", (str, value) =>
+            {
                 tag2 = (int)value;
             });
 

@@ -1,10 +1,9 @@
 using System;
 using Xunit;
-using Otm.DataPoint;
-using Otm.Config;
 using Moq;
-using Otm.Logger;
-using NLog;
+using Otm.Shared.ContextConfig;
+using Microsoft.Extensions.Logging;
+using Otm.Server.DataPoint;
 
 namespace Otm.Test.DataPoint
 {
@@ -14,7 +13,7 @@ namespace Otm.Test.DataPoint
         public void InvalidDataPointName()
         {
             // prepare
-            var dpConfig = new DataPointConfig[]{ 
+            var dpConfig = new DataPointConfig[]{
                 new DataPointConfig {
                     Name = "",
                     Driver = "",
@@ -23,7 +22,8 @@ namespace Otm.Test.DataPoint
                 }
             };
 
-            var ex = Record.Exception(() => new DataPointFactory().CreateDataPoints(dpConfig));
+            var loggerMock = new Mock<ILogger>();
+            var ex = Record.Exception(() => DataPointFactory.CreateDataPoints(dpConfig, loggerMock.Object));
 
             Assert.Equal("Name", ex?.Data["field"]);
         }
@@ -32,16 +32,17 @@ namespace Otm.Test.DataPoint
         public void InvalidDriverName()
         {
             // prepare
-            var dpConfig = new DataPointConfig[]{ 
+            var dpConfig = new DataPointConfig[]{
                 new DataPointConfig {
                     Name = "dp01",
                     Driver = "",
                     Config = "",
                     Params = null
                 }
-            };        
+            };
 
-            var ex = Record.Exception(() => new DataPointFactory().CreateDataPoints(dpConfig));
+            var loggerMock = new Mock<ILogger>();
+            var ex = Record.Exception(() => DataPointFactory.CreateDataPoints(dpConfig, loggerMock.Object));
 
             Assert.Equal("Driver", ex?.Data["field"]);
         }
@@ -50,7 +51,7 @@ namespace Otm.Test.DataPoint
         public void CreateOdbcDataPoint()
         {
             // prepare
-            var dpConfig = new DataPointConfig[]{ 
+            var dpConfig = new DataPointConfig[]{
                 new DataPointConfig {
                     Name = "dp01",
                     Driver = "pg",
@@ -64,10 +65,9 @@ namespace Otm.Test.DataPoint
                     Params = null
                 }
             };
-        
-            var factory = new DataPointFactory();
 
-            var datapoints = factory.CreateDataPoints(dpConfig);
+            var loggerMock = new Mock<ILogger>();
+            var datapoints = DataPointFactory.CreateDataPoints(dpConfig, loggerMock.Object);
 
             Assert.Equal(2, datapoints.Count);
 

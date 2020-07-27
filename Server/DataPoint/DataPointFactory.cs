@@ -32,7 +32,7 @@ namespace Otm.Server.DataPoint
                 throw ex;
             }
 
-            var staticParam = dpConfig.Params.Where(x => x.Mode == Modes.Static);
+            //var staticParam = dpConfig.Params.Where(x => x.Mode == Modes.Static);
 
             IDataPoint datapoint;
 

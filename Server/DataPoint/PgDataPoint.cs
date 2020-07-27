@@ -50,9 +50,10 @@ namespace Otm.Server.DataPoint
                             var sqlParam = command.Parameters.AddWithValue(param.Name, input[param.Name]);
                             sqlParam.Direction = ParameterDirection.Input;
                         }
-                        else
+                        else if (param.Mode == Modes.Static)
                         {
-                            throw new Exception($"Parameter mode not suported! DataPoint:{Config.Name} Param:{param.Name} Mode:{param.Mode}");
+                            var sqlParam = command.Parameters.AddWithValue(param.Name, param.Value);
+                            sqlParam.Direction = ParameterDirection.Input;
                         }
                     }
 

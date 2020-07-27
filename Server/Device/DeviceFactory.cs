@@ -29,7 +29,7 @@ namespace Otm.Server.Device
                     switch (dvConfig.Driver)
                     {
                         case "s7":
-                            devices.Add(dvConfig.Name, new S7Device(dvConfig, new S7ClientFactory(), logger));
+                            devices.Add(dvConfig.Name, new S7Device(dvConfig, new S7Client(), logger));
                             logger.LogError($"Device {dvConfig?.Name}: Created");
                             break;
                         default:

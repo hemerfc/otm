@@ -39,7 +39,6 @@ namespace Otm.Server.DataPoint
 
                     foreach (var param in Config.Params)
                     {
-
                         if (param.Mode == Modes.ToOTM)
                         {
                             Type type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), param.TypeCode));
@@ -52,9 +51,10 @@ namespace Otm.Server.DataPoint
                             var sqlParam = command.Parameters.AddWithValue(param.Name, input[param.Name]);
                             sqlParam.Direction = ParameterDirection.Input;
                         }
-                        else
+                        else if (param.Mode == Modes.Static)
                         {
-                            throw new Exception($"Parameter mode not suported! DataPoint:{Config.Name} Param:{param.Name} Mode:{param.Mode}");
+                            var sqlParam = command.Parameters.AddWithValue(param.Name, param.Value);
+                            sqlParam.Direction = ParameterDirection.Input;
                         }
                     }
 
@@ -62,7 +62,8 @@ namespace Otm.Server.DataPoint
 
                     foreach (var param in Config.Params)
                     {
-                        output[param.Name] = command.Parameters[param.Name].Value;
+                        if (param.Mode == Modes.ToOTM)
+                            output[param.Name] = command.Parameters[param.Name].Value;
                     }
 
                     return output;

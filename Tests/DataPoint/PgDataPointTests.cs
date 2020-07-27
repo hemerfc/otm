@@ -1,12 +1,11 @@
 using System;
 using System.Linq;
 using Xunit;
-using Otm.DataPoint;
-using Otm.Config;
 using System.Collections.Generic;
 using Moq;
-using Otm.Logger;
-using NLog;
+using Otm.Shared.ContextConfig;
+using Otm.Server.DataPoint;
+using Microsoft.Extensions.Logging;
 
 namespace Otm.Test.DataPoint
 {
@@ -16,18 +15,18 @@ namespace Otm.Test.DataPoint
         public void Execute_DataPoint_sp_test01()
         {
             // prepare
-            var dpConfig = new DataPointConfig[]{ 
+            var dpConfig = new DataPointConfig[]{
                 new DataPointConfig {
                     Name = "sp_test01",
                     Driver = "pg",
-                    Config = "Host=localhost;Database=OTM;Username=otm;Password=otm",
+                    Config = "Host=localhost;Database=otm;Username=otm;Password=otm",
                     Params = (new DataPointParamConfig[] {
-                        new DataPointParamConfig {  
+                        new DataPointParamConfig {
                             Name = "p1",
                             TypeCode = TypeCode.Int32,
                             Mode = Modes.FromOTM
                         },
-                        new DataPointParamConfig {  
+                        new DataPointParamConfig {
                             Name = "p2",
                             TypeCode = TypeCode.Int32,
                             Mode = Modes.ToOTM
@@ -35,52 +34,61 @@ namespace Otm.Test.DataPoint
                     }).ToList()
                 }
             };
-            
+
             var inParams = new Dictionary<string, object>();
             inParams["p1"] = 2;
             inParams["p2"] = 0;
 
-            var dpSpTest01 = new DataPointFactory().CreateDataPoints(dpConfig)["sp_test01"];
+            var loggerMock = new Mock<ILogger>();
+            var dpSpTest01 = DataPointFactory.CreateDataPoints(dpConfig, loggerMock.Object)["sp_test01"];
 
             var outParams = dpSpTest01.Execute(inParams);
-            
+
             Assert.Equal(4, outParams["p2"]);
         }
 
 
         [Fact]
-        public void Execute_DataPoint_sp_test01_2()
+        public void Execute_DataPoint_sp_test02()
         {
             // prepare
-            var dpConfig = new DataPointConfig[]{ 
+            var dpConfig = new DataPointConfig[]{
                 new DataPointConfig {
-                    Name = "sp_test01",
+                    Name = "sp_test02",
                     Driver = "pg",
-                    Config = "Host=localhost;Database=OTM;Username=otm;Password=otm",
+                    Config = "Host=localhost;Database=otm;Username=otm;Password=otm",
                     Params = (new DataPointParamConfig[] {
-                        new DataPointParamConfig {  
-                            Name = "p1",
+                        new DataPointParamConfig {
+                            Name = "@p1",
                             TypeCode = TypeCode.Int32,
                             Mode = Modes.FromOTM
                         },
-                        new DataPointParamConfig {  
-                            Name = "p2",
+                        new DataPointParamConfig {
+                            Name = "@p2",
+                            TypeCode = TypeCode.Int32,
+                            Mode = Modes.Static,
+                            Value = 2
+                        },
+                        new DataPointParamConfig {
+                            Name = "@p3",
                             TypeCode = TypeCode.Int32,
                             Mode = Modes.ToOTM
                         }
                     }).ToList()
                 }
             };
-            
-            var inParams = new Dictionary<string, object>();
-            inParams["p1"] = 10;
-            inParams["p2"] = 0;
 
-            var dpSpTest01 = new DataPointFactory().CreateDataPoints(dpConfig)["sp_test01"];
+            var inParams = new Dictionary<string, object>();
+            inParams["@p1"] = 10;
+            inParams["@p2"] = 2;
+            inParams["@p3"] = 0;
+
+            var loggerMock = new Mock<ILogger>();
+            var dpSpTest01 = DataPointFactory.CreateDataPoints(dpConfig, loggerMock.Object)["sp_test02"];
 
             var outParams = dpSpTest01.Execute(inParams);
-            
-            Assert.Equal(100, outParams["p2"]);
+
+            Assert.Equal(20, outParams["@p3"]);
         }
     }
 }
