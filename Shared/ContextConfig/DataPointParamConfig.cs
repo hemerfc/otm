@@ -15,5 +15,6 @@ namespace Otm.Shared.ContextConfig
         public Modes Mode { get; set; }
 
         public Object Value { get; set; }
+        public int? Length { get; set; }
     }
 }

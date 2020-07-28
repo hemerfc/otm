@@ -120,13 +120,9 @@ namespace Otm.Test.Device
                 }).ToList()
             };
 
-            //var tcpClientConected = false;
-
             // Mock do TclClient
             var clientMock = new Mock<ITcpClientAdapter>();
             clientMock.Setup(x => x.Connected).Returns(() => true);
-            //clientMock.Setup(x => x.Connect("127.0.0.1", 0))
-            //    .Callback(() => { tcpClientConected = true; });
             clientMock.Setup(x => x.GetData())
                 .Returns(() =>
                 {
@@ -161,7 +157,6 @@ namespace Otm.Test.Device
 
             return devPtl;
         }
-
     }
 }
 

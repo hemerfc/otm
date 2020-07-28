@@ -117,11 +117,13 @@ namespace Otm.Server.Device.S7
                 }
                 else
                 {
-                    var it = new DBItem();
-                    it.Offset = byteOffset;
-                    it.BitOffset = bitOffset;
-                    it.TypeCode = t.TypeCode;
-                    it.Name = t.Name;
+                    var it = new DBItem
+                    {
+                        Offset = byteOffset,
+                        BitOffset = bitOffset,
+                        TypeCode = t.TypeCode,
+                        Name = t.Name
+                    };
                     var type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), it.TypeCode));
                     it.Value = Activator.CreateInstance(type);
 
@@ -143,10 +145,12 @@ namespace Otm.Server.Device.S7
 
                     if (!dict.ContainsKey(dbValue))
                     {
-                        dict[dbValue] = new DB();
-                        dict[dbValue].Number = dbValue;
-                        dict[dbValue].Mode = t.Mode;
-                        dict[dbValue].Itens = new Dictionary<string, DBItem>();
+                        dict[dbValue] = new DB
+                        {
+                            Number = dbValue,
+                            Mode = t.Mode,
+                            Itens = new Dictionary<string, DBItem>()
+                        };
                     }
                     else
                     {
@@ -233,7 +237,7 @@ namespace Otm.Server.Device.S7
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex.ToString()}");
+                    Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
                 }
             }
         }

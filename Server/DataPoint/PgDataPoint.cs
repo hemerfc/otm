@@ -61,7 +61,8 @@ namespace Otm.Server.DataPoint
 
                     foreach (var param in Config.Params)
                     {
-                        output[param.Name] = command.Parameters[param.Name].Value;
+                        if (param.Mode == Modes.ToOTM)
+                            output[param.Name] = command.Parameters[param.Name].Value;
                     }
 
                     return output;

@@ -42,9 +42,12 @@ namespace Otm.Server.DataPoint
                         if (param.Mode == Modes.ToOTM)
                         {
                             Type type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), param.TypeCode));
-                            var obj = Activator.CreateInstance(type);
-                            var sqlParam = command.Parameters.AddWithValue(param.Name, obj);
+                            var dbType = SqlHelper.GetDbType(type);
+                            var sqlParam = command.Parameters.Add(param.Name, dbType);
                             sqlParam.Direction = ParameterDirection.Output;
+
+                            if (param.TypeCode == TypeCode.String)
+                                sqlParam.Size = param.Length ?? 0;
                         }
                         else if (param.Mode == Modes.FromOTM)
                         {
@@ -145,6 +148,9 @@ namespace Otm.Server.DataPoint
             {
                 case "int":
                     return TypeCode.Int32;
+                case "varchar":
+                case "nvarchar":
+                    return TypeCode.String;
                 default:
                     throw new Exception($"Type not suported! MsSqlDataPoint Type: {typeName}");
             }

@@ -89,5 +89,49 @@ namespace Otm.Test.DataPoint
 
             Assert.Equal(20, outParams["@p3"]);
         }
+
+        [Fact]
+        public void Execute_DataPoint_sp_test_ptl01()
+        {
+            // prepare
+            var dpConfig = new DataPointConfig[]{
+                new DataPointConfig {
+                    Name = "[dbo].[sp_test_ptl01]",
+                    Driver = "mssql",
+                    Config = "Server=localhost;Database=QuickFlowDb;User Id=sa;Password=Aguia3220;",
+                    Params = (new DataPointParamConfig[] {
+                        new DataPointParamConfig {
+                            Name = "@p1",
+                            TypeCode = TypeCode.Int32,
+                            Mode = Modes.FromOTM
+                        },
+                        new DataPointParamConfig {
+                            Name = "@p2",
+                            TypeCode = TypeCode.String,
+                            Mode = Modes.FromOTM,
+                            Length = 100,
+                        },
+                        new DataPointParamConfig {
+                            Name = "@p3",
+                            TypeCode = TypeCode.String,
+                            Mode = Modes.ToOTM,
+                            Length = 100,
+                        }
+                    }).ToList()
+                }
+            };
+
+            var inParams = new Dictionary<string, object>();
+            inParams["@p1"] = 1;
+            inParams["@p2"] = "teste";
+            inParams["@p3"] = "";
+
+            var loggerMock = new Mock<ILogger>();
+            var dpSpTest01 = DataPointFactory.CreateDataPoints(dpConfig, loggerMock.Object)["[dbo].[sp_test_ptl01]"];
+
+            var outParams = dpSpTest01.Execute(inParams);
+
+            Assert.Equal("teste1", outParams["@p3"]);
+        }
     }
 }

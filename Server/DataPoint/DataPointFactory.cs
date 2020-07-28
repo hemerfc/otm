@@ -25,11 +25,30 @@ namespace Otm.Server.DataPoint
 
         private static IDataPoint CreateDataPoint(DataPointConfig dpConfig, ILogger logger)
         {
+            // todo datapoint deve ter um nome
             if (string.IsNullOrWhiteSpace(dpConfig.Name))
             {
-                var ex = new Exception("Invalid DataPoint name in config. Name:" + dpConfig.Name);
+                var ex = new Exception($"Invalid DataPoint name in config. Name:{dpConfig.Name}");
                 ex.Data.Add("field", "Name");
                 throw ex;
+            }
+
+            if (dpConfig.Params == null || dpConfig.Params.Count <= 0)
+            {
+                var ex = new Exception($"DataPoint must have at least one parameter. DataPoint:{dpConfig.Name}");
+                ex.Data.Add("field", "Params");
+                throw ex;
+            }
+
+            foreach (var param in dpConfig.Params)
+            {
+                // se é do tipo string precisa ter o comprimento
+                if (param.TypeCode == TypeCode.String && (param.Length ?? 0) == 0)
+                {
+                    var ex = new Exception($"DataPoint Param of type String must have Lenght. DataPoint:{dpConfig.Name} Param:{param.Name}");
+                    ex.Data.Add("field", "Length");
+                    throw ex;
+                }
             }
 
             //var staticParam = dpConfig.Params.Where(x => x.Mode == Modes.Static);
@@ -52,7 +71,6 @@ namespace Otm.Server.DataPoint
                     logger.LogInformation($"DataPoint {dpConfig.Name}: Created");
                     break;
                 default:
-                    datapoint = null;
                     var ex = new Exception("Invalid DataPointDriver in config. Driver:" + dpConfig.Driver);
                     ex.Data.Add("field", "Driver");
                     throw ex;
