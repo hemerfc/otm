@@ -158,7 +158,7 @@ namespace Otm.Server.Device.Ptl
                             }
                         }
                     }
-                    // wait 100ms
+                    // wait 50ms
                     /// TODO: wait time must be equals the minimum update rate of tags
                     var waitEvent = new ManualResetEvent(false);
                     waitEvent.WaitOne(50);
@@ -196,9 +196,9 @@ namespace Otm.Server.Device.Ptl
                 var strRcvd = Encoding.ASCII.GetString(receiveBuffer);
 
                 /// TODO: falta processar os bytes recebidos
-                var stxLcPos = strRcvd.IndexOf(STX_LC);
-                var etxLcPos = strRcvd.IndexOf(ETX_LC);
-                var stxAtPos = strRcvd.IndexOf(STX_AT) - (STX_AT.Length - 1);
+                var stxLcPos = strRcvd.IndexOf(STX_LC, StringComparison.Ordinal);
+                var etxLcPos = strRcvd.IndexOf(ETX_LC, StringComparison.Ordinal);
+                var stxAtPos = strRcvd.IndexOf(STX_AT, StringComparison.Ordinal);
 
                 // se tem LC e ( nao tem AT ou tem mas esta depois do LC)
                 // processa o LC
@@ -211,10 +211,7 @@ namespace Otm.Server.Device.Ptl
                         receiveBuffer = receiveBuffer[(stxLcPos + STX_LC.Length)..];
                     else if (stxLcPos < etxLcPos)
                     {
-                        if (receiveBuffer.Length > (etxLcPos + ETX_LC.Length))
-                            receiveBuffer = receiveBuffer[(etxLcPos + ETX_LC.Length)..];
-                        else
-                            receiveBuffer = new byte[0];
+                        receiveBuffer = receiveBuffer[(etxLcPos + ETX_LC.Length)..];
 
                         var cmdLC = strRcvd[(stxLcPos + STX_LC.Length)..etxLcPos];
                         // LC|001|aaa => ptl01|LC|001|aaa

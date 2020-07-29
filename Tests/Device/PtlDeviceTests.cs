@@ -32,23 +32,22 @@ namespace Otm.Test.Device
         */
         [Theory]
         // scanner read
-        /*[InlineData("`GSTXLC|001|aaaETX`GSTXLC|002|bbbETX`GSTXLC|003|ccc|ETX",
+        [InlineData("`GSTXLC|001|aaaETX`GSTXLC|002|bbbETX`GSTXLC|003|ccc|ETX",
             new string[] { "ptl01|LC|001|aaa", "ptl01|LC|002|bbb", "ptl01|LC|003|ccc" })]
         [InlineData("\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x31\x00" + // Cmd=6 Node=1 Value=1 Dot=0
                     "\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x32\x00" + // Cmd=6 Node=1 Value=1 Dot=0
                     "\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x33\x00",  // Cmd=6 Node=1 Value=1 Dot=0
             new string[] { "ptl01|AT|001|000001", "ptl01|AT|001|000002", "ptl01|AT|001|000003" })]
-*/
-
         [InlineData("\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x31\x00" + // Cmd=6 Node=1 Value=1 Dot=0
                     "lixoaqui!" +
-                    "`GSTXLC|001|aaaETX",
-            //"\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x32\x00" + // Cmd=6 Node=1 Value=1 Dot=0
-            //"`GSTXLC|002|bbbETX`GSTXLC|003|ccc|ETX" +
-            //"lixoaquidenovo!" +
-            //"\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x33\x00",  // Cmd=6 Node=1 Value=1 Dot=0
-            new string[] { "ptl01|AT|001|000001", "ptl01|LC|001|aaa" /*, "ptl01|AT|001|000002",
-                           "ptl01|LC|002|bbb", "ptl01|LC|003|ccc", "ptl01|AT|001|000003"*/ })]
+                    "`GSTXLC|001|aaaETX" +
+                    "\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x32\x00" + // Cmd=6 Node=1 Value=1 Dot=0
+                    "`GSTXLC|002|bbbETX" +
+                    "`GSTXLC|003|ccc|ETX" +
+                    "lixoaquidenovo!" +
+                    "\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x33\x00",  // Cmd=6 Node=1 Value=1 Dot=0
+            new string[] { "ptl01|AT|001|000001", "ptl01|LC|001|aaa" , "ptl01|AT|001|000002",
+                           "ptl01|LC|002|bbb", "ptl01|LC|003|ccc", "ptl01|AT|001|000003" })]
         public void Receive_Ptl_Command(string recv, string[] result)
         {
             var waitEvent = new ManualResetEvent(false);
