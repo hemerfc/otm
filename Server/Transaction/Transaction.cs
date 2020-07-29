@@ -107,6 +107,10 @@ namespace Otm.Server.Transaction
                 {
                     inParams[dp.Name] = device.GetTagValue(tag.Name);
                 }
+                if (tag.Mode == Modes.Static) // from device to OTM  
+                {
+                    inParams[dp.Name] = device.GetTagValue(tag.Name);
+                }
             }
 
             var outParams = dataPoint.Execute(inParams);

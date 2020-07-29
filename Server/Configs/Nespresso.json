@@ -33,6 +33,12 @@
       "Params": [
         {
           "Name": "p1",
+          "Mode": "FromOTM",
+          "TypeCode": "String",
+          "Length": 100
+        },
+        {
+          "Name": "p2",
           "Mode": "ToOTM",
           "TypeCode": "String",
           "Length": 100
@@ -46,6 +52,13 @@
       "Driver": "ptl",
       "Config": "ip=127.0.0.1;port=4660",
       "Tags": [
+        {
+          "Name": "ptl_ctrl",
+          "Address": "ptl_ctrl",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
         {
           "Name": "cmd_count",
           "Address": "cmd_count",
@@ -101,6 +114,10 @@
       "Binds": [
         {
           "DataPointParam": "p1",
+          "DeviceTag": "ptl_ctrl"
+        },
+        {
+          "DataPointParam": "p2",
           "DeviceTag": "cmd_send"
         }
       ]

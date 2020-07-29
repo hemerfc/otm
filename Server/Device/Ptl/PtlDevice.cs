@@ -98,9 +98,13 @@ namespace Otm.Server.Device.Ptl
                 return cmd_rcvd;
             else if (tagName == "cmd_count")
                 return cmd_count;
+            else if (tagName == "ptl_ctrl")
+                return Config.Name;
 
             return null;
         }
+
+        private readonly List<ReceivePTLViewModel> ListaLigados = new List<ReceivePTLViewModel>();
 
         public void SetTagValue(string tagName, object value)
         {
@@ -108,6 +112,17 @@ namespace Otm.Server.Device.Ptl
                 Logger.LogError($"Dev {Config.Name}: O tag name '{tagName}', não é valido!");
             else if (value is string @string)
             {
+                // recebeu do datapoint 
+                // criar os comandos pro PTL
+
+                // 001:002|01|00000000001|pick;001:003|01|ITEM OK|msg
+                var ListaPendentes = (from rawPendente in ((string)value).Split(';').ToList()
+                                      let pententeInfos = rawPendente.Split('|').ToList()
+                                      select new ReceivePTLViewModel(location: pententeInfos[0],
+                                                                    displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
+                                                                    displayValue: pententeInfos[2],
+                                                                    messageType: (E_PtlMessageType)int.Parse(pententeInfos[3]))).ToList();
+
                 var buffer = Encoding.UTF8.GetBytes(@string);
                 lock (lockSendDataQueue)
                 {
