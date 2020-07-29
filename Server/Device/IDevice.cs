@@ -22,5 +22,8 @@ namespace Otm.Server.Device
         void SetTagValue(string tagName, object value);
         void Start(BackgroundWorker worker);
         void Stop();
+
+        bool Ready { get; }
     }
+
 }

@@ -19,12 +19,41 @@ namespace Otm.Test.Device
         byte[] recvFromPtlBuffer = new byte[0];
         byte[] sendToPtlBuffer = new byte[0];
 
-        [Fact]
-        public void Receive_Ptl_Command()
+        /*
+            CARTAO
+            Definicao: ´G|TIPO|LEITOR|CODIGO_CARTAO
+            Exemplo: ´G|LC|1|123456|
+            LEITURA
+            Definicao ´G|TIPO|LEITOR|CODIGO_DOCTO
+            Exemplo ´G|LC|1|0000001685100B|
+            ATENDIMENTO
+            Definicao ´G|TIPO|IDENTIFICADOR_POSICAO|VALOR
+            Exemplo ´G|AT|F01.L01.C04|5|
+        */
+        [Theory]
+        // scanner read
+        /*[InlineData("`GSTXLC|001|aaaETX`GSTXLC|002|bbbETX`GSTXLC|003|ccc|ETX",
+            new string[] { "ptl01|LC|001|aaa", "ptl01|LC|002|bbb", "ptl01|LC|003|ccc" })]
+        [InlineData("\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x31\x00" + // Cmd=6 Node=1 Value=1 Dot=0
+                    "\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x32\x00" + // Cmd=6 Node=1 Value=1 Dot=0
+                    "\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x33\x00",  // Cmd=6 Node=1 Value=1 Dot=0
+            new string[] { "ptl01|AT|001|000001", "ptl01|AT|001|000002", "ptl01|AT|001|000003" })]
+*/
+
+        [InlineData("\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x31\x00" + // Cmd=6 Node=1 Value=1 Dot=0
+                    "lixoaqui!" +
+                    "`GSTXLC|001|aaaETX",
+            //"\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x32\x00" + // Cmd=6 Node=1 Value=1 Dot=0
+            //"`GSTXLC|002|bbbETX`GSTXLC|003|ccc|ETX" +
+            //"lixoaquidenovo!" +
+            //"\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x33\x00",  // Cmd=6 Node=1 Value=1 Dot=0
+            new string[] { "ptl01|AT|001|000001", "ptl01|LC|001|aaa" /*, "ptl01|AT|001|000002",
+                           "ptl01|LC|002|bbb", "ptl01|LC|003|ccc", "ptl01|AT|001|000003"*/ })]
+        public void Receive_Ptl_Command(string recv, string[] result)
         {
-            var cmd1 = "|LC01|LEITURA123|";
-            var cmd2 = "|COMANDO|";
-            recvFromPtlBuffer = Encoding.UTF8.GetBytes($"{STX}{cmd1}{ETX}{STX}{cmd2}{ETX}");
+            var waitEvent = new ManualResetEvent(false);
+
+            recvFromPtlBuffer = Encoding.ASCII.GetBytes(recv);
             sendToPtlBuffer = new byte[0];
 
             var devPtl = CreateDevice(out BackgroundWorker bgWorker);
@@ -36,21 +65,20 @@ namespace Otm.Test.Device
             {
                 // quando receber um commando do Ptl dispararia a transação,
                 // mas para o teste apenas confirma o valor recebido
-                if (commandsRcvd == 0) // primeiro commando
-                    Assert.Equal((string)value, cmd1);
-
-                if (commandsRcvd == 1) // segundo commando
-                    Assert.Equal((string)value, cmd2);
+                Assert.Equal(result[commandsRcvd], (string)value);
 
                 commandsRcvd++;
+
+                if (result.Length == commandsRcvd)
+                    waitEvent.Set();
             });
 
             // inicia o loop do device
             bgWorker.RunWorkerAsync();
 
-            Thread.Sleep(500);
+            waitEvent.WaitOne(500);
 
-            Assert.Equal(2, commandsRcvd); // tem que receber dois commandos
+            Assert.Equal(result.Length, commandsRcvd); // tem que receber dois commandos
 
             // para o loop do device
             bgWorker.CancelAsync();
@@ -68,16 +96,12 @@ namespace Otm.Test.Device
 
             // inicia o loop do device
             bgWorker.RunWorkerAsync();
-            Thread.Sleep(500);
+            Thread.Sleep(50);
 
             devPtl.SetTagValue("cmd_send", cmd1);
-            Thread.Sleep(500);
-
-            var recvStr1 = Encoding.Default.GetString(sendToPtlBuffer);
-            Assert.Equal(recvStr1, cmd1);
 
             devPtl.SetTagValue("cmd_send", cmd2);
-            Thread.Sleep(500);
+            Thread.Sleep(100);
 
             var recvStr2 = Encoding.Default.GetString(sendToPtlBuffer);
             Assert.Equal(recvStr2, cmd1 + cmd2);

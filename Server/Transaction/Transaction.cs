@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using Otm.Server.ContextConfig;
 using Otm.Server.DataPoint;
@@ -37,16 +38,32 @@ namespace Otm.Server.Transaction
             // backgroud worker
             Worker = worker;
 
-            device.OnTagChangeAdd(config.TriggerTagName, this.OnTrigger);
+            if (config.TriggerType == TriggerTypes.OnTagChange)
+            {
+                // assina o delagator do datapoint, quando o valor da TriggerTagName for atualizado
+                // dispara o metodo OnTrigger, que coloca o gatilho na TriggerQueue
+                device.OnTagChangeAdd(config.TriggerTagName, this.OnTrigger);
+            }
 
             while (true)
             {
                 try
                 {
-                    Tuple<string, object> trigger;
-                    // wait a trigger or 250ms
-                    if (TriggerQueue.TryTake(out trigger, 250))
-                        ExecuteTrigger(trigger.Item1, trigger.Item2);
+                    if (config.TriggerType == TriggerTypes.OnTagChange)
+                    {
+                        Tuple<string, object> trigger;
+                        // wait a trigger or 100ms
+                        if (TriggerQueue.TryTake(out trigger, 100))
+                            ExecuteTrigger(/*trigger.Item1, trigger.Item2*/);
+                    }
+
+                    if (config.TriggerType == TriggerTypes.OnCycle)
+                    {
+                        var waitEvent = new ManualResetEvent(false);
+                        waitEvent.WaitOne(config.TriggerTime); // aguarda XXXms
+                        if (device.Ready)
+                            ExecuteTrigger(/*trigger.Item1, trigger.Item2*/);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -77,7 +94,7 @@ namespace Otm.Server.Transaction
         /// </summary>
         /// <param name="tagName">trigger tag name</param>
         /// <param name="value">tag value</param>
-        public void ExecuteTrigger(string tagName, Object value)
+        public void ExecuteTrigger(/*string tagName, Object value*/)
         {
             var inParams = new Dictionary<string, object>();
 

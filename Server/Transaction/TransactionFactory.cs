@@ -37,27 +37,44 @@ namespace Otm.Server.Transaction
                         throw ex;
                     }
 
-                    // verify the trigger type
-                    if (trConfig.TriggerType != TriggerTypes.OnTagChange)
+                    // verify the trigger OnTagChange
+                    if (trConfig.TriggerType == TriggerTypes.OnTagChange && string.IsNullOrWhiteSpace(trConfig.TriggerTagName))
                     {
-                        var ex = new Exception($"Invalid TriggerType Transaction config. TriggerType ({trConfig.TriggerType }) Transaction ({trConfig.Name})");
+                        var ex = new Exception($"Invalid TriggerTagName, can't be empty. TriggerType ({trConfig.TriggerType }) Transaction ({trConfig.Name})");
+                        ex.Data.Add("field", "TriggerTagName");
+                        throw ex;
+                    }
+
+                    // verify the trigger tag name
+                    if (trConfig.TriggerType == TriggerTypes.OnTagChange && !devices[trConfig.DeviceName].ContainsTag(trConfig.TriggerTagName))
+                    {
+                        var ex = new Exception($"Invalid TriggerTagName name in Transaction config. TriggerTagName ({trConfig.TriggerTagName}) Device ({trConfig.DeviceName}) Transaction ({trConfig.Name})");
+                        ex.Data.Add("field", "Name");
+                        throw ex;
+                    }
+
+                    // verify the trigger OnCycle
+                    if (trConfig.TriggerType == TriggerTypes.OnCycle && trConfig.TriggerTime == 0)
+                    {
+                        var ex = new Exception($"Invalid TriggerTime, can't be zero. TriggerType ({trConfig.TriggerType }) Transaction ({trConfig.Name})");
+                        ex.Data.Add("field", "TriggerTime");
+                        throw ex;
+                    }
+
+                    // verify the trigger type
+                    if (trConfig.TriggerType != TriggerTypes.OnTagChange && trConfig.TriggerType != TriggerTypes.OnCycle)
+                    {
+                        var ex = new Exception($"Invalid TriggerType. TriggerType ({trConfig.TriggerType }) Transaction ({trConfig.Name})");
                         ex.Data.Add("field", "TriggerType");
                         throw ex;
                     }
+
 
                     // verify the device name
                     if (!devices.ContainsKey(trConfig.DeviceName) && devices[trConfig.DeviceName] == null)
                     {
                         var ex = new Exception($"Invalid DeviceName name in Transaction config. DeviceName ({trConfig.DeviceName}) Transaction ({trConfig.Name})");
                         ex.Data.Add("field", "DeviceName");
-                        throw ex;
-                    }
-
-                    // verify the trigger tag name
-                    if (!devices[trConfig.DeviceName].ContainsTag(trConfig.TriggerTagName))
-                    {
-                        var ex = new Exception($"Invalid TriggerTagName name in Transaction config. TriggerTagName ({trConfig.TriggerTagName}) Device ({trConfig.DeviceName}) Transaction ({trConfig.Name})");
-                        ex.Data.Add("field", "Name");
                         throw ex;
                     }
 

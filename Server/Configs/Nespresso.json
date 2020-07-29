@@ -25,6 +25,19 @@
           "Length": 100
         }
       ]
+    },
+    {
+      "Name": "sp_test_ptl02",
+      "Driver": "mssql",
+      "Config": "Server=localhost;Database=QuickFlowDb;User Id=sa;Password=Aguia3220;",
+      "Params": [
+        {
+          "Name": "p1",
+          "Mode": "ToOTM",
+          "TypeCode": "String",
+          "Length": 100
+        }
+      ]
     }
   ],
   "Devices": [
@@ -59,7 +72,7 @@
   ],
   "Transactions": [
     {
-      "Name": "ptl01_trans",
+      "Name": "ptl01_recv",
       "DataPointName": "sp_test_ptl01",
       "DeviceName": "ptl01",
       "TriggerType": "OnTagChange",
@@ -75,6 +88,19 @@
         },
         {
           "DataPointParam": "p3",
+          "DeviceTag": "cmd_send"
+        }
+      ]
+    },
+    {
+      "Name": "ptl01_cycle",
+      "DataPointName": "sp_test_ptl02",
+      "DeviceName": "ptl01",
+      "TriggerType": "OnCycle",
+      "TriggerTime": 2000,
+      "Binds": [
+        {
+          "DataPointParam": "p1",
           "DeviceTag": "cmd_send"
         }
       ]

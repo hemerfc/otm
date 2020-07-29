@@ -40,6 +40,8 @@ namespace Otm.Server.Device.S7
         private bool firstLoadRead;
         private bool firstLoadWrite;
 
+        public bool Ready { get; private set; }
+
         public S7Device(DeviceConfig dvConfig, IS7Client client, ILogger logger)
         {
             this.Logger = logger;
@@ -52,6 +54,7 @@ namespace Otm.Server.Device.S7
             GetConfig(dvConfig);
             firstLoadRead = true;
             firstLoadWrite = true;
+            Ready = false;
         }
 
         private void GetConfig(DeviceConfig dvConfig)
@@ -214,9 +217,12 @@ namespace Otm.Server.Device.S7
                             readTime = 0;
                             writeTime = 0;
                         }
+
+                        Ready = true;
                     }
                     else
                     {
+                        Ready = false;
                         count = 0;
                         readTime = 0;
                         writeTime = 0;
@@ -227,16 +233,18 @@ namespace Otm.Server.Device.S7
                     // wait 100ms
                     /// TODO: wait time must be equals the minimum update rate of tags
                     var waitEvent = new ManualResetEvent(false);
-                    waitEvent.WaitOne(100);
+                    waitEvent.WaitOne(50);
 
                     if (Worker.CancellationPending)
                     {
+                        Ready = false;
                         Stop();
                         return;
                     }
                 }
                 catch (Exception ex)
                 {
+                    Ready = false;
                     Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
                 }
             }
