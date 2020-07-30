@@ -57,6 +57,9 @@ namespace Otm.Server
                 }
             }
 
+            // wait Devices start
+            Thread.Sleep(2000);
+
             if (Transactions != null)
             {
                 foreach (var trans in Transactions.Values)
@@ -102,9 +105,11 @@ namespace Otm.Server
                 {
                     try
                     {
-                        Logger.LogError($"Object {name}: Started");
+                        Logger.LogInformation($"Object {name}: Started");
 
                         StartAction(worker);
+                        
+                        Logger.LogInformation($"Error on start of {name} ");
                     }
                     catch (Exception ex)
                     {
