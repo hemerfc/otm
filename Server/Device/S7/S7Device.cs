@@ -127,8 +127,13 @@ namespace Otm.Server.Device.S7
                         TypeCode = t.TypeCode,
                         Name = t.Name
                     };
-                    var type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), it.TypeCode));
-                    it.Value = Activator.CreateInstance(type);
+
+                    if (it.TypeCode == TypeCode.String)
+                        it.Value = null;
+                    else {
+                        var type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), it.TypeCode));
+                        it.Value = Activator.CreateInstance(type);
+                    }
 
                     switch (g["g3"].Value)
                     {
@@ -297,11 +302,12 @@ namespace Otm.Server.Device.S7
                                     break;
                             }
                         }
-                        // executa as acoes apos o loop de update
-                        foreach (var dbItem in db.Itens.Values)
+                        
+                        // this is the first execution of ReadDeviceTags?
+                        if (!firstLoadRead)
                         {
-                            // this is the first execution of ReadDeviceTags?
-                            if (!firstLoadRead)
+                            // executa as acoes apos o loop de update
+                            foreach (var dbItem in db.Itens.Values)
                             {
                                 if (!dbItem.Value.Equals(dbItem.OldValue))
                                 {
@@ -311,9 +317,9 @@ namespace Otm.Server.Device.S7
                                     }
                                 }
                             }
-                            else
-                                firstLoadRead = false;
                         }
+                        else
+                            firstLoadRead = false;
                     }
                 }
                 else

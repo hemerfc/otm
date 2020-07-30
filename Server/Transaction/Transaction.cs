@@ -101,28 +101,48 @@ namespace Otm.Server.Transaction
             foreach (var bind in config.Binds)
             {
                 var dp = dataPoint.GetParamConfig(bind.DataPointParam);
-                var tag = device.GetTagConfig(bind.DeviceTag);
 
-                if (tag.Mode == Modes.ToOTM) // from device to OTM  
+                // if DeviceTag is set, get value from device
+                if(!string.IsNullOrWhiteSpace(bind.DeviceTag) ) 
                 {
-                    inParams[dp.Name] = device.GetTagValue(tag.Name);
-                }
-                if (tag.Mode == Modes.Static) // from device to OTM  
+                    var tag = device.GetTagConfig(bind.DeviceTag);
+
+                    if (tag.Mode == Modes.ToOTM) // from device to OTM  
+                    {
+                        inParams[dp.Name] = device.GetTagValue(tag.Name);
+                    }
+                } 
+                else // use the static value, provided
                 {
-                    inParams[dp.Name] = device.GetTagValue(tag.Name);
+                    /// TODO: only int for now...
+                    inParams[dp.Name] = Int32.Parse(bind.Value);
                 }
             }
 
+            String str = "";
+            foreach (KeyValuePair<string, object> kvp in inParams)
+                str += $"({kvp.Key}:{kvp.Value})";
+            logger.LogInformation($"Transaction {config.Name} Execute input {str}");
+
             var outParams = dataPoint.Execute(inParams);
+
+            str = "";
+            foreach (KeyValuePair<string, object> kvp in outParams)
+                str += $"({kvp.Key}:{kvp.Value})";
+            logger.LogInformation($"Transaction {config.Name} Execute output {str}");
 
             foreach (var bind in config.Binds)
             {
                 var dp = dataPoint.GetParamConfig(bind.DataPointParam);
-                var tag = device.GetTagConfig(bind.DeviceTag);
 
-                if (tag.Mode == Modes.FromOTM) // from OTM to device  
+                if (!string.IsNullOrWhiteSpace(bind.DeviceTag))
                 {
-                    device.SetTagValue(tag.Name, outParams[dp.Name]);
+                    var tag = device.GetTagConfig(bind.DeviceTag);
+
+                    if (tag.Mode == Modes.FromOTM) // from OTM to device  
+                    {
+                        device.SetTagValue(tag.Name, outParams[dp.Name]);
+                    }
                 }
             }
         }
