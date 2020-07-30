@@ -38,6 +38,8 @@ namespace Otm.Server.Device.Ptl
         public bool Ready { get; private set; }
         byte[] receiveBuffer = new byte[0];
 
+        private Dictionary<char, byte> DisplayCodeDict; // tabela para conversao de caracteres do display
+
         public PtlDevice(DeviceConfig dvConfig, ITcpClientAdapter client, ILogger logger)
         {
             this.Logger = logger;
@@ -104,7 +106,7 @@ namespace Otm.Server.Device.Ptl
             return null;
         }
 
-        private readonly List<ReceivePTLViewModel> ListaLigados = new List<ReceivePTLViewModel>();
+        private readonly List<PtlBaseClass> ListaLigados = new List<PtlBaseClass>();
 
         public void SetTagValue(string tagName, object value)
         {
@@ -115,22 +117,85 @@ namespace Otm.Server.Device.Ptl
                 // recebeu do datapoint 
                 // criar os comandos pro PTL
 
-                // 001:002|01|00000000001|pick;001:003|01|ITEM OK|msg
                 var ListaPendentes = (from rawPendente in ((string)value).Split(';').ToList()
                                       let pententeInfos = rawPendente.Split('|').ToList()
-                                      select new ReceivePTLViewModel(location: pententeInfos[0],
+                                      select new PtlBaseClass(location: pententeInfos[0],
                                                                     displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
-                                                                    displayValue: pententeInfos[2],
-                                                                    messageType: (E_PtlMessageType)int.Parse(pententeInfos[3]))).ToList();
+                                                                    displayValue: pententeInfos[2],                                                                    
+                                                                    masterMessage: (E_PTLMasterMessage)int.Parse(pententeInfos[3]))
+                                                                    ).ToList();
 
-                var buffer = Encoding.UTF8.GetBytes(@string);
+                //Monta a lista do que é novo                                
+                var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Select(x => x.Location).Contains(i.Location));
+                //Monsta a lista do que foi removido ou se for mensagem de 30 segundos atras
+                var ListaApagar = ListaLigados.Where(i => 
+                                                        !ListaPendentes.Select(x => x.Location).Contains(i.Location)
+                                                        || (i.IsMasterMessage && i.DtHoraComando <= DateTime.Now.AddSeconds(30))
+                                                        );
+
+
+                
                 lock (lockSendDataQueue)
                 {
-                    sendDataQueue.Enqueue(buffer);
+                    foreach (var itemAcender in ListaAcender)
+                    {
+                        //Se for mensagem mestre, troca os valores para exebição
+                        if (itemAcender.IsMasterMessage)
+                        {
+                            var (message, color) = itemAcender.MasterMessage.GetMessageAndColor();
+                            itemAcender.SetColor(color);
+                            itemAcender.SetDisplayValue(message);
+                        }
+
+
+                        byte displayId = itemAcender.GetDisplayId();
+                        var displayCode = itemAcender.GetDisplayValueAsByteArray();
+
+                        //9 Adicionando o pre + pos
+                        byte msgLength = (byte)(displayCode.Length + 9);
+
+                        var buf = new List<byte>();
+
+                        // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
+                        buf.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)itemAcender.DisplayColor });
+                        //msgBuf.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, 0x01 });
+
+
+                        var buf2 = new List<byte>();
+                        buf2.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, displayId });
+                        buf2.AddRange(displayCode);
+                        buf2.Add(0x01);
+
+                        if (itemAcender.IsBlinking)
+                        {
+                            buf2.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x00, 0x00, 0x00, 0x11, displayId });
+                            buf2.AddRange(displayCode);
+                            buf2.Add(0x01);
+                        }
+                        
+                        buf.AddRange(buf2);
+
+                        sendDataQueue.Enqueue(buf.ToArray());
+                    }
+
+                    foreach (var itemApagar in ListaApagar)
+                    {
+                        //var buffer = Encoding.UTF8.GetBytes($"-{itemApagar}");
+                        var buffer = new List<byte>();
+                        byte displayId = itemApagar.GetDisplayId();
+
+                        // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
+                        buffer.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
+                        // limpa o display
+                        buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
+
+                        sendDataQueue.Enqueue(buffer.ToArray());
+                    }
                 }
             }
         }
 
+        
         public void Stop()
         {
         }

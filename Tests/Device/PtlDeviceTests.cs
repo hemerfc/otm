@@ -86,8 +86,10 @@ namespace Otm.Test.Device
         [Fact]
         public void Send_Ptl_Command()
         {
-            var cmd1 = "|CMD001|";
-            var cmd2 = "|CMD002|";
+            /*LOCATION|displayValue|masterMessage*/
+            var cmd1 = $"001:002|{(byte)E_DisplayColor.Verde}|00000000001|{(int)E_PTLMasterMessage.None};001:003|1||{(int)E_PTLMasterMessage.ItemOk}";
+            var cmd2 = $"001:005|{(byte)E_DisplayColor.Laranja}|00000000002|{(int)E_PTLMasterMessage.None};001:003|1||{(int)E_PTLMasterMessage.ToteOk}";
+            
             recvFromPtlBuffer = new byte[0];
             sendToPtlBuffer = new byte[0];
 

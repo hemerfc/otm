@@ -121,6 +121,23 @@
           "DeviceTag": "cmd_send"
         }
       ]
+    },
+    {
+      "Name": "PendingCommands_cycle",
+      "DataPointName": "sp_PendingCommands",
+      "DeviceName": "ptl01",
+      "TriggerType": "OnCycle",
+      "TriggerTime": 2000,
+      "Binds": [
+        {
+          "DataPointParam": "p1",
+          "DeviceTag": "ptl_ctrl"
+        },
+        {
+          "DataPointParam": "p2",
+          "DeviceTag": "cmd_send"
+        }
+      ]
     }
   ]
 }
