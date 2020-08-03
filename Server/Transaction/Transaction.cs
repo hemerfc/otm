@@ -114,8 +114,13 @@ namespace Otm.Server.Transaction
                 } 
                 else // use the static value, provided
                 {
-                    /// TODO: only int for now...
-                    inParams[dp.Name] = Int32.Parse(bind.Value);
+                    /// TODO: only int and string for now...
+                    if (dp.TypeCode == TypeCode.Int32)
+                        inParams[dp.Name] = Int32.Parse(bind.Value);
+                    else if (dp.TypeCode == TypeCode.String)
+                        inParams[dp.Name] = bind.Value;
+                    else
+                        throw new Exception($"Transaction {this.config.Name}: Fixed value only accept int or string!");
                 }
             }
 

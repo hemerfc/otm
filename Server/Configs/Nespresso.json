@@ -3,31 +3,26 @@
   "Enabled": true,
   "DataPoints": [
     {
-      "Name": "sp_test_ptl01",
+      "Name": "sp_EnviarLeitura",
       "Driver": "mssql",
       "Config": "Server=localhost;Database=QuickFlowDb;User Id=sa;Password=Aguia3220;",
       "Params": [
         {
-          "Name": "p1",
-          "Mode": "FromOTM",
-          "TypeCode": "Int32"
-        },
-        {
-          "Name": "p2",
+          "Name": "ptl_id",
           "Mode": "FromOTM",
           "TypeCode": "String",
-          "Length": 100
+          "Length": 3
         },
         {
-          "Name": "p3",
-          "Mode": "ToOTM",
+          "Name": "mensagem",
+          "Mode": "FromOTM",
           "TypeCode": "String",
-          "Length": 100
+          "Length" : 100 
         }
       ]
     },
     {
-      "Name": "sp_test_ptl02",
+      "Name": "sp_PendingCommands",
       "Driver": "mssql",
       "Config": "Server=localhost;Database=QuickFlowDb;User Id=sa;Password=Aguia3220;",
       "Params": [
@@ -35,13 +30,13 @@
           "Name": "p1",
           "Mode": "FromOTM",
           "TypeCode": "String",
-          "Length": 100
+          "Length": 10
         },
         {
           "Name": "p2",
           "Mode": "ToOTM",
           "TypeCode": "String",
-          "Length": 100
+          "Length": 250
         }
       ]
     }
@@ -50,15 +45,8 @@
     {
       "Name": "ptl01",
       "Driver": "ptl",
-      "Config": "ip=127.0.0.1;port=4660",
+      "Config": "ip=192.168.202.10;port=4660",
       "Tags": [
-        {
-          "Name": "ptl_ctrl",
-          "Address": "ptl_ctrl",
-          "Rate": 0,
-          "Mode": "ToOTM",
-          "TypeCode": "String"
-        },
         {
           "Name": "cmd_count",
           "Address": "cmd_count",
@@ -86,39 +74,18 @@
   "Transactions": [
     {
       "Name": "ptl01_recv",
-      "DataPointName": "sp_test_ptl01",
+      "DataPointName": "sp_EnviarLeitura",
       "DeviceName": "ptl01",
       "TriggerType": "OnTagChange",
       "TriggerTagName": "cmd_count",
       "Binds": [
         {
-          "DataPointParam": "p1",
-          "DeviceTag": "cmd_count"
+          "DataPointParam": "ptl_id",
+          "Value": "001"
         },
         {
-          "DataPointParam": "p2",
+          "DataPointParam": "mensagem",
           "DeviceTag": "cmd_rcvd"
-        },
-        {
-          "DataPointParam": "p3",
-          "DeviceTag": "cmd_send"
-        }
-      ]
-    },
-    {
-      "Name": "ptl01_cycle",
-      "DataPointName": "sp_test_ptl02",
-      "DeviceName": "ptl01",
-      "TriggerType": "OnCycle",
-      "TriggerTime": 2000,
-      "Binds": [
-        {
-          "DataPointParam": "p1",
-          "DeviceTag": "ptl_ctrl"
-        },
-        {
-          "DataPointParam": "p2",
-          "DeviceTag": "cmd_send"
         }
       ]
     },
@@ -131,7 +98,7 @@
       "Binds": [
         {
           "DataPointParam": "p1",
-          "DeviceTag": "ptl_ctrl"
+          "Value": "001"
         },
         {
           "DataPointParam": "p2",

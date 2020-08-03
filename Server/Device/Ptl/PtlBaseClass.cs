@@ -30,7 +30,7 @@ namespace Otm.Server.Device.Ptl
         {
             Location = location;
             DisplayColor = displayColor;
-            DisplayValue = displayValue.ToString();
+            DisplayValue = displayValue;
             MasterMessage = masterMessage;
             DtHoraComando = DateTime.Now;
         }

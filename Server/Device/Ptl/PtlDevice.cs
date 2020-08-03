@@ -12,8 +12,8 @@ namespace Otm.Server.Device.Ptl
 {
     public class PtlDevice : IDevice
     {
-        private const string STX_LC = "`GSTX";
-        private const string ETX_LC = "ETX";
+        private const string STX_LC = "\x02";
+        private const string ETX_LC = "\x03";
         private const string STX_AT = "\x0F\x00\x60";
 
         public string Name { get { return Config.Name; } }
@@ -176,6 +176,8 @@ namespace Otm.Server.Device.Ptl
                         buf.AddRange(buf2);
 
                         sendDataQueue.Enqueue(buf.ToArray());
+
+                        ListaLigados.Add(itemAcender);
                     }
 
                     foreach (var itemApagar in ListaApagar)
@@ -190,6 +192,7 @@ namespace Otm.Server.Device.Ptl
                         buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
 
                         sendDataQueue.Enqueue(buffer.ToArray());
+                        ListaLigados.Remove(itemApagar);
                     }
                 }
             }

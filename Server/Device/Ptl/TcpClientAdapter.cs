@@ -26,7 +26,7 @@ namespace Otm.Server.Device.Ptl
         {
             if (_client.Available > 0)
             {
-                var buffer = new byte[_client.Available - 1];
+                var buffer = new byte[_client.Available];
                 _client.Client.Receive(buffer);
                 return buffer;
             }
