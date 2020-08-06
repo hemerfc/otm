@@ -29,26 +29,10 @@
         /// <param name="MaxDigitosPedido">Quantidade de digitos do pedido a ser exibido, default = 8</param>
         /// <param name="MaxDigitosTipoCaixa">Quantidade de digitos do tipo da caixa a ser exibido, default = 3</param>
         /// <returns></returns>
-        public static (string message, E_DisplayColor color) GetMessageAndColor(this E_PTLMasterMessage PTLMessage, string Pedido = "", string TipoCaixa = "", int MaxDigitosDisplay = 12, int MaxDigitosPedido = 8, int MaxDigitosTipoCaixa = 3)
+        public static (string message, E_DisplayColor color) GetMessageAndColor(this E_PTLMasterMessage PTLMessage, string Vinculo = "")
         {
             var defaultColor = E_DisplayColor.Vermelho;
-
-            #region Criando a mensagem de display do pedido
-            //Obtendo o Pedido com o máximo de MaxDigitosPedido
-            var pedidoStr = (Pedido.Length <= MaxDigitosPedido) ? Pedido : Pedido.Substring(Pedido.Length - MaxDigitosPedido);
             
-            //Obtendo o TipoCaixa com o máximo de MaxDigitosTipoCaixa
-            var tipoCaixaStr = (TipoCaixa.Length <= MaxDigitosTipoCaixa) ? TipoCaixa : TipoCaixa.Substring(TipoCaixa.Length - MaxDigitosTipoCaixa);
-
-            //Inserindo o pedido com os espaços entre o pedido e o tipo da caixa
-            var displayPedidoStr = pedidoStr.PadRight(MaxDigitosDisplay - tipoCaixaStr.Length, ' ');
-
-            //Inserindo o tipo da caixa
-            displayPedidoStr += tipoCaixaStr;
-
-            #endregion Criando a mensagem de display do pedido
-
-
             return PTLMessage switch
             {
                 E_PTLMasterMessage.None => (string.Empty, defaultColor),
@@ -63,7 +47,7 @@
                 E_PTLMasterMessage.EfetuarLogin => ("LOGAR", defaultColor),
                 E_PTLMasterMessage.LoginOk => ("LOGIN OK", defaultColor),
                 E_PTLMasterMessage.LoginErr => ("LOGIN Err", defaultColor),
-                E_PTLMasterMessage.PedidoScanOk => (displayPedidoStr, E_DisplayColor.Verde),
+                E_PTLMasterMessage.PedidoScanOk => (Vinculo, E_DisplayColor.Verde),
                 _ => (string.Empty, defaultColor),
             };
         }
