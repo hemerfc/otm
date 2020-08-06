@@ -4,6 +4,7 @@ namespace Otm.Server.Device.Ptl
 {
     public class PtlCharDict
     {
+
         public Dictionary<char, byte> Dictionary { get; private set; }
 
         public PtlCharDict()
