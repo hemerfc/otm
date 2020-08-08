@@ -1,6 +1,6 @@
 ﻿USE [QuickFlowDb]
 GO
-/****** Object:  StoredProcedure [dbo].[sp_EnviarLeitura]    Script Date: 04/08/2020 15:50:15 ******/
+/****** Object:  StoredProcedure [dbo].[sp_EnviarLeitura]    Script Date: 06/08/2020 15:09:40 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -30,14 +30,15 @@ DECLARE @msgDeviceId varchar(64);
 DECLARE @msgRead as varchar(128);
 -- Separador de mensagem
 DECLARE @tamanhoCodigoLogin as int;  
-SET @tamanhoCodigoLogin = 6;
+SET @tamanhoCodigoLogin = 7;
 
 DECLARE @estacaoId as uniqueidentifier;
 DECLARE @doctoId as uniqueidentifier;
 DECLARE @doctoAlocacaoId as uniqueidentifier;
 DECLARE @usuarioLogadoId as uniqueidentifier;
-DECLARE @usuarioLogandoId as uniqueidentifier;
 DECLARE @usuarioLogado as varchar(128);
+DECLARE @usuarioLogandoId as uniqueidentifier;
+DECLARE @usuarioLogando as varchar(128);
 DECLARE @AlocacoesRestantes as int;
 DECLARE @masterDisplayId as varchar(128);
 
@@ -50,17 +51,17 @@ PRINT N'INFO||@tamanhoCodigoLogin:';
 PRINT @tamanhoCodigoLogin;
 
 
-PRINT N'DEBUG|LC|Criando tabela temporária #TT_Params...';
+PRINT N'DEBUG||Criando tabela temporária #TT_Params...';
 -- Criando uma tabela temporaria para guardar os parametros
 create table #TT_Params
 					( 
 						ParamNumber int,
 						ParamValue Varchar(64),
 					);
-PRINT N'DEBUG|LC|Tabela temporária #TT_Params criada!';
+PRINT N'DEBUG||Tabela temporária #TT_Params criada!';
 
 
-PRINT N'DEBUG|LC|Inserindo os parametros na tabela temporária #TT_Params...';
+PRINT N'DEBUG||Inserindo os parametros na tabela temporária #TT_Params...';
 --Extraindo os parametros utilizando o separador 
 INSERT INTO #TT_Params (ParamNumber, ParamValue) 
 SELECT 
@@ -100,6 +101,39 @@ PRINT N'DEBUG||Removendo a tabela temporária #TT_Params...';
 DROP TABLE #TT_Params;
 PRINT N'DEBUG||Tabela temporária #TT_Params removida!';
 
+PRINT N'DEBUG||Obtendo a estação...';
+	SELECT 
+		@estacaoId =  es.Id,
+		@masterDisplayId = es.CodigodisplayMestre
+	FROM 
+		Estacao es 						
+	WHERE 
+		es.CodigoLeitor = @msgDeviceId
+		AND es.Ativo = 1;
+PRINT N'DEBUG||Estação Obtida!';
+				
+PRINT N'INFO||@estacaoId:';
+PRINT @estacaoId;
+PRINT N'INFO||@masterDisplayId:';
+PRINT @masterDisplayId;
+
+
+PRINT N'DEBUG||Obtendo último usuário aberto para a estação...';
+	Select TOP 1 
+		@usuarioLogado = c.Usuario,
+		@usuarioLogadoId = c.Id
+	FROM 
+		LoginCartao lg
+		INNER JOIN Cartao c on lg.CartaoId = c.Id
+	WHERE 
+		lg.DtSaida IS NULL
+		AND lg.EstacaoId = @estacaoId
+	ORDER BY 
+		lg.DtEntrada desc
+PRINT N'DEBUG||Último usuário aberto para a estação obtido!';
+PRINT N'INFO||@usuarioLogado:';
+PRINT @usuarioLogado;
+
 --Se for Leitor 
 IF @msgType  = 'LC' 
 	BEGIN
@@ -109,44 +143,12 @@ IF @msgType  = 'LC'
 		IF LEN(@msgRead) = @tamanhoCodigoLogin
 			BEGIN
 				PRINT N'DEBUG|CT|Verificado que É uma leitura de cartão!';
-
-				PRINT N'DEBUG|CT|Obtendo a estação...';
-				SELECT 
-					@estacaoId =  es.Id,
-					@masterDisplayId = es.CodigodisplayMestre
-				FROM 
-					Estacao es 						
-				WHERE 
-					es.CodigoLeitor = @msgDeviceId
-					AND es.Ativo = 1;
-				PRINT N'DEBUG|CT|Estação Obtida!';
-				
-				PRINT N'INFO|CT|@estacaoId:';
-				PRINT @estacaoId;
-				PRINT N'INFO|CT|@masterDisplayId:';
-				PRINT @masterDisplayId;
-
-
-				PRINT N'DEBUG|CT|Obtendo último usuário aberto para a estação...';
-				Select TOP 1 
-					@usuarioLogado = c.Usuario,
-					@usuarioLogadoId = c.Id
-				FROM 
-					LoginCartao lg
-					INNER JOIN Cartao c on lg.CartaoId = c.Id
-				WHERE 
-					lg.DtSaida IS NULL
-					AND lg.EstacaoId = @estacaoId
-				ORDER BY 
-					lg.DtEntrada desc
-				PRINT N'DEBUG|CT|Último usuário aberto para a estação obtido!';
-				PRINT N'INFO|CT|@usuarioLogado:';
-				PRINT @usuarioLogado;
-
-				
+								
+								
 				PRINT N'DEBUG|CT|Obtendo usuário logando...';
 				Select TOP 1 
-					@usuarioLogandoId = c.Id
+					@usuarioLogandoId = c.Id,
+					@usuarioLogando = c.Usuario
 				FROM 
 					Cartao c 
 				WHERE 
@@ -158,14 +160,31 @@ IF @msgType  = 'LC'
 					PRINT N'DEBUG|CT|Nenhum usuário cadastrado para esse código!';	
 					Insert into Comando (Id, QuantReq, DtInicio,Cor,Identificador, DisplayCode, Vinculo, MasterMessage, EstacaoId)
 					VALUES 
-						(NEWID(), 0, GETDATE(), '1', NULL, @masterDisplayId, '', '1011', @estacaoId ) -- 1011:E_PTLMasterMessage.LoginErr
+						(NEWID(), 0, GETDATE(), 0, NEWID(), @masterDisplayId, 'LOGIN ERR', '1011', @estacaoId ) -- 1011:E_PTLMasterMessage.LoginErr
 				END
 				ELSE
 				BEGIN
 					PRINT N'DEBUG|CT|Usuário logando obtido!';	
 					PRINT N'INFO|CT|@usuarioLogandoId:';
-					PRINT @usuarioLogandoId;
+					PRINT @usuarioLogandoId;	
+					PRINT N'INFO|CT|@usuarioLogando:';
+					PRINT @usuarioLogando;
 				
+				
+					
+					PRINT N'DEBUG|CT|Removendo todos os comandos pendentes daquela estação...';
+					UPDATE Comando
+						SET 
+							DtFim = GETDATE(),
+							DtProcessamento = GETDATE()
+					WHERE 
+						EstacaoId = @estacaoId 
+						AND DtFim IS NULL
+						AND DtAtendimento IS NULL 
+						AND DtProcessamento IS NULL
+					PRINT N'DEBUG|CT|Removido todos os comandos pendentes daquela estação...';
+
+
 					PRINT N'DEBUG|CT|Efetuando logout se for o mesmo cartão...';
 					Update LoginCartao
 					SET DtSaida = GETDATE()
@@ -173,7 +192,7 @@ IF @msgType  = 'LC'
 						EstacaoId = @estacaoId
 						AND CartaoId = @usuarioLogandoId
 						AND DtSaida IS NULL
-				
+					
 					IF @@ROWCOUNT = 0  
 						BEGIN
 
@@ -192,9 +211,17 @@ IF @msgType  = 'LC'
 							VALUES
 								(NEWID(),GETDATE(),@estacaoId,@usuarioLogandoId);
 
+
+							UPDATE EstacaoPedido
+								SET
+									DtFimAtendimento = GETDATE()
+							WHERE
+								EstacaoId = @estacaoId
+								AND DtFimAtendimento IS NULL
+	
 							INSERT INTO Comando (Id, QuantReq, DtInicio,Cor,Identificador, DisplayCode, Vinculo, MasterMessage, EstacaoId)
 							VALUES 
-								(NEWID(), 0, GETDATE(), '1', NULL, @masterDisplayId, '', '1010', @estacaoId ) -- 1010:E_PTLMasterMessage.LoginOk
+								(NEWID(), 0, GETDATE(), 1, NEWID(), @masterDisplayId, SUBSTRING(CONCAT(@usuarioLogando, ' OK'), 1, 12), '1010', @estacaoId ) -- 1010:E_PTLMasterMessage.LoginOk
 
 							PRINT N'DEBUG|CT|Login Efetuado!';
 						END
@@ -206,6 +233,11 @@ IF @msgType  = 'LC'
 			END
 		ELSE
 			BEGIN
+				PRINT N'DEBUG|LC|Efeturnado o atendimento com o usuário:';
+				PRINT @usuarioLogado;
+
+				IF @usuarioLogadoId IS NOT NULL
+				BEGIN
 				PRINT N'DEBUG|LC|Verificado que NÃO É uma leitura de cartão!';
 
 				PRINT N'DEBUG|LC|Criando tabela temporária #TT_Itens...';
@@ -279,12 +311,41 @@ IF @msgType  = 'LC'
 					DtAtendimento is null
 					AND EstacaoId = @estacaoId;
 				PRINT N'DEBUG|LC|Comandos pendentes da estação dinalizados!';
+
+				PRINT N'DEBUG|LC|Verificando e fechando outros pedidos abertos para essa estação...';
+					UPDATE EstacaoPedido
+						SET DtFimAtendimento = GETDATE()
+					WHERE 
+						EstacaoId = @estacaoId
+						AND DtFimAtendimento IS NULL
+						AND NOT (DoctoId = @doctoId AND CartaoId = @usuarioLogadoId AND EstacaoId = @estacaoId)
+				PRINT N'DEBUG|LC|Verificados e fechados outros pedidos abertos para essa estação!';
+
+				PRINT N'DEBUG|LC|Verificando o relacionamento EstacaoPedido já existe ...';
+				   IF NOT EXISTS (SELECT * 
+									FROM EstacaoPedido 
+									WHERE 
+										DtFimAtendimento IS NULL
+										AND DoctoId = @doctoId
+										AND CartaoId = @usuarioLogadoId
+										AND EstacaoId = @estacaoId)
+				   BEGIN
+						PRINT N'DEBUG|LC|Inserindo o relacionamento EstacaoPedido...';
+						   INSERT INTO EstacaoPedido
+							(Id, TenantId, DtInicioAtendimento, DtFimAtendimento, DoctoId, CartaoId, EstacaoId)
+							VALUES
+								(NEWID(), null, GETDATE(), null, @doctoId, @usuarioLogadoId, @estacaoId)
+						PRINT N'DEBUG|LC|Relacionamento EstacaoPedido inserido';
+				   END
+				PRINT N'DEBUG|LC|Verificado se o relacionamento EstacaoPedido já existe!';
 		
 
 				PRINT N'DEBUG|LC|Inserindo novos comandos...';
 				--Inserindo os comandos novos
 				Insert into Comando (Id, QuantReq, DtInicio,Cor,Identificador, DisplayCode, Vinculo, MasterMessage, EstacaoId)
-				Select NEWID(), QtdeRestante, GETDATE(), '1', DoctoAlocacaoId, Position, Docto, '1000', @estacaoId FROM #TT_Itens;
+				Select NEWID(), QtdeRestante, GETDATE(), 0, DoctoAlocacaoId, Position, '', '1000', @estacaoId 
+					FROM #TT_Itens
+					WHERE QtdeRestante > 0;
 				PRINT N'DEBUG|LC|Novos comandos inseridos!';
 		
 		
@@ -301,6 +362,9 @@ IF @msgType  = 'LC'
 				 DROP TABLE #TT_Itens;
 				PRINT N'DEBUG|LC|Tabela temporária #TT_Itens removida!';
 
+			END
+
+			
 			END
 		PRINT N'DEBUG|LC|FIM LC!';
 	END
@@ -380,6 +444,12 @@ BEGIN
 				DtFimAtendimento = GETDATE()
 			WHERE Id = @doctoId;
 
+			Update EstacaoPedido
+				SET DtFimAtendimento = GETDATE()
+			WHERE 
+				@doctoId = @doctoId
+				AND DtFimAtendimento IS NULL
+
 			
 			SELECT 
 				@masterDisplayId = es.CodigodisplayMestre
@@ -390,7 +460,7 @@ BEGIN
 
 			INSERT INTO Comando (Id, QuantReq, DtInicio,Cor,Identificador, DisplayCode, Vinculo, MasterMessage, EstacaoId)
 			VALUES 
-				(NEWID(), 0, GETDATE(), '1', NULL, @masterDisplayId, '', '1001', @estacaoId ) -- 1001:E_PTLMasterMessage.ConfirmValue
+				(NEWID(), 0, GETDATE(), 1, NEWID(), @masterDisplayId, 'FIM', '1001', @estacaoId ) -- 1001:E_PTLMasterMessage.ConfirmValue
 
 			PRINT N'DEBUG|AT|Docto Finalizado';
 		END

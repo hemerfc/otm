@@ -1,6 +1,6 @@
 ﻿USE [QuickFlowDb]
 GO
-/****** Object:  StoredProcedure [dbo].[sp_PendingCommands]    Script Date: 05/08/2020 11:31:41 ******/
+/****** Object:  StoredProcedure [dbo].[sp_PendingCommands]    Script Date: 05/08/2020 17:11:03 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -10,41 +10,56 @@ ALTER    PROCEDURE [dbo].[sp_PendingCommands]
    @p2 nvarchar(250) OUTPUT
 AS
 BEGIN
---SET @p2 = CONCAT(@p1,':002|1|00000000001|1000;001:003|1||1004');
-declare @resultAtendimentos nvarchar(250)
-declare @resultNaoLogados nvarchar(250)
-declare @resultLogadaSemPedido nvarchar(250)
-declare @resultLogadaComPedido nvarchar(250)
+
 declare @resultFinal nvarchar(250)
-
-set @resultAtendimentos = ''
-set @resultNaoLogados = ''
-set @resultLogadaSemPedido = ''
-set @resultLogadaComPedido = ''
 set @resultFinal = ''
+/*
+Cores PTL
 
-PRINT N'DEBUG||Obtendo atendimentos em aberto...';
-	Select 
-		@resultAtendimentos =
-		CASE
-			WHEN @resultAtendimentos != '' 
-			THEN CONCAT(@resultAtendimentos,';',DisplayCode,'|1|',Format(QuantReq, 'F0'),'|',MasterMessage)
-			ELSE CONCAT(DisplayCode,'|1|',Format(QuantReq, 'F0'),'|',MasterMessage)
-		END
-	from comando
-	Where DtAtendimento IS NULL;
-PRINT N'DEBUG||Atendimentos em aberto obtidos...';
-PRINT N'DEBUG||@resultAtendimentos:';
-PRINT @resultAtendimentos;
+Vermelho = 0x00,
+Verde = 0x01,
+Laranja = 0x02,
+Azul = 0x03,
+Rosa = 0x04,
+Aqua = 0x05,
+Off = 0x06
+*/
+
+PRINT N'DEBUG||Criando a tabela temporária de comandos...';
+CREATE TABLE #tt_Comandos(
+	[Id] [uniqueidentifier] NOT NULL,
+	[TenantId] [int] NULL,
+	[QuantReq] [decimal](18, 2) NOT NULL,
+	[QuantAtend] [decimal](18, 2) NULL,
+	[DtInicio] [datetime2](7) NOT NULL,
+	[DtAtendimento] [datetime2](7) NULL,
+	[DtProcessamento] [datetime2](7) NULL,
+	[DtFim] [datetime2](7) NULL,
+	[Cor] [nvarchar](1) NOT NULL,
+	[Identificador] [uniqueidentifier] NOT NULL,
+	[DisplayCode] [nvarchar](16) NOT NULL,
+	[Vinculo] [nvarchar](max) NOT NULL,
+	[EstacaoId] [uniqueidentifier] NOT NULL,
+	[MasterMessage] [int] NOT NULL);
+PRINT N'DEBUG||Tabela temporária de comandos criada...';
+DELETE FROM #tt_Comandos;
 
 PRINT N'DEBUG||Obtendo estações não logadas...';
-	Select 
-		@resultNaoLogados =
-		CASE
-			WHEN @resultNaoLogados != '' 
-			THEN CONCAT(@resultNaoLogados,';',CodigoDisplayMestre,'|1|0|1009') --1009 E_PTLMasterMessage.EfetuarLogin
-			ELSE CONCAT(CodigoDisplayMestre,'|1|0|1009')
-		END
+    INSERT INTO #tt_Comandos			
+	SELECT NEWID() AS [Id], 
+			null AS[TenantId], 
+			0.0 AS [QuantReq], 
+			null AS [QuantAtend], 
+			GETDATE() AS [DtInicio], 
+	       null AS [DtAtendimento],
+		   null AS [DtProcessamento], 
+		   null AS [DtFim], 
+		   0 AS [Cor], 
+		   NEWID() AS [Identificador],
+		   es.CodigoDisplayMestre AS [DisplayCode], 
+		   'LOGAR' AS [Vinculo],
+		   es.Id AS [EstacaoId], 
+		   1009 AS [MasterMessage]  --1009 E_PTLMasterMessage.EfetuarLogin	
 	FROM 
 		Estacao es
 	WHERE
@@ -59,18 +74,28 @@ PRINT N'DEBUG||Obtendo estações não logadas...';
 				AND lg.DtEntrada IS NOT NULL
 				AND lg.DtSaida IS NULL
 			);		
+
+	
+
 PRINT N'DEBUG||Estações não logadas obtidas obtidos...';
-PRINT N'DEBUG||@resultNaoLogados:';
-PRINT @resultNaoLogados;
+
 
 PRINT N'DEBUG||Obtendo estações logadas mas sem pedido...';
-	Select 
-		@resultLogadaSemPedido =
-		CASE
-			WHEN @resultLogadaSemPedido != '' 
-			THEN CONCAT(@resultLogadaSemPedido,';',CodigoDisplayMestre,'|1|0|1010') --1010 E_PTLMasterMessage.LoginOk
-			ELSE CONCAT(CodigoDisplayMestre,'|1|0|1010')
-		END
+INSERT INTO #tt_Comandos			
+	SELECT NEWID() AS [Id], 
+			null AS[TenantId], 
+			0.0 AS [QuantReq], 
+			null AS [QuantAtend], 
+			GETDATE() AS [DtInicio], 
+	       null AS [DtAtendimento],
+		   null AS [DtProcessamento], 
+		   null AS [DtFim], 
+		   1 AS [Cor], 
+		   NEWID() AS [Identificador],
+		   es.CodigoDisplayMestre AS [DisplayCode], 
+		   'LOGIN OK' AS [Vinculo],
+		   es.Id AS [EstacaoId], 
+		   1010 AS [MasterMessage]  --1010 E_PTLMasterMessage.LoginOk
 	FROM 
 		Estacao es
 		LEFT JOIN EstacaoPedido ep ON ep.EstacaoId = es.Id
@@ -89,20 +114,32 @@ PRINT N'DEBUG||Obtendo estações logadas mas sem pedido...';
 				AND lg.DtSaida IS NULL
 			);		
 PRINT N'DEBUG||Estações estações logadas mas sem pedido obtidas...';
-PRINT N'DEBUG||@resultLogadaSemPedido:';
-PRINT @resultLogadaSemPedido;
+
+
 
 PRINT N'DEBUG||Obtendo estações logadas e com pedido...';
-	Select 
-		@resultLogadaComPedido =
-		CASE
-			WHEN @resultLogadaComPedido != '' 
-			THEN CONCAT(@resultLogadaComPedido,';',CodigoDisplayMestre,'|1|0|1012') --1012 E_PTLMasterMessage.PedidoScanOk
-			ELSE CONCAT(CodigoDisplayMestre,'|1|0|1012')
-		END
-	FROM 
+
+
+	INSERT INTO #tt_Comandos			
+	SELECT NEWID() AS [Id], 
+			null AS[TenantId], 
+			0.0 AS [QuantReq], 
+			null AS [QuantAtend], 
+			GETDATE() AS [DtInicio], 
+	       null AS [DtAtendimento],
+		   null AS [DtProcessamento], 
+		   null AS [DtFim], 
+		   1 AS [Cor], 
+		   NEWID() AS [Identificador],
+		   es.CodigoDisplayMestre AS [DisplayCode], 
+		   CONCAT(CAST(RIGHT(doc.Identificador, 8) AS CHAR(8)),' ', CAST(RIGHT(emb.Nome, 3) AS CHAR(3))) AS [Vinculo],
+		   es.Id AS [EstacaoId], 
+		   1012 AS [MasterMessage]  --1012 E_PTLMasterMessage.PedidoScanOk
+	FROM  
 		Estacao es
 		INNER JOIN EstacaoPedido ep ON ep.EstacaoId = es.Id
+		INNER JOIN Docto doc on ep.DoctoId = doc.Id 
+		INNER JOIN Embalagem emb on doc.EmbalagemSugeridaId = emb.Id 
 	WHERE
 		ep.Id IS NOT NULL
 		AND ep.DtInicioAtendimento IS NOT NULL 
@@ -119,53 +156,51 @@ PRINT N'DEBUG||Obtendo estações logadas e com pedido...';
 				AND lg.DtSaida IS NULL
 			);		
 PRINT N'DEBUG||Estações estações logadas e com pedido obtidas...';
-PRINT N'DEBUG||@resultLogadaComPedido:';
-PRINT @resultLogadaComPedido;
 
-PRINT N'DEBUG||Concatenando resultado final...';
-		IF @resultAtendimentos != ''
-		BEGIN
-			IF @resultFinal != ''
-			BEGIN
-				SET @resultFinal = CONCAT(@resultFinal,';');
-			END
 
-			SET @resultFinal = CONCAT(@resultFinal, @resultAtendimentos);
+
+PRINT N'DEBUG||Inserindo somente os comandos que não estão no banco...';
+INSERT INTO [dbo].[Comando] 
+		([Id], [TenantId], [QuantReq], [QuantAtend], [DtInicio], [DtAtendimento], [DtProcessamento], 
+		[DtFim], [Cor], [Identificador], [DisplayCode], [Vinculo], [EstacaoId], [MasterMessage])
+    SELECT es.[Id], es.[TenantId], es.[QuantReq], es.[QuantAtend], es.[DtInicio], es.[DtAtendimento], es.[DtProcessamento], 
+		es.[DtFim], es.[Cor], es.[Identificador], es.[DisplayCode], es.[Vinculo], es.[EstacaoId], es.[MasterMessage]
+	FROM #tt_Comandos es
+	WHERE
+		(es.DtAtendimento IS NULL OR es.DtFim IS NULL)
+		AND NOT EXISTS(select * 
+						from Comando c2 
+						where c2.DisplayCode = es.DisplayCode
+							AND c2.Cor = es.Cor
+							AND c2.QuantReq = es.QuantReq
+							AND c2.MasterMessage = es.MasterMessage
+							AND c2.DtAtendimento IS NULL 
+							AND c2.DtProcessamento IS NULL
+							AND c2.DtFim IS NULL);
+							
+DROP TABLE #tt_Comandos;
+PRINT N'DEBUG||Inseridos no banco somente os comandos que ainda não estavam...';
+
+
+PRINT N'DEBUG||Obtendo atendimentos em aberto...';
+	Select 
+		@resultFinal =
+		CASE
+			WHEN @resultFinal != '' 
+			THEN CONCAT(@resultFinal,';',DisplayCode,'|',Cor,'|',
+			CASE WHEN vinculo != '' THEN Vinculo ELSE Format(QuantReq, 'F0') END,
+			'|',MasterMessage,'|',Id)
+			ELSE CONCAT(DisplayCode,'|',Cor,'|',
+			CASE WHEN vinculo != '' THEN Vinculo ELSE Format(QuantReq, 'F0') END,
+			'|',MasterMessage,'|',Id)
 		END
-
-		IF @resultNaoLogados != ''
-		BEGIN
-			IF @resultFinal != ''
-			BEGIN
-				SET @resultFinal = CONCAT(@resultFinal,';');
-			END
-
-			SET @resultFinal = CONCAT(@resultFinal,@resultNaoLogados);
-		END
-
-		IF @resultLogadaSemPedido != ''
-		BEGIN
-			IF @resultFinal != ''
-			BEGIN
-				SET @resultFinal = CONCAT(@resultFinal,';');
-			END
-
-			SET @resultFinal = CONCAT(@resultFinal, @resultLogadaSemPedido);
-		END
-			
-		IF @resultLogadaComPedido != ''
-		BEGIN
-			IF @resultFinal != ''
-			BEGIN
-				SET @resultFinal = CONCAT(@resultFinal,';');
-			END
-
-			SET @resultFinal = CONCAT(@resultFinal, @resultLogadaComPedido);
-		END		
-PRINT N'DEBUG||Resultado final concatenado...';
+	from comando
+	Where DtAtendimento IS NULL and DtProcessamento is null;
+PRINT N'DEBUG||Atendimentos em aberto obtidos...';
 PRINT N'DEBUG||@resultFinal:';
-PRINT @resultFinal;	
-
+PRINT @resultFinal;
 
 SET @p2 = @resultFinal;
 END
+
+Select * from Comando

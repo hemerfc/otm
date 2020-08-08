@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Otm.Server.ContextConfig;
@@ -22,6 +23,8 @@ namespace Otm.Server.Transaction
         private IDataPoint dataPoint;
 
         public BlockingCollection<Tuple<string, Object>> TriggerQueue { get; private set; }
+        public Stopwatch Stopwatch;
+
         private readonly ILogger logger;
 
         public Transaction(TransactionConfig trConfig, IDevice device, IDataPoint dataPoint, ILogger logger)
@@ -31,6 +34,7 @@ namespace Otm.Server.Transaction
             this.device = device;
             this.dataPoint = dataPoint;
             this.TriggerQueue = new BlockingCollection<Tuple<string, Object>>(128);
+            Stopwatch = new Stopwatch();
         }
 
         public void Start(BackgroundWorker worker)
@@ -62,7 +66,9 @@ namespace Otm.Server.Transaction
                         var waitEvent = new ManualResetEvent(false);
                         waitEvent.WaitOne(config.TriggerTime); // aguarda XXXms
                         if (device.Ready)
+                        {
                             ExecuteTrigger(/*trigger.Item1, trigger.Item2*/);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -96,6 +102,8 @@ namespace Otm.Server.Transaction
         /// <param name="value">tag value</param>
         public void ExecuteTrigger(/*string tagName, Object value*/)
         {
+            Stopwatch.Restart();
+
             var inParams = new Dictionary<string, object>();
 
             foreach (var bind in config.Binds)
@@ -123,18 +131,8 @@ namespace Otm.Server.Transaction
                         throw new Exception($"Transaction {this.config.Name}: Fixed value only accept int or string!");
                 }
             }
-
-            String str = "";
-            foreach (KeyValuePair<string, object> kvp in inParams)
-                str += $"({kvp.Key}:{kvp.Value})";
-            logger.LogInformation($"Transaction {config.Name} Execute input {str}");
-
+            
             var outParams = dataPoint.Execute(inParams);
-
-            str = "";
-            foreach (KeyValuePair<string, object> kvp in outParams)
-                str += $"({kvp.Key}:{kvp.Value})";
-            logger.LogInformation($"Transaction {config.Name} Execute output {str}");
 
             foreach (var bind in config.Binds)
             {
@@ -150,6 +148,19 @@ namespace Otm.Server.Transaction
                     }
                 }
             }
+
+            var time = Stopwatch.ElapsedMilliseconds;
+
+            String str = "";
+            foreach (KeyValuePair<string, object> kvp in inParams)
+                str += $"({kvp.Key}:{kvp.Value})";
+            logger.LogInformation($"Transaction {config.Name} Input {str}");
+
+            str = "";
+            foreach (KeyValuePair<string, object> kvp in outParams)
+                str += $"({kvp.Key}:{kvp.Value})";
+            logger.LogInformation($"Transaction {config.Name} ({time}ms) Output {str}");
+
         }
     }
 }

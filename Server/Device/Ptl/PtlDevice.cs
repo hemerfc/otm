@@ -154,6 +154,7 @@ namespace Otm.Server.Device.Ptl
 
                     foreach (var itemAcender in ListaAcender.ToList())
                     {
+                        /*
                         //Se for mensagem mestre, troca os valores para exebição
                         if (itemAcender.IsMasterMessage)
                         {
@@ -161,7 +162,7 @@ namespace Otm.Server.Device.Ptl
                             itemAcender.SetColor(color);
                             itemAcender.SetDisplayValue(message);
                         }
-
+                        */
                         byte displayId = itemAcender.GetDisplayId();
                         var displayCode = itemAcender.GetDisplayValueAsByteArray();
 

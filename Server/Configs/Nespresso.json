@@ -94,7 +94,7 @@
       "DataPointName": "sp_PendingCommands",
       "DeviceName": "ptl01",
       "TriggerType": "OnCycle",
-      "TriggerTime": 2000,
+      "TriggerTime": 500,
       "Binds": [
         {
           "DataPointParam": "p1",

@@ -15,6 +15,8 @@
         LoginOk = 1010,
         LoginErr = 1011,
         PedidoScanOk = 1012,
+        PedidoConcluido = 1013,
+        FinalizadoParcial = 1014,
     }
 
     public static class MasterMessageExtensions
@@ -47,6 +49,8 @@
                 E_PTLMasterMessage.EfetuarLogin => ("LOGAR", defaultColor),
                 E_PTLMasterMessage.LoginOk => ("LOGIN OK", defaultColor),
                 E_PTLMasterMessage.LoginErr => ("LOGIN Err", defaultColor),
+                E_PTLMasterMessage.PedidoConcluido => ("PED CONCL", defaultColor),
+                E_PTLMasterMessage.FinalizadoParcial => ("PARCIAL", defaultColor),
                 E_PTLMasterMessage.PedidoScanOk => (Vinculo, E_DisplayColor.Verde),
                 _ => (string.Empty, defaultColor),
             };

@@ -67,7 +67,7 @@ namespace Otm.Server.Device.Ptl
         {
             DisplayValue = displayValue;
         }
-
+        
         /// <summary>
         /// Convert the string DisplayValue as byte array, based on conversion dictionary.
         /// </summary>
