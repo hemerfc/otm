@@ -5,6 +5,7 @@ using Otm.Server.DeviceDrivers;
 using Otm.Server.Device.S7;
 using Microsoft.Extensions.Logging;
 using Otm.Shared.ContextConfig;
+using Otm.Server.Device.Ptl;
 
 namespace Otm.Server.Device
 {
@@ -29,7 +30,11 @@ namespace Otm.Server.Device
                     switch (dvConfig.Driver)
                     {
                         case "s7":
-                            devices.Add(dvConfig.Name, new S7Device(dvConfig, new S7ClientFactory(), logger));
+                            devices.Add(dvConfig.Name, new S7Device(dvConfig, new S7Client(), logger));
+                            logger.LogError($"Device {dvConfig?.Name}: Created");
+                            break;
+                        case "ptl":
+                            devices.Add(dvConfig.Name, new PtlDevice(dvConfig, new TcpClientAdapter(), logger));
                             logger.LogError($"Device {dvConfig?.Name}: Created");
                             break;
                         default:

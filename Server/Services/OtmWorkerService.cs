@@ -37,10 +37,7 @@ namespace Otm.Server.Services
             while (!stoppingToken.IsCancellationRequested)
             {
                 // a cada segundo
-                await Task.Delay(5000, stoppingToken);
-
-
-                _logger.LogInformation("BEEEP!");
+                await Task.Delay(1000, stoppingToken);
             }
 
             _logger.LogInformation("System STOP!");

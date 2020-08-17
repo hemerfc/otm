@@ -39,22 +39,25 @@ namespace Otm.Server.DataPoint
 
                     foreach (var param in Config.Params)
                     {
-
                         if (param.Mode == Modes.ToOTM)
                         {
                             Type type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), param.TypeCode));
-                            var obj = Activator.CreateInstance(type);
-                            var sqlParam = command.Parameters.AddWithValue(param.Name, obj);
+                            var dbType = SqlHelper.GetDbType(type);
+                            var sqlParam = command.Parameters.Add(param.Name, dbType);
                             sqlParam.Direction = ParameterDirection.Output;
+
+                            if (param.TypeCode == TypeCode.String)
+                                sqlParam.Size = param.Length ?? 0;
                         }
                         else if (param.Mode == Modes.FromOTM)
                         {
                             var sqlParam = command.Parameters.AddWithValue(param.Name, input[param.Name]);
                             sqlParam.Direction = ParameterDirection.Input;
                         }
-                        else
+                        else if (param.Mode == Modes.Static)
                         {
-                            throw new Exception($"Parameter mode not suported! DataPoint:{Config.Name} Param:{param.Name} Mode:{param.Mode}");
+                            var sqlParam = command.Parameters.AddWithValue(param.Name, param.Value);
+                            sqlParam.Direction = ParameterDirection.Input;
                         }
                     }
 
@@ -62,7 +65,8 @@ namespace Otm.Server.DataPoint
 
                     foreach (var param in Config.Params)
                     {
-                        output[param.Name] = command.Parameters[param.Name].Value;
+                        if (param.Mode == Modes.ToOTM)
+                            output[param.Name] = command.Parameters[param.Name].Value;
                     }
 
                     return output;
@@ -144,6 +148,9 @@ namespace Otm.Server.DataPoint
             {
                 case "int":
                     return TypeCode.Int32;
+                case "varchar":
+                case "nvarchar":
+                    return TypeCode.String;
                 default:
                     throw new Exception($"Type not suported! MsSqlDataPoint Type: {typeName}");
             }

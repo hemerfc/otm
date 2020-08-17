@@ -1,0 +1,110 @@
+{
+  "Name": "Nespresso01",
+  "Enabled": true,
+  "DataPoints": [
+    {
+      "Name": "sp_EnviarLeitura",
+      "Driver": "mssql",
+      "Config": "Server=localhost;Database=QuickFlowDb;User Id=sa;Password=Aguia3220;",
+      "Params": [
+        {
+          "Name": "ptl_id",
+          "Mode": "FromOTM",
+          "TypeCode": "String",
+          "Length": 3
+        },
+        {
+          "Name": "mensagem",
+          "Mode": "FromOTM",
+          "TypeCode": "String",
+          "Length" : 100 
+        }
+      ]
+    },
+    {
+      "Name": "sp_PendingCommands",
+      "Driver": "mssql",
+      "Config": "Server=localhost;Database=QuickFlowDb;User Id=sa;Password=Aguia3220;",
+      "Params": [
+        {
+          "Name": "p1",
+          "Mode": "FromOTM",
+          "TypeCode": "String",
+          "Length": 10
+        },
+        {
+          "Name": "p2",
+          "Mode": "ToOTM",
+          "TypeCode": "String",
+          "Length": 250
+        }
+      ]
+    }
+  ],
+  "Devices": [
+    {
+      "Name": "ptl01",
+      "Driver": "ptl",
+      "Config": "ip=192.168.202.10;port=4660",
+      "Tags": [
+        {
+          "Name": "cmd_count",
+          "Address": "cmd_count",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "Int32"
+        },
+        {
+          "Name": "cmd_rcvd",
+          "Address": "cmd_rcvd",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "cmd_send",
+          "Address": "cmd_send",
+          "Rate": 0,
+          "Mode": "FromOTM",
+          "TypeCode": "String"
+        }
+      ]
+    }
+  ],
+  "Transactions": [
+    {
+      "Name": "ptl01_recv",
+      "DataPointName": "sp_EnviarLeitura",
+      "DeviceName": "ptl01",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "cmd_count",
+      "Binds": [
+        {
+          "DataPointParam": "ptl_id",
+          "Value": "001"
+        },
+        {
+          "DataPointParam": "mensagem",
+          "DeviceTag": "cmd_rcvd"
+        }
+      ]
+    },
+    {
+      "Name": "PendingCommands_cycle",
+      "DataPointName": "sp_PendingCommands",
+      "DeviceName": "ptl01",
+      "TriggerType": "OnCycle",
+      "TriggerTime": 500,
+      "Binds": [
+        {
+          "DataPointParam": "p1",
+          "Value": "001"
+        },
+        {
+          "DataPointParam": "p2",
+          "DeviceTag": "cmd_send"
+        }
+      ]
+    }
+  ]
+}

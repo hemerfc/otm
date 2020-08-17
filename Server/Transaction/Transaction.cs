@@ -2,6 +2,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using Otm.Server.ContextConfig;
 using Otm.Server.DataPoint;
@@ -21,6 +23,8 @@ namespace Otm.Server.Transaction
         private IDataPoint dataPoint;
 
         public BlockingCollection<Tuple<string, Object>> TriggerQueue { get; private set; }
+        public Stopwatch Stopwatch;
+
         private readonly ILogger logger;
 
         public Transaction(TransactionConfig trConfig, IDevice device, IDataPoint dataPoint, ILogger logger)
@@ -30,6 +34,7 @@ namespace Otm.Server.Transaction
             this.device = device;
             this.dataPoint = dataPoint;
             this.TriggerQueue = new BlockingCollection<Tuple<string, Object>>(128);
+            Stopwatch = new Stopwatch();
         }
 
         public void Start(BackgroundWorker worker)
@@ -37,16 +42,34 @@ namespace Otm.Server.Transaction
             // backgroud worker
             Worker = worker;
 
-            device.OnTagChangeAdd(config.TriggerTagName, this.OnTrigger);
+            if (config.TriggerType == TriggerTypes.OnTagChange)
+            {
+                // assina o delagator do datapoint, quando o valor da TriggerTagName for atualizado
+                // dispara o metodo OnTrigger, que coloca o gatilho na TriggerQueue
+                device.OnTagChangeAdd(config.TriggerTagName, this.OnTrigger);
+            }
 
             while (true)
             {
                 try
                 {
-                    Tuple<string, object> trigger;
-                    // wait a trigger or 250ms
-                    if (TriggerQueue.TryTake(out trigger, 250))
-                        ExecuteTrigger(trigger.Item1, trigger.Item2);
+                    if (config.TriggerType == TriggerTypes.OnTagChange)
+                    {
+                        Tuple<string, object> trigger;
+                        // wait a trigger or 100ms
+                        if (TriggerQueue.TryTake(out trigger, 100))
+                            ExecuteTrigger(/*trigger.Item1, trigger.Item2*/);
+                    }
+
+                    if (config.TriggerType == TriggerTypes.OnCycle)
+                    {
+                        var waitEvent = new ManualResetEvent(false);
+                        waitEvent.WaitOne(config.TriggerTime); // aguarda XXXms
+                        if (device.Ready)
+                        {
+                            ExecuteTrigger(/*trigger.Item1, trigger.Item2*/);
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -77,33 +100,67 @@ namespace Otm.Server.Transaction
         /// </summary>
         /// <param name="tagName">trigger tag name</param>
         /// <param name="value">tag value</param>
-        public void ExecuteTrigger(string tagName, Object value)
+        public void ExecuteTrigger(/*string tagName, Object value*/)
         {
+            Stopwatch.Restart();
+
             var inParams = new Dictionary<string, object>();
 
             foreach (var bind in config.Binds)
             {
                 var dp = dataPoint.GetParamConfig(bind.DataPointParam);
-                var tag = device.GetTagConfig(bind.DeviceTag);
 
-                if (tag.Mode == Modes.ToOTM) // from device to OTM  
+                // if DeviceTag is set, get value from device
+                if(!string.IsNullOrWhiteSpace(bind.DeviceTag) ) 
                 {
-                    inParams[dp.Name] = device.GetTagValue(tag.Name);
+                    var tag = device.GetTagConfig(bind.DeviceTag);
+
+                    if (tag.Mode == Modes.ToOTM) // from device to OTM  
+                    {
+                        inParams[dp.Name] = device.GetTagValue(tag.Name);
+                    }
+                } 
+                else // use the static value, provided
+                {
+                    /// TODO: only int and string for now...
+                    if (dp.TypeCode == TypeCode.Int32)
+                        inParams[dp.Name] = Int32.Parse(bind.Value);
+                    else if (dp.TypeCode == TypeCode.String)
+                        inParams[dp.Name] = bind.Value;
+                    else
+                        throw new Exception($"Transaction {this.config.Name}: Fixed value only accept int or string!");
                 }
             }
-
+            
             var outParams = dataPoint.Execute(inParams);
 
             foreach (var bind in config.Binds)
             {
                 var dp = dataPoint.GetParamConfig(bind.DataPointParam);
-                var tag = device.GetTagConfig(bind.DeviceTag);
 
-                if (tag.Mode == Modes.FromOTM) // from OTM to device  
+                if (!string.IsNullOrWhiteSpace(bind.DeviceTag))
                 {
-                    device.SetTagValue(tag.Name, outParams[dp.Name]);
+                    var tag = device.GetTagConfig(bind.DeviceTag);
+
+                    if (tag.Mode == Modes.FromOTM) // from OTM to device  
+                    {
+                        device.SetTagValue(tag.Name, outParams[dp.Name]);
+                    }
                 }
             }
+
+            var time = Stopwatch.ElapsedMilliseconds;
+
+            String str = "";
+            foreach (KeyValuePair<string, object> kvp in inParams)
+                str += $"({kvp.Key}:{kvp.Value})";
+            logger.LogInformation($"Transaction {config.Name} Input {str}");
+
+            str = "";
+            foreach (KeyValuePair<string, object> kvp in outParams)
+                str += $"({kvp.Key}:{kvp.Value})";
+            logger.LogInformation($"Transaction {config.Name} ({time}ms) Output {str}");
+
         }
     }
 }

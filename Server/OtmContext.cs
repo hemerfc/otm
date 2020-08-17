@@ -56,13 +56,16 @@ namespace Otm.Server
                     }
                 }
 
-                if (Transactions != null)
+            // wait Devices start
+            Thread.Sleep(2000);
+
+            if (Transactions != null)
+            {
+                foreach (var trans in Transactions.Values)
                 {
-                    foreach (var trans in Transactions.Values)
-                    {
-                        BuildWorkerAndStart(trans.Name, trans.Start);
-                    }
+                    BuildWorkerAndStart(trans.Name, trans.Start);
                 }
+            }
 
                 Logger.LogInformation($"OTM {Config.Name} Context started!");
             }
@@ -106,9 +109,11 @@ namespace Otm.Server
                 {
                     try
                     {
-                        Logger.LogError($"Object {name}: Started");
+                        Logger.LogInformation($"Object {name}: Started");
 
                         StartAction(worker);
+                        
+                        Logger.LogInformation($"Error on start of {name} ");
                     }
                     catch (Exception ex)
                     {

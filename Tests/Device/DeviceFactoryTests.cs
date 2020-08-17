@@ -1,10 +1,11 @@
 using System;
 using Xunit;
-using Otm.Device;
-using Otm.Config;
 using Moq;
-using Otm.Logger;
-using Otm.Device.S7;
+using Otm.Server.Device;
+using Otm.Shared.ContextConfig;
+using Microsoft.Extensions.Logging;
+using Otm.Server.Device.S7;
+using System.Collections.Generic;
 
 namespace Otm.Test.Device
 {
@@ -14,7 +15,7 @@ namespace Otm.Test.Device
         public void InvalidDeviceName()
         {
             // prepare
-            var dvConfig = new DeviceConfig[]{ 
+            var dvConfig = new List<DeviceConfig>{
                 new DeviceConfig {
                     Name = "",
                     Driver = "",
@@ -22,8 +23,9 @@ namespace Otm.Test.Device
                     Tags = null
                 }
             };
-            
-            var ex = Record.Exception(() => new DeviceFactory().CreateDevices(dvConfig));
+
+            var loggerMock = new Mock<ILogger>();
+            var ex = Record.Exception(() => DeviceFactory.CreateDevices(dvConfig, loggerMock.Object));
 
             Assert.Equal("Name", ex?.Data["field"]);
         }
@@ -32,7 +34,7 @@ namespace Otm.Test.Device
         public void InvalidDriverName()
         {
             // prepare
-            var dpConfig = new DeviceConfig[]{ 
+            var dpConfig = new List<DeviceConfig>{
                 new DeviceConfig {
                     Name = "plc01",
                     Driver = "xxx",
@@ -41,7 +43,8 @@ namespace Otm.Test.Device
                 }
             };
 
-            var ex = Record.Exception(() => new DeviceFactory().CreateDevices(dpConfig));
+            var loggerMock = new Mock<ILogger>();
+            var ex = Record.Exception(() => DeviceFactory.CreateDevices(dpConfig, loggerMock.Object));
             Assert.Equal("Driver", ex?.Data["field"]);
         }
 
@@ -49,7 +52,7 @@ namespace Otm.Test.Device
         public void CreateS7Device()
         {
             // prepare
-            var dpConfig = new DeviceConfig[]{ 
+            var dpConfig = new List<DeviceConfig>{
                 new DeviceConfig {
                     Name = "plc01",
                     Driver = "s7",
@@ -63,10 +66,9 @@ namespace Otm.Test.Device
                     Tags = null
                 }
             };
-        
-            var factory = new DeviceFactory();
 
-            var devices = factory.CreateDevices(dpConfig);
+            var loggerMock = new Mock<ILogger>();
+            var devices = DeviceFactory.CreateDevices(dpConfig, loggerMock.Object);
 
             Assert.Equal(2, devices.Count);
 

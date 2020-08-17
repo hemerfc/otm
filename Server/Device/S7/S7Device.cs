@@ -37,21 +37,22 @@ namespace Otm.Server.Device.S7
         private int slot;
         private DateTime? connError = null;
         private readonly ILogger Logger;
-        private bool firstLoad;
-        private bool ErrorInUpdateLoop;
+        private bool firstLoadRead;
+        private bool firstLoadWrite;
 
-        public S7Device(DeviceConfig dvConfig, IS7ClientFactory clientFactory, ILogger logger)
+        public bool Ready { get; private set; }
+
+        public S7Device(DeviceConfig dvConfig, IS7Client client, ILogger logger)
         {
             this.Logger = logger;
             this.Config = dvConfig;
             //this.Colector = colector;
-            this.client = clientFactory.CreateClient();
+            this.client = client;
             this.tagsAction = new Dictionary<string, Action<string, object>>();
             this.tagDbIndex = new Dictionary<string, int>();
             this.Stopwatch = new Stopwatch();
             GetConfig(dvConfig);
             firstLoad = true;
-            ErrorInUpdateLoop = false;
         }
 
         private void GetConfig(DeviceConfig dvConfig)
@@ -117,13 +118,20 @@ namespace Otm.Server.Device.S7
                 }
                 else
                 {
-                    var it = new DBItem();
-                    it.Offset = byteOffset;
-                    it.BitOffset = bitOffset;
-                    it.TypeCode = t.TypeCode;
-                    it.Name = t.Name;
-                    var type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), it.TypeCode));
-                    it.Value = Activator.CreateInstance(type);
+                    var it = new DBItem
+                    {
+                        Offset = byteOffset,
+                        BitOffset = bitOffset,
+                        TypeCode = t.TypeCode,
+                        Name = t.Name
+                    };
+
+                    if (it.TypeCode == TypeCode.String)
+                        it.Value = null;
+                    else {
+                        var type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), it.TypeCode));
+                        it.Value = Activator.CreateInstance(type);
+                    }
 
                     switch (g["g3"].Value)
                     {
@@ -143,10 +151,12 @@ namespace Otm.Server.Device.S7
 
                     if (!dict.ContainsKey(dbValue))
                     {
-                        dict[dbValue] = new DB();
-                        dict[dbValue].Number = dbValue;
-                        dict[dbValue].Mode = t.Mode;
-                        dict[dbValue].Itens = new Dictionary<string, DBItem>();
+                        dict[dbValue] = new DB
+                        {
+                            Number = dbValue,
+                            Mode = t.Mode,
+                            Itens = new Dictionary<string, DBItem>()
+                        };
                     }
                     else
                     {
@@ -210,25 +220,27 @@ namespace Otm.Server.Device.S7
                             readTime = 0;
                             writeTime = 0;
                         }
+
+                        Ready = true;
                     }
                     else
                     {
+                        Ready = false;
                         count = 0;
                         readTime = 0;
                         writeTime = 0;
 
-                        firstLoad = true;
                         this.Reconnect();
                         ReadDeviceTags();
-                        firstLoad = false;
                     }
                     // wait 100ms
                     /// TODO: wait time must be equals the minimum update rate of tags
                     var waitEvent = new ManualResetEvent(false);
-                    waitEvent.WaitOne(10);
+                    waitEvent.WaitOne(50);
 
                     if (Worker.CancellationPending)
                     {
+                        Ready = false;
                         Stop();
                         return;
                     }
@@ -237,11 +249,8 @@ namespace Otm.Server.Device.S7
                 }
                 catch (Exception ex)
                 {
-                    if(!ErrorInUpdateLoop)
-                        Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex.ToString()}");
-                        firstLoad = false;
-
-                    ErrorInUpdateLoop = true;
+                    Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex.ToString()}");
+                    firstLoad = false;
                 }
             }
         }
@@ -292,9 +301,13 @@ namespace Otm.Server.Device.S7
                                     var msg = $"Dev {Config.Name}: Get value error. Tag {dbItem.Name}";
                                     throw new Exception(msg);
                             }
-
-                            // this is the first execution of ReadDeviceTags?
-                            if (!firstLoad)
+                        }
+                        
+                        // this is the first execution of ReadDeviceTags?
+                        if (!firstLoadRead)
+                        {
+                            // executa as acoes apos o loop de update
+                            foreach (var dbItem in db.Itens.Values)
                             {
                                 if (!dbItem.Value.Equals(dbItem.OldValue))
                                 {
@@ -305,6 +318,8 @@ namespace Otm.Server.Device.S7
                                 }
                             }
                         }
+                        else
+                            firstLoadRead = false;
                     }
                 }
                 else
@@ -314,14 +329,13 @@ namespace Otm.Server.Device.S7
                 }
             }
         }
-
         private void WriteDeviceTags()
         {
             // get dbs
             foreach (var db in this.dbDict.Values)
             {
                 // this is the first execution of WriteDeviceTags?
-                if (firstLoad)
+                if (firstLoadWrite)
                 {
                     var errRead = client.DBRead(db.Number, 0, db.Lenght, db.Buffer);
 
@@ -331,7 +345,7 @@ namespace Otm.Server.Device.S7
                         throw new Exception(msg);
                     }
                     else
-                        firstLoad = false;
+                        firstLoadWrite = false;
                 }
 
                 if (db.Mode == Modes.FromOTM) // from OTM to device
@@ -398,7 +412,9 @@ namespace Otm.Server.Device.S7
 
         private void Reconnect()
         {
-            firstLoad = true;
+            firstLoadWrite = true;
+            firstLoadRead = true;
+
             int res = client.ConnectTo(this.host, this.rack, this.slot);
 
             if (res != 0)
