@@ -445,7 +445,15 @@ namespace Otm.Server.Device.S7
             LastError = 0;
             try
             {
-                int BytesSent = TCPSocket.Send(Buffer, Size, SocketFlags.None);
+                int BytesSent = 0;
+
+                if (TCPSocket != null)
+                    BytesSent = TCPSocket.Send(Buffer, Size, SocketFlags.None);
+                else
+                {
+                    LastError = S7Consts.errTCPDataSend;
+                    Close();
+                }
             }
             catch
             {

@@ -32,12 +32,15 @@ namespace Otm.Server.Services
         {
             _logger.LogInformation("System START!");
 
+            _otmContextManager.StartAll();
+
             while (!stoppingToken.IsCancellationRequested)
             {
-
-                _otmContextManager.StartAll();
                 // a cada segundo
-                await Task.Delay(1000, stoppingToken);
+                await Task.Delay(5000, stoppingToken);
+
+
+                _logger.LogInformation("BEEEP!");
             }
 
             _logger.LogInformation("System STOP!");

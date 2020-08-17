@@ -38,6 +38,7 @@ namespace Otm.Server.Device.S7
         private DateTime? connError = null;
         private readonly ILogger Logger;
         private bool firstLoad;
+        private bool ErrorInUpdateLoop;
 
         public S7Device(DeviceConfig dvConfig, IS7ClientFactory clientFactory, ILogger logger)
         {
@@ -50,6 +51,7 @@ namespace Otm.Server.Device.S7
             this.Stopwatch = new Stopwatch();
             GetConfig(dvConfig);
             firstLoad = true;
+            ErrorInUpdateLoop = false;
         }
 
         private void GetConfig(DeviceConfig dvConfig)
@@ -230,11 +232,16 @@ namespace Otm.Server.Device.S7
                         Stop();
                         return;
                     }
+
+                    ErrorInUpdateLoop = false;
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex.ToString()}");
-                    firstLoad = false;
+                    if(!ErrorInUpdateLoop)
+                        Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex.ToString()}");
+                        firstLoad = false;
+
+                    ErrorInUpdateLoop = true;
                 }
             }
         }
@@ -282,8 +289,8 @@ namespace Otm.Server.Device.S7
                                     break;
                                 default:
                                     //tagValues[dbItem.Name] = null;
-                                    Logger.LogError($"Dev {Config.Name}: Get value error. Tag {dbItem.Name}");
-                                    break;
+                                    var msg = $"Dev {Config.Name}: Get value error. Tag {dbItem.Name}";
+                                    throw new Exception(msg);
                             }
 
                             // this is the first execution of ReadDeviceTags?
@@ -354,8 +361,9 @@ namespace Otm.Server.Device.S7
                                     /// TODO: Create a property to limit lenght of a string
                                     break;
                                 default:
-                                    Logger.LogError($"Dev {Config.Name}: Set value error. Tag {dbItem.Name}");
-                                    break;
+                                    //tagValues[dbItem.Name] = null;
+                                    var msg = $"Dev {Config.Name}: Set value error. Tag {dbItem.Name}";
+                                    throw new Exception(msg);
                             }
                         }
                     }

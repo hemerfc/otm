@@ -28,49 +28,53 @@ namespace Otm.Server
 
         public void Initialize()
         {
-            Logger.LogInformation("OTM Initializing...");
+            Logger.LogInformation($"OTM {Config.Name} Context Initializing ...");
             try
             {
                 DataPoints = DataPointFactory.CreateDataPoints(Config.DataPoints, Logger);
                 Devices = DeviceFactory.CreateDevices(Config.Devices, Logger);
                 Transactions = TransactionFactory.CreateTransactions(Config.Transactions, DataPoints, Devices, Logger);
-                Logger.LogInformation("OTM Initialized!");
+                Logger.LogInformation($"OTM {Config.Name} Context Initialized!");
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "OTM Initialization error!");
-                throw ex;
+                Logger.LogError(ex, $"OTM {Config.Name} Context Initialization error!");
             }
         }
 
         public void Start()
         {
-            Logger.LogInformation($"OTM Serice START requested");
+            Logger.LogInformation($"OTM  {Config.Name} Context starting...");
 
-            this.Initialize();
-
-            if (Devices != null)
+            try
             {
-                foreach (var dev in Devices.Values)
+                if (Devices != null)
                 {
-                    BuildWorkerAndStart(dev.Name, dev.Start);
+                    foreach (var dev in Devices.Values)
+                    {
+                        BuildWorkerAndStart(dev.Name, dev.Start);
+                    }
                 }
-            }
 
-            if (Transactions != null)
+                if (Transactions != null)
+                {
+                    foreach (var trans in Transactions.Values)
+                    {
+                        BuildWorkerAndStart(trans.Name, trans.Start);
+                    }
+                }
+
+                Logger.LogInformation($"OTM {Config.Name} Context started!");
+            }
+            catch (Exception ex)
             {
-                foreach (var trans in Transactions.Values)
-                {
-                    BuildWorkerAndStart(trans.Name, trans.Start);
-                }
+                Logger.LogError(ex, $"OTM {Config.Name} Context starting error!");
             }
-
-            Logger.LogInformation($"OTM Service START completed");
         }
 
         public void Stop()
         {
-            Logger.LogInformation($"OTM Serice STOP requested");
+            Logger.LogInformation($"OTM {Config.Name} Context stoping...");
 
             var workers = new List<BackgroundWorker>();
 
@@ -86,7 +90,7 @@ namespace Otm.Server
             while (workers.Any(w => (w?.IsBusy) ?? false))
                 busyWaitEvent.WaitOne(500); // aguarda 500ms
 
-            Logger.LogInformation($"OTM Serice STOP completed");
+            Logger.LogInformation($"OTM {Config.Name} Context stoped!");
         }
 
         private void BuildWorkerAndStart(string name, Action<BackgroundWorker> StartAction)
