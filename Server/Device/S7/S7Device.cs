@@ -52,7 +52,9 @@ namespace Otm.Server.Device.S7
             this.tagDbIndex = new Dictionary<string, int>();
             this.Stopwatch = new Stopwatch();
             GetConfig(dvConfig);
-            firstLoad = true;
+            firstLoadRead = true;
+            firstLoadWrite = true;
+            Ready = false;
         }
 
         private void GetConfig(DeviceConfig dvConfig)
@@ -245,12 +247,12 @@ namespace Otm.Server.Device.S7
                         return;
                     }
 
-                    ErrorInUpdateLoop = false;
+                    //ErrorInUpdateLoop = false;
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex.ToString()}");
-                    firstLoad = false;
+                    Ready = false;
+                    Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
                 }
             }
         }
