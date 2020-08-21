@@ -42,7 +42,7 @@ namespace Otm.Server.DataPoint
                         if (param.Mode == Modes.ToOTM)
                         {
                             Type type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), param.TypeCode));
-                            var dbType = SqlHelper.GetDbType(type);
+                            var dbType = MsSqlHelper.GetDbType(type);
                             var sqlParam = command.Parameters.Add(param.Name, dbType);
                             sqlParam.Direction = ParameterDirection.Output;
 

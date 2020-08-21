@@ -5,12 +5,12 @@ using System.Linq;
 
 namespace Otm.Server.DataPoint
 {
-    public static class SqlHelper
+    public static class MsSqlHelper
     {
         private static Dictionary<Type, SqlDbType> typeMap;
 
         // Create and populate the dictionary in the static constructor
-        static SqlHelper()
+        static MsSqlHelper()
         {
             typeMap = new Dictionary<Type, SqlDbType>
             {

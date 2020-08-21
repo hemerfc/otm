@@ -42,8 +42,13 @@ namespace Otm.Server.DataPoint
 
                         if (param.Mode == Modes.ToOTM)
                         {
-                            var sqlParam = command.Parameters.AddWithValue(param.Name, null);
+                            Type type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), param.TypeCode));
+                            var dbType = PgSqlHelper.GetDbType(type);
+                            var sqlParam = command.Parameters.Add(param.Name, dbType);
                             sqlParam.Direction = ParameterDirection.Output;
+
+                            if (param.TypeCode == TypeCode.String)
+                                sqlParam.Size = param.Length ?? 0;
                         }
                         else if (param.Mode == Modes.FromOTM)
                         {

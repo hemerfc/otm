@@ -1,11 +1,11 @@
 {
   "Name": "SuperNosso",
-  "Enabled": false,
+  "Enabled": true,
   "DataPoints": [
     {
-      "Name": "sp_estacao",
+      "Name": "dbo.sp_estacao",
       "Driver": "pg",
-      "Config": "Server=localhost;Database=QuickFlowSuperNosso;User Id=sa;Password=Aguia3220;",
+      "Config": "Server=localhost;Database=QuickFlowSup;User Id=QuickFlow;Password=QuickFlow;",
       "Params": [
         { "Name": "SCANNER", "Mode": "FromOTM", "TypeCode": "Byte" },
         { "Name": "READ_CT", "Mode": "FromOTM", "TypeCode": "Byte" },
@@ -29,47 +29,47 @@
     {
       "Name": "plc01",
       "Driver": "s7",
-      "Config": "host=172.11.36.11;rack=0;slot=0",
+      "Config": "host=10.90.90.201;rack=0;slot=2",
       "Tags": [
-        { "Name": "HEART_BIT_RECV", "Address": "db801.w0", "Rate": 50, "Mode": "ToOTM", "TypeCode": "Byte" },
-        { "Name": "HEART_BIT_SEND", "Address": "db800.w0", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "HEART_BIT_RECV", "Address": "db801.w0", "Rate": 100, "Mode": "ToOTM", "TypeCode": "Byte" },
+        { "Name": "HEART_BIT_SEND", "Address": "db800.w0", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
 
-        { "Name": "LC01_READ_CT", "Address": "db801.w232", "Rate": 50, "Mode": "ToOTM", "TypeCode": "Byte" },
-        { "Name": "LC01_READ",    "Address": "db801.w234", "Rate": 50, "Mode": "ToOTM", "TypeCode": "String" },
-        { "Name": "LC01_CMD_CT",  "Address": "db800.w13", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
-        { "Name": "LC01_CMD",     "Address": "db800.w12", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "LC17_READ_CT", "Address": "db801.w616", "Rate": 100, "Mode": "ToOTM", "TypeCode": "Byte" },
+        { "Name": "LC17_READ",    "Address": "db801.w618", "Rate": 100, "Mode": "ToOTM", "TypeCode": "String" },
+        { "Name": "LC17_CMD_CT",  "Address": "db800.w45", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "LC17_CMD",     "Address": "db800.w55", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
 
-        { "Name": "LC02_READ_CT", "Address": "db801.w256", "Rate": 50, "Mode": "ToOTM", "TypeCode": "Byte" },
-        { "Name": "LC02_READ",    "Address": "db801.w258", "Rate": 50, "Mode": "ToOTM", "TypeCode": "String" },
-        { "Name": "LC02_CMD_CT",  "Address": "db800.w15", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
-        { "Name": "LC02_CMD",     "Address": "db800.w14", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "LC18_READ_CT", "Address": "db801.w256", "Rate": 100, "Mode": "ToOTM", "TypeCode": "Byte" },
+        { "Name": "LC18_READ",    "Address": "db801.w258", "Rate": 100, "Mode": "ToOTM", "TypeCode": "String" },
+        { "Name": "LC18_CMD_CT",  "Address": "db800.w15", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "LC18_CMD",     "Address": "db800.w14", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
         
-        { "Name": "LC03_READ_CT", "Address": "db801.w280", "Rate": 50, "Mode": "ToOTM", "TypeCode": "Byte" },
-        { "Name": "LC03_READ",    "Address": "db801.w282", "Rate": 50, "Mode": "ToOTM", "TypeCode": "String" },
-        { "Name": "LC03_CMD_CT",  "Address": "db800.w17", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
-        { "Name": "LC03_CMD",     "Address": "db800.w16", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "LC19_READ_CT", "Address": "db801.w280", "Rate": 100, "Mode": "ToOTM", "TypeCode": "Byte" },
+        { "Name": "LC19_READ",    "Address": "db801.w282", "Rate": 100, "Mode": "ToOTM", "TypeCode": "String" },
+        { "Name": "LC19_CMD_CT",  "Address": "db800.w17", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "LC19_CMD",     "Address": "db800.w16", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
 
-        { "Name": "LC04_READ_CT", "Address": "db801.w304", "Rate": 50, "Mode": "ToOTM", "TypeCode": "Byte" },
-        { "Name": "LC04_READ",    "Address": "db801.w306", "Rate": 50, "Mode": "ToOTM", "TypeCode": "String" },
-        { "Name": "LC04_CMD_CT",  "Address": "db800.w19", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
-        { "Name": "LC04_CMD",     "Address": "db800.w18", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "LC20_READ_CT", "Address": "db801.w304", "Rate": 100, "Mode": "ToOTM", "TypeCode": "Byte" },
+        { "Name": "LC20_READ",    "Address": "db801.w306", "Rate": 100, "Mode": "ToOTM", "TypeCode": "String" },
+        { "Name": "LC20_CMD_CT",  "Address": "db800.w19", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "LC20_CMD",     "Address": "db800.w18", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
 
-        { "Name": "LC05_READ_CT", "Address": "db801.w328", "Rate": 50, "Mode": "ToOTM", "TypeCode": "Byte" },
-        { "Name": "LC05_READ",    "Address": "db801.w330", "Rate": 50, "Mode": "ToOTM", "TypeCode": "String" },
-        { "Name": "LC05_CMD_CT",  "Address": "db800.w21", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
-        { "Name": "LC05_CMD",     "Address": "db800.w20", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "LC21_READ_CT", "Address": "db801.w328", "Rate": 100, "Mode": "ToOTM", "TypeCode": "Byte" },
+        { "Name": "LC21_READ",    "Address": "db801.w330", "Rate": 100, "Mode": "ToOTM", "TypeCode": "String" },
+        { "Name": "LC21_CMD_CT",  "Address": "db800.w21", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "LC21_CMD",     "Address": "db800.w20", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
 
-        { "Name": "LC06_READ_CT", "Address": "db801.w352", "Rate": 50, "Mode": "ToOTM", "TypeCode": "Byte" },
-        { "Name": "LC06_READ",    "Address": "db801.w354", "Rate": 50, "Mode": "ToOTM", "TypeCode": "String" },
-        { "Name": "LC06_CMD_CT",  "Address": "db800.w23", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
-        { "Name": "LC06_CMD",     "Address": "db800.w22", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "LC22_READ_CT", "Address": "db801.w352", "Rate": 100, "Mode": "ToOTM", "TypeCode": "Byte" },
+        { "Name": "LC22_READ",    "Address": "db801.w354", "Rate": 100, "Mode": "ToOTM", "TypeCode": "String" },
+        { "Name": "LC22_CMD_CT",  "Address": "db800.w23", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "LC22_CMD",     "Address": "db800.w22", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
 
-        { "Name": "LC07_READ_CT", "Address": "db801.w376", "Rate": 50, "Mode": "ToOTM", "TypeCode": "Byte" },
-        { "Name": "LC07_READ",    "Address": "db801.w378", "Rate": 50, "Mode": "ToOTM", "TypeCode": "String" },
-        { "Name": "LC07_CMD_CT",  "Address": "db800.w25", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
-        { "Name": "LC07_CMD",     "Address": "db800.w24", "Rate": 50, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "LC23_READ_CT", "Address": "db801.w376", "Rate": 100, "Mode": "ToOTM", "TypeCode": "Byte" },
+        { "Name": "LC23_READ",    "Address": "db801.w378", "Rate": 100, "Mode": "ToOTM", "TypeCode": "String" },
+        { "Name": "LC23_CMD_CT",  "Address": "db800.w25", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
+        { "Name": "LC23_CMD",     "Address": "db800.w24", "Rate": 100, "Mode": "FromOTM", "TypeCode": "Byte" },
 
-        { "Name": "END",          "Address": "db801.w494", "Rate": 50, "Mode": "ToOTM", "TypeCode": "Byte" }
+        { "Name": "END",          "Address": "db801.w784", "Rate": 100, "Mode": "ToOTM", "TypeCode": "Byte" }
       ]
     }
   ],
@@ -87,100 +87,100 @@
     },
     {
       "Name": "TR_LC01",
-      "DataPointName": "sp_estacao",
+      "DataPointName": "dbo.sp_estacao",
       "DeviceName": "plc01",
       "TriggerType": "OnTagChange",
-      "TriggerTagName": "LC01_READ_CT",
+      "TriggerTagName": "LC17_READ_CT",
       "Binds": [
-        { "DataPointParam": "SCANNER", "Value": "1" },
-        { "DataPointParam": "READ_CT", "DeviceTag": "LC01_READ_CT" },
-        { "DataPointParam": "READ","DeviceTag": "LC01_READ" },
-        { "DataPointParam": "CMD_CT", "DeviceTag": "LC01_CMD_CT" },
-        { "DataPointParam": "CMD", "DeviceTag": "LC01_CMD" }
+        { "DataPointParam": "SCANNER", "Value": "17" },
+        { "DataPointParam": "READ_CT", "DeviceTag": "LC17_READ_CT" },
+        { "DataPointParam": "READ","DeviceTag": "LC17_READ" },
+        { "DataPointParam": "CMD_CT", "DeviceTag": "LC17_CMD_CT" },
+        { "DataPointParam": "CMD", "DeviceTag": "LC17_CMD" }
       ]
     },
     {
       "Name": "TR_LC02",
-      "DataPointName": "sp_estacao",
+      "DataPointName": "dbo.sp_estacao",
       "DeviceName": "plc01",
       "TriggerType": "OnTagChange",
-      "TriggerTagName": "LC02_READ_CT",
+      "TriggerTagName": "LC18_READ_CT",
       "Binds": [
-        { "DataPointParam": "SCANNER", "Value": "2" },
-        { "DataPointParam": "READ_CT", "DeviceTag": "LC02_READ_CT" },
-        { "DataPointParam": "READ","DeviceTag": "LC02_READ" },
-        { "DataPointParam": "CMD_CT", "DeviceTag": "LC02_CMD_CT" },
-        { "DataPointParam": "CMD", "DeviceTag": "LC02_CMD" }
+        { "DataPointParam": "SCANNER", "Value": "18" },
+        { "DataPointParam": "READ_CT", "DeviceTag": "LC18_READ_CT" },
+        { "DataPointParam": "READ","DeviceTag": "LC18_READ" },
+        { "DataPointParam": "CMD_CT", "DeviceTag": "LC18_CMD_CT" },
+        { "DataPointParam": "CMD", "DeviceTag": "LC18_CMD" }
       ]
     },
     {
       "Name": "TR_LC03",
-      "DataPointName": "sp_estacao",
+      "DataPointName": "dbo.sp_estacao",
       "DeviceName": "plc01",
       "TriggerType": "OnTagChange",
-      "TriggerTagName": "LC03_READ_CT",
+      "TriggerTagName": "LC19_READ_CT",
       "Binds": [
-        { "DataPointParam": "SCANNER", "Value": "3" },
-        { "DataPointParam": "READ_CT", "DeviceTag": "LC03_READ_CT" },
-        { "DataPointParam": "READ","DeviceTag": "LC03_READ" },
-        { "DataPointParam": "CMD_CT", "DeviceTag": "LC03_CMD_CT" },
-        { "DataPointParam": "CMD", "DeviceTag": "LC03_CMD" }
+        { "DataPointParam": "SCANNER", "Value": "19" },
+        { "DataPointParam": "READ_CT", "DeviceTag": "LC19_READ_CT" },
+        { "DataPointParam": "READ","DeviceTag": "LC19_READ" },
+        { "DataPointParam": "CMD_CT", "DeviceTag": "LC19_CMD_CT" },
+        { "DataPointParam": "CMD", "DeviceTag": "LC19_CMD" }
       ]
     },
     {
       "Name": "TR_LC04",
-      "DataPointName": "sp_estacao",
+      "DataPointName": "dbo.sp_estacao",
       "DeviceName": "plc01",
       "TriggerType": "OnTagChange",
-      "TriggerTagName": "LC04_READ_CT",
+      "TriggerTagName": "LC20_READ_CT",
       "Binds": [
-        { "DataPointParam": "SCANNER", "Value": "4" },
-        { "DataPointParam": "READ_CT", "DeviceTag": "LC04_READ_CT" },
-        { "DataPointParam": "READ","DeviceTag": "LC04_READ" },
-        { "DataPointParam": "CMD_CT", "DeviceTag": "LC04_CMD_CT" },
-        { "DataPointParam": "CMD", "DeviceTag": "LC04_CMD" }
+        { "DataPointParam": "SCANNER", "Value": "20" },
+        { "DataPointParam": "READ_CT", "DeviceTag": "LC20_READ_CT" },
+        { "DataPointParam": "READ","DeviceTag": "LC20_READ" },
+        { "DataPointParam": "CMD_CT", "DeviceTag": "LC20_CMD_CT" },
+        { "DataPointParam": "CMD", "DeviceTag": "LC20_CMD" }
       ]
     },
     {
       "Name": "TR_LC05",
-      "DataPointName": "sp_estacao",
+      "DataPointName": "dbo.sp_estacao",
       "DeviceName": "plc01",
       "TriggerType": "OnTagChange",
-      "TriggerTagName": "LC05_READ_CT",
+      "TriggerTagName": "LC21_READ_CT",
       "Binds": [
-        { "DataPointParam": "SCANNER", "Value": "5" },
-        { "DataPointParam": "READ_CT", "DeviceTag": "LC05_READ_CT" },
-        { "DataPointParam": "READ","DeviceTag": "LC05_READ" },
-        { "DataPointParam": "CMD_CT", "DeviceTag": "LC05_CMD_CT" },
-        { "DataPointParam": "CMD", "DeviceTag": "LC05_CMD" }
+        { "DataPointParam": "SCANNER", "Value": "21" },
+        { "DataPointParam": "READ_CT", "DeviceTag": "LC21_READ_CT" },
+        { "DataPointParam": "READ","DeviceTag": "LC21_READ" },
+        { "DataPointParam": "CMD_CT", "DeviceTag": "LC21_CMD_CT" },
+        { "DataPointParam": "CMD", "DeviceTag": "LC21_CMD" }
       ]
     },
     {
       "Name": "TR_LC06",
-      "DataPointName": "sp_estacao",
+      "DataPointName": "dbo.sp_estacao",
       "DeviceName": "plc01",
       "TriggerType": "OnTagChange",
-      "TriggerTagName": "LC06_READ_CT",
+      "TriggerTagName": "LC22_READ_CT",
       "Binds": [
-        { "DataPointParam": "SCANNER", "Value": "6" },
-        { "DataPointParam": "READ_CT", "DeviceTag": "LC06_READ_CT" },
-        { "DataPointParam": "READ","DeviceTag": "LC06_READ" },
-        { "DataPointParam": "CMD_CT", "DeviceTag": "LC06_CMD_CT" },
-        { "DataPointParam": "CMD", "DeviceTag": "LC06_CMD" }
+        { "DataPointParam": "SCANNER", "Value": "22" },
+        { "DataPointParam": "READ_CT", "DeviceTag": "LC22_READ_CT" },
+        { "DataPointParam": "READ","DeviceTag": "LC22_READ" },
+        { "DataPointParam": "CMD_CT", "DeviceTag": "LC22_CMD_CT" },
+        { "DataPointParam": "CMD", "DeviceTag": "LC22_CMD" }
       ]
     },
     {
       "Name": "TR_LC07",
-      "DataPointName": "sp_estacao",
+      "DataPointName": "dbo.sp_estacao",
       "DeviceName": "plc01",
       "TriggerType": "OnTagChange",
-      "TriggerTagName": "LC07_READ_CT",
+      "TriggerTagName": "LC23_READ_CT",
       "Binds": [
-        { "DataPointParam": "SCANNER", "Value": "7" },
-        { "DataPointParam": "READ_CT", "DeviceTag": "LC07_READ_CT" },
-        { "DataPointParam": "READ","DeviceTag": "LC07_READ" },
-        { "DataPointParam": "CMD_CT", "DeviceTag": "LC07_CMD_CT" },
-        { "DataPointParam": "CMD", "DeviceTag": "LC07_CMD" }
+        { "DataPointParam": "SCANNER", "Value": "23" },
+        { "DataPointParam": "READ_CT", "DeviceTag": "LC23_READ_CT" },
+        { "DataPointParam": "READ","DeviceTag": "LC23_READ" },
+        { "DataPointParam": "CMD_CT", "DeviceTag": "LC23_CMD_CT" },
+        { "DataPointParam": "CMD", "DeviceTag": "LC23_CMD" }
       ]
     }
   ]

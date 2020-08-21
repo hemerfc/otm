@@ -10,6 +10,7 @@ using Otm.Server.ContextConfig;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Otm.Shared.ContextConfig;
+using System.Collections.Concurrent;
 
 namespace Otm.Server.Device.S7
 {
@@ -24,11 +25,11 @@ namespace Otm.Server.Device.S7
 
         //public DeviceColector Colector { get; }
 
-        private Dictionary<int, DB> dbDict;
+        private ConcurrentDictionary<int, DB> dbDict;
         private readonly IS7Client client;
-        private readonly Dictionary<string, Action<string, object>> tagsAction;
+        private readonly ConcurrentDictionary<string, Action<string, object>> tagsAction;
         // private readonly Dictionary<string, object> tagValues;
-        private readonly Dictionary<string, int> tagDbIndex;
+        private readonly ConcurrentDictionary<string, int> tagDbIndex;
 
         public Stopwatch Stopwatch { get; }
 
@@ -48,8 +49,8 @@ namespace Otm.Server.Device.S7
             this.Config = dvConfig;
             //this.Colector = colector;
             this.client = client;
-            this.tagsAction = new Dictionary<string, Action<string, object>>();
-            this.tagDbIndex = new Dictionary<string, int>();
+            this.tagsAction = new ConcurrentDictionary<string, Action<string, object>>();
+            this.tagDbIndex = new ConcurrentDictionary<string, int>();
             this.Stopwatch = new Stopwatch();
             GetConfig(dvConfig);
             firstLoadRead = true;
@@ -74,9 +75,9 @@ namespace Otm.Server.Device.S7
             this.dbDict = GetDBFromConfig(dvConfig);
         }
 
-        private Dictionary<int, DB> GetDBFromConfig(DeviceConfig dvConfig)
+        private ConcurrentDictionary<int, DB> GetDBFromConfig(DeviceConfig dvConfig)
         {
-            var dict = new Dictionary<int, DB>();
+            var dict = new ConcurrentDictionary<int, DB>();
 
             if (dvConfig.Tags != null)
                 GetDeviceTags(dvConfig, dict);
@@ -84,7 +85,7 @@ namespace Otm.Server.Device.S7
             return dict;
         }
 
-        private void GetDeviceTags(DeviceConfig dvConfig, Dictionary<int, DB> dict)
+        private void GetDeviceTags(DeviceConfig dvConfig, ConcurrentDictionary<int, DB> dict)
         {
             foreach (var t in dvConfig.Tags)
             {
@@ -361,7 +362,7 @@ namespace Otm.Server.Device.S7
                             switch (dbItem.TypeCode)
                             {
                                 case TypeCode.Byte:
-                                    S7.SetByteAt(db.Buffer, dbItem.Offset, (byte)dbItem.Value);
+                                    S7.SetByteAt(db.Buffer, dbItem.Offset, Convert.ToByte(dbItem.Value));
                                     break;
                                 case TypeCode.Int32:
                                     S7.SetIntAt(db.Buffer, dbItem.Offset, (short)((int)dbItem.Value));

@@ -6,6 +6,7 @@ Otm.Tests/*/bin/*
 Otm.Tests/*/obj/*
 Otm.Tests/*/out/*
 Otm.Tests/*/.vscode/*
+Otm.Server/Configs/*
 .vscode/*
 .vscode/*
 

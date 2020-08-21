@@ -125,6 +125,8 @@ namespace Otm.Server.Transaction
                     /// TODO: only int and string for now...
                     if (dp.TypeCode == TypeCode.Int32)
                         inParams[dp.Name] = Int32.Parse(bind.Value);
+                    else if (dp.TypeCode == TypeCode.Byte)
+                        inParams[dp.Name] = (byte)Int32.Parse(bind.Value);
                     else if (dp.TypeCode == TypeCode.String)
                         inParams[dp.Name] = bind.Value;
                     else
