@@ -34,8 +34,10 @@ namespace Otm.Server.Device.Ptl
         private DateTime lastConnectionTry;
         private string cmd_rcvd = "";
         private int cmd_count = 0;
-        private const int RECONNECT_DELAY = 5000;
+        private const int RECONNECT_DELAY = 3000;
         public bool Ready { get; private set; }
+        public DateTime LastSend { get; private set; }
+
         byte[] receiveBuffer = new byte[0];
 
         private Dictionary<char, byte> DisplayCodeDict; // tabela para conversao de caracteres do display
@@ -121,7 +123,7 @@ namespace Otm.Server.Device.Ptl
 
                 var ListaPendentes = (from rawPendente in ((string)value).Split(';').ToList()
                                       let pententeInfos = rawPendente.Split('|').ToList()
-                                      select new PtlBaseClass(      id: Guid.Parse(pententeInfos[4]),
+                                      select new PtlBaseClass(id: Guid.Parse(pententeInfos[4]),
                                                                     location: pententeInfos[0],
                                                                     displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
                                                                     displayValue: pententeInfos[2],
@@ -129,7 +131,7 @@ namespace Otm.Server.Device.Ptl
                                                                     ).ToList();
 
                 //Monta a lista do que é novo                                
-                var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Select(x=> x.Id).Contains(i.Id));
+                var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Select(x => x.Id).Contains(i.Id));
                 //Monsta a lista do que foi removido ou se for mensagem de 30 segundos atras
                 var ListaApagar = ListaLigados.Where(i => !ListaPendentes.Select(x => x.Id).Contains(i.Id));
 
@@ -201,7 +203,7 @@ namespace Otm.Server.Device.Ptl
 
                         }
 
-                         buf.AddRange(buf2);
+                        buf.AddRange(buf2);
                         sendDataQueue.Enqueue(buf.ToArray());
 
                         ListaLigados.Add(itemAcender);
@@ -241,6 +243,7 @@ namespace Otm.Server.Device.Ptl
                     else
                     {
                         Ready = false;
+                        ListaLigados.Clear();
 
                         if (!Connecting)
                         {
@@ -336,7 +339,11 @@ namespace Otm.Server.Device.Ptl
                 }
                 else //if (stxLcPos >= 0 && (stxAtPos == -1 || (stxAtPos > stxLcPos)))
                 {
-                    if (stxAtPos >= 0)
+                    if (etxLcPos >= 0)
+                    {
+                        receiveBuffer = receiveBuffer[(etxLcPos + ETX_LC.Length)..];
+                    }
+                    else if (stxAtPos >= 0)
                     {
                         // processa o AT
                         var len = 15; // \x0F\x00\x60
@@ -384,7 +391,17 @@ namespace Otm.Server.Device.Ptl
                         client.SendData(obj);
                         sent = true;
                     }
+                    this.LastSend = DateTime.Now;
                 }
+            else
+            {
+                if (LastSend.AddSeconds(3) < DateTime.Now)
+                {
+                    var getFwCmd = new byte[] { 0x07, 0x00, 0x60, 0x00, 0x00, 0x00, 0x09 };
+                    client.SendData(getFwCmd);
+                    this.LastSend = DateTime.Now;
+                }
+            }
 
             return sent;
         }
