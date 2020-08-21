@@ -32,7 +32,6 @@ namespace Otm.Server.Services
         {
             _logger.LogInformation("System START!");
 
-
             _otmContextManager.StartAll();
 
             while (!stoppingToken.IsCancellationRequested)

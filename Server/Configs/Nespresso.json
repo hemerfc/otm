@@ -1,6 +1,6 @@
 {
   "Name": "Nespresso01",
-  "Enabled": true,
+  "Enabled": false,
   "DataPoints": [
     {
       "Name": "sp_EnviarLeitura",

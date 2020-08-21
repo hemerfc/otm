@@ -246,6 +246,8 @@ namespace Otm.Server.Device.S7
                         Stop();
                         return;
                     }
+
+                    //ErrorInUpdateLoop = false;
                 }
                 catch (Exception ex)
                 {
@@ -298,8 +300,8 @@ namespace Otm.Server.Device.S7
                                     break;
                                 default:
                                     //tagValues[dbItem.Name] = null;
-                                    Logger.LogError($"Dev {Config.Name}: Get value error. Tag {dbItem.Name}");
-                                    break;
+                                    var msg = $"Dev {Config.Name}: Get value error. Tag {dbItem.Name}";
+                                    throw new Exception(msg);
                             }
                         }
                         
@@ -375,8 +377,9 @@ namespace Otm.Server.Device.S7
                                     /// TODO: Create a property to limit lenght of a string
                                     break;
                                 default:
-                                    Logger.LogError($"Dev {Config.Name}: Set value error. Tag {dbItem.Name}");
-                                    break;
+                                    //tagValues[dbItem.Name] = null;
+                                    var msg = $"Dev {Config.Name}: Set value error. Tag {dbItem.Name}";
+                                    throw new Exception(msg);
                             }
                         }
                     }
