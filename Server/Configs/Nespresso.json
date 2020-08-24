@@ -1,12 +1,11 @@
-<<<<<<< HEAD
 {
   "Name": "Nespresso01",
-  "Enabled": false,
+  "Enabled": true,
   "DataPoints": [
     {
       "Name": "sp_EnviarLeitura",
       "Driver": "mssql",
-      "Config": "Server=localhost;Database=QuickFlowDb;User Id=sa;Password=Aguia3220;",
+      "Config": "Server=localhost;Database=PICKTOLIGHTBR;User Id=sa2;Password=sa2sa2;",
       "Params": [
         {
           "Name": "ptl_id",
@@ -18,14 +17,14 @@
           "Name": "mensagem",
           "Mode": "FromOTM",
           "TypeCode": "String",
-          "Length" : 100 
+          "Length": 100
         }
       ]
     },
     {
       "Name": "sp_PendingCommands",
       "Driver": "mssql",
-      "Config": "Server=localhost;Database=QuickFlowDb;User Id=sa;Password=Aguia3220;",
+      "Config": "Server=localhost;Database=PICKTOLIGHTBR;User Id=sa2;Password=sa2sa2;",
       "Params": [
         {
           "Name": "p1",
@@ -37,16 +36,360 @@
           "Name": "p2",
           "Mode": "ToOTM",
           "TypeCode": "String",
-          "Length": 250
+          "Length": 4000
+        }
+      ]
+    },
+    {
+      "Name": "sp_Sorter",
+      "Driver": "mssql",
+      "Config": "Server=localhost;Database=PICKTOLIGHTBR;User Id=sa2;Password=sa2sa2;",
+      "Params": [
+        {
+          "Name": "COUNT",
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "BARCODE_READ",
+          "Mode": "FromOTM",
+          "TypeCode": "String",
+          "Length": 20
+        },
+        {
+          "Name": "WEIGHT",
+          "Mode": "FromOTM",
+          "TypeCode": "String",
+          "Length": 32
+        },
+        {
+          "Name": "CUBING",
+          "Mode": "FromOTM",
+          "TypeCode": "String",
+          "Length": 32
+        },
+        {
+          "Name": "CMD_RCV",
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "COUNT_RCV",
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        }
+      ]
+    },
+    {
+      "Name": "sp_script_hb",
+      "Script": "P2 = P1;",
+      "Driver": "script",
+      "Config": "",
+      "Params": [
+        {
+          "Name": "P1",
+          "Type": "Int",
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "P2",
+          "Type": "Int",
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
         }
       ]
     }
   ],
   "Devices": [
     {
+      "Name": "PLC01",
+      "Driver": "s7",
+      "Config": "host=7.9.64.1;rack=0;slot=0",
+      "Tags": [
+        {
+          "Name": "HEART_BIT_RECV",
+          "Address": "db801.w0",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "HEART_BIT_SEND",
+          "Address": "db800.w0",
+          "Rate": 50,
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+
+        {
+          "Name": "LC02_BL01_CB01_CT",
+          "Address": "db801.w2",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "LC02_BL01_CB01_BCD",
+          "Address": "db801.w4",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "LC02_BL01_CB01_WEIGHT",
+          "Address": "db801.w26",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "LC02_BL01_CB01_CUBING",
+          "Address": "db801.w60",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "LC02_BL01_CB01_CMD_RCV",
+          "Address": "db800.w2",
+          "Rate": 50,
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "LC02_BL01_CB01_COUNT_RCV",
+          "Address": "db800.w3",
+          "Rate": 50,
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+
+        {
+          "Name": "LC05_BL02_CB02_CT",
+          "Address": "db801.w94",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "LC05_BL02_CB02_BCD",
+          "Address": "db801.w96",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "LC05_BL02_CB02_WEIGHT",
+          "Address": "db801.w118",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "LC05_BL02_CB02_CUBING",
+          "Address": "db801.w152",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "LC05_BL02_CB02_CMD_RCV",
+          "Address": "db800.w4",
+          "Rate": 50,
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "LC05_BL02_CB02_COUNT_RCV",
+          "Address": "db800.w5",
+          "Rate": 50,
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+
+
+        {
+          "Name": "END",
+          "Address": "db801.w186",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        }
+      ]
+    },
+    {
       "Name": "ptl01",
       "Driver": "ptl",
-      "Config": "ip=192.168.202.10;port=4660",
+      "Config": "ip=7.9.64.220;port=4660",
+      "Tags": [
+        {
+          "Name": "cmd_count",
+          "Address": "cmd_count",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "Int32"
+        },
+        {
+          "Name": "cmd_rcvd",
+          "Address": "cmd_rcvd",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "cmd_send",
+          "Address": "cmd_send",
+          "Rate": 0,
+          "Mode": "FromOTM",
+          "TypeCode": "String"
+        }
+      ]
+    },
+    {
+      "Name": "ptl02",
+      "Driver": "ptl",
+      "Config": "ip=7.9.64.221;port=4660",
+      "Tags": [
+        {
+          "Name": "cmd_count",
+          "Address": "cmd_count",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "Int32"
+        },
+        {
+          "Name": "cmd_rcvd",
+          "Address": "cmd_rcvd",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "cmd_send",
+          "Address": "cmd_send",
+          "Rate": 0,
+          "Mode": "FromOTM",
+          "TypeCode": "String"
+        }
+      ]
+    },
+    {
+      "Name": "ptl03",
+      "Driver": "ptl",
+      "Config": "ip=7.9.64.222;port=4660",
+      "Tags": [
+        {
+          "Name": "cmd_count",
+          "Address": "cmd_count",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "Int32"
+        },
+        {
+          "Name": "cmd_rcvd",
+          "Address": "cmd_rcvd",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "cmd_send",
+          "Address": "cmd_send",
+          "Rate": 0,
+          "Mode": "FromOTM",
+          "TypeCode": "String"
+        }
+      ]
+    },
+    {
+      "Name": "ptl04",
+      "Driver": "ptl",
+      "Config": "ip=7.9.64.223;port=4660",
+      "Tags": [
+        {
+          "Name": "cmd_count",
+          "Address": "cmd_count",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "Int32"
+        },
+        {
+          "Name": "cmd_rcvd",
+          "Address": "cmd_rcvd",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "cmd_send",
+          "Address": "cmd_send",
+          "Rate": 0,
+          "Mode": "FromOTM",
+          "TypeCode": "String"
+        }
+      ]
+    },
+    {
+      "Name": "ptl14",
+      "Driver": "ptl",
+      "Config": "ip=7.9.64.233;port=4660",
+      "Tags": [
+        {
+          "Name": "cmd_count",
+          "Address": "cmd_count",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "Int32"
+        },
+        {
+          "Name": "cmd_rcvd",
+          "Address": "cmd_rcvd",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "cmd_send",
+          "Address": "cmd_send",
+          "Rate": 0,
+          "Mode": "FromOTM",
+          "TypeCode": "String"
+        }
+      ]
+    },
+    {
+      "Name": "ptl15",
+      "Driver": "ptl",
+      "Config": "ip=7.9.64.234;port=4660",
+      "Tags": [
+        {
+          "Name": "cmd_count",
+          "Address": "cmd_count",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "Int32"
+        },
+        {
+          "Name": "cmd_rcvd",
+          "Address": "cmd_rcvd",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "cmd_send",
+          "Address": "cmd_send",
+          "Rate": 0,
+          "Mode": "FromOTM",
+          "TypeCode": "String"
+        }
+      ]
+    },
+    {
+      "Name": "ptl16",
+      "Driver": "ptl",
+      "Config": "ip=7.9.64.235;port=4660",
       "Tags": [
         {
           "Name": "cmd_count",
@@ -74,6 +417,23 @@
   ],
   "Transactions": [
     {
+      "Name": "TR_HB",
+      "DataPointName": "sp_script_hb",
+      "DeviceName": "plc01",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "HEART_BIT_RECV",
+      "Binds": [
+        {
+          "DataPointParam": "P1",
+          "DeviceTag": "HEART_BIT_RECV"
+        },
+        {
+          "DataPointParam": "P2",
+          "DeviceTag": "HEART_BIT_SEND"
+        }
+      ]
+    },
+    {
       "Name": "ptl01_recv",
       "DataPointName": "sp_EnviarLeitura",
       "DeviceName": "ptl01",
@@ -83,6 +443,108 @@
         {
           "DataPointParam": "ptl_id",
           "Value": "001"
+        },
+        {
+          "DataPointParam": "mensagem",
+          "DeviceTag": "cmd_rcvd"
+        }
+      ]
+    },
+    {
+      "Name": "ptl02_recv",
+      "DataPointName": "sp_EnviarLeitura",
+      "DeviceName": "ptl02",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "cmd_count",
+      "Binds": [
+        {
+          "DataPointParam": "ptl_id",
+          "Value": "002"
+        },
+        {
+          "DataPointParam": "mensagem",
+          "DeviceTag": "cmd_rcvd"
+        }
+      ]
+    },
+    {
+      "Name": "ptl03_recv",
+      "DataPointName": "sp_EnviarLeitura",
+      "DeviceName": "ptl03",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "cmd_count",
+      "Binds": [
+        {
+          "DataPointParam": "ptl_id",
+          "Value": "003"
+        },
+        {
+          "DataPointParam": "mensagem",
+          "DeviceTag": "cmd_rcvd"
+        }
+      ]
+    },
+    {
+      "Name": "ptl04_recv",
+      "DataPointName": "sp_EnviarLeitura",
+      "DeviceName": "ptl04",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "cmd_count",
+      "Binds": [
+        {
+          "DataPointParam": "ptl_id",
+          "Value": "004"
+        },
+        {
+          "DataPointParam": "mensagem",
+          "DeviceTag": "cmd_rcvd"
+        }
+      ]
+    },
+    {
+      "Name": "ptl14_recv",
+      "DataPointName": "sp_EnviarLeitura",
+      "DeviceName": "ptl14",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "cmd_count",
+      "Binds": [
+        {
+          "DataPointParam": "ptl_id",
+          "Value": "014"
+        },
+        {
+          "DataPointParam": "mensagem",
+          "DeviceTag": "cmd_rcvd"
+        }
+      ]
+    },
+    {
+      "Name": "ptl15_recv",
+      "DataPointName": "sp_EnviarLeitura",
+      "DeviceName": "ptl15",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "cmd_count",
+      "Binds": [
+        {
+          "DataPointParam": "ptl_id",
+          "Value": "015"
+        },
+        {
+          "DataPointParam": "mensagem",
+          "DeviceTag": "cmd_rcvd"
+        }
+      ]
+    },
+    {
+      "Name": "ptl16_recv",
+      "DataPointName": "sp_EnviarLeitura",
+      "DeviceName": "ptl16",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "cmd_count",
+      "Binds": [
+        {
+          "DataPointParam": "ptl_id",
+          "Value": "016"
         },
         {
           "DataPointParam": "mensagem",
@@ -106,111 +568,102 @@
           "DeviceTag": "cmd_send"
         }
       ]
-    }
-  ]
-}
-=======
-{
-  "Name": "Nespresso01",
-  "Enabled": false,
-  "DataPoints": [
-    {
-      "Name": "sp_EnviarLeitura",
-      "Driver": "mssql",
-      "Config": "Server=localhost;Database=PICKTOLIGHTBR;User Id=sa2;Password=sa2sa2;",
-      "Params": [
-        {
-          "Name": "ptl_id",
-          "Mode": "FromOTM",
-          "TypeCode": "String",
-          "Length": 3
-        },
-        {
-          "Name": "mensagem",
-          "Mode": "FromOTM",
-          "TypeCode": "String",
-          "Length" : 100 
-        }
-      ]
     },
     {
-      "Name": "sp_PendingCommands",
-      "Driver": "mssql",
-      "Config": "Server=localhost;Database=PICKTOLIGHTBR;User Id=sa2;Password=sa2sa2;",
-      "Params": [
-        {
-          "Name": "p1",
-          "Mode": "FromOTM",
-          "TypeCode": "String",
-          "Length": 10
-        },
-        {
-          "Name": "p2",
-          "Mode": "ToOTM",
-          "TypeCode": "String",
-          "Length": 250
-        }
-      ]
-    }
-  ],
-  "Devices": [
-    {
-      "Name": "ptl01",
-      "Driver": "ptl",
-      "Config": "ip=192.168.202.10;port=4660",
-      "Tags": [
-        {
-          "Name": "cmd_count",
-          "Address": "cmd_count",
-          "Rate": 0,
-          "Mode": "ToOTM",
-          "TypeCode": "Int32"
-        },
-        {
-          "Name": "cmd_rcvd",
-          "Address": "cmd_rcvd",
-          "Rate": 0,
-          "Mode": "ToOTM",
-          "TypeCode": "String"
-        },
-        {
-          "Name": "cmd_send",
-          "Address": "cmd_send",
-          "Rate": 0,
-          "Mode": "FromOTM",
-          "TypeCode": "String"
-        }
-      ]
-    }
-  ],
-  "Transactions": [
-    {
-      "Name": "ptl01_recv",
-      "DataPointName": "sp_EnviarLeitura",
-      "DeviceName": "ptl01",
-      "TriggerType": "OnTagChange",
-      "TriggerTagName": "cmd_count",
-      "Binds": [
-        {
-          "DataPointParam": "ptl_id",
-          "Value": "001"
-        },
-        {
-          "DataPointParam": "mensagem",
-          "DeviceTag": "cmd_rcvd"
-        }
-      ]
-    },
-    {
-      "Name": "PendingCommands_cycle",
+      "Name": "PendingCommands_cycle_p002",
       "DataPointName": "sp_PendingCommands",
-      "DeviceName": "ptl01",
+      "DeviceName": "ptl02",
       "TriggerType": "OnCycle",
       "TriggerTime": 500,
       "Binds": [
         {
           "DataPointParam": "p1",
-          "Value": "001"
+          "Value": "002"
+        },
+        {
+          "DataPointParam": "p2",
+          "DeviceTag": "cmd_send"
+        }
+      ]
+    },
+    {
+      "Name": "PendingCommands_cycle_p003",
+      "DataPointName": "sp_PendingCommands",
+      "DeviceName": "ptl03",
+      "TriggerType": "OnCycle",
+      "TriggerTime": 500,
+      "Binds": [
+        {
+          "DataPointParam": "p1",
+          "Value": "003"
+        },
+        {
+          "DataPointParam": "p2",
+          "DeviceTag": "cmd_send"
+        }
+      ]
+    },
+    {
+      "Name": "PendingCommands_cycle_p004",
+      "DataPointName": "sp_PendingCommands",
+      "DeviceName": "ptl04",
+      "TriggerType": "OnCycle",
+      "TriggerTime": 500,
+      "Binds": [
+        {
+          "DataPointParam": "p1",
+          "Value": "004"
+        },
+        {
+          "DataPointParam": "p2",
+          "DeviceTag": "cmd_send"
+        }
+      ]
+    },
+    {
+      "Name": "PendingCommands_cycle_p014",
+      "DataPointName": "sp_PendingCommands",
+      "DeviceName": "ptl14",
+      "TriggerType": "OnCycle",
+      "TriggerTime": 500,
+      "Binds": [
+        {
+          "DataPointParam": "p1",
+          "Value": "014"
+        },
+        {
+          "DataPointParam": "p2",
+          "DeviceTag": "cmd_send"
+        }
+      ]
+    },
+    {
+      "Name": "PendingCommands_cycle_p015",
+      "DataPointName": "sp_PendingCommands",
+      "DeviceName": "ptl15",
+      "TriggerType": "OnCycle",
+      "TriggerTime": 500,
+      "Binds": [
+        {
+          "DataPointParam": "p1",
+          "Value": "015"
+        },
+        {
+          "DataPointParam": "p2",
+          "DeviceTag": "cmd_send"
+        }
+      ]
+    },
+    {
+      "Name": "PendingCommands_cycle_p016",
+      "DataPointName": "sp_PendingCommands",
+      "DeviceName": "ptl16",
+      "TriggerType": "OnCycle",
+      "TriggerTime": 500,
+      "Binds": [
+        {
+          "DataPointParam": "p1",
+          "Value": "016"
         },
         {
           "DataPointParam": "p2",
@@ -220,4 +673,3 @@
     }
   ]
 }
->>>>>>> 6789b23d2a77df673e5c0f682ae3f37e88a2ee1d
