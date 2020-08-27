@@ -221,7 +221,7 @@
     {
       "Name": "ptl01",
       "Driver": "ptl",
-      "Config": "ip=7.9.64.220;port=4660",
+      "Config": "ip=192.168.1.13;port=4660",
       "Tags": [
         {
           "Name": "cmd_count",
@@ -668,6 +668,72 @@
         {
           "DataPointParam": "p2",
           "DeviceTag": "cmd_send"
+        }
+      ]
+    },
+    {
+      "Name": "SorterLC02",
+      "DataPointName": "sp_Sorter",
+      "DeviceName": "PLC01",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "LC02_BL01_CB01_CT",
+      "Binds": [
+        {
+          "DataPointParam": "COUNT",
+          "DeviceTag": "LC02_BL01_CB01_CT"
+        },
+        {
+          "DataPointParam": "BARCODE_READ",
+          "DeviceTag": "LC02_BL01_CB01_BCD"
+        },
+        {
+          "DataPointParam": "WEIGHT",
+          "DeviceTag": "LC02_BL01_CB01_WEIGHT"
+        },
+        {
+          "DataPointParam": "CUBING",
+          "DeviceTag": "LC02_BL01_CB01_CUBING"
+        },
+        {
+          "DataPointParam": "CMD_RCV",
+          "DeviceTag": "LC02_BL01_CB01_CMD_RCV"
+        },
+        {
+          "DataPointParam": "COUNT_RCV",
+          "DeviceTag": "LC02_BL01_CB01_COUNT_RCV"
+        }
+      ]
+    },
+    {
+      "Name": "SorterLC05",
+      "DataPointName": "sp_Sorter",
+      "DeviceName": "PLC01",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "LC05_BL02_CB02_CT",
+      "Binds": [
+        {
+          "DataPointParam": "COUNT",
+          "DeviceTag": "LC05_BL02_CB02_CT"
+        },
+        {
+          "DataPointParam": "BARCODE_READ",
+          "DeviceTag": "LC05_BL02_CB02_BCD"
+        },
+        {
+          "DataPointParam": "WEIGHT",
+          "DeviceTag": "LC05_BL02_CB02_WEIGHT"
+        },
+        {
+          "DataPointParam": "CUBING",
+          "DeviceTag": "LC05_BL02_CB02_CUBING"
+        },
+        {
+          "DataPointParam": "CMD_RCV",
+          "DeviceTag": "LC05_BL02_CB02_CMD_RCV"
+        },
+        {
+          "DataPointParam": "COUNT_RCV",
+          "DeviceTag": "LC05_BL02_CB02_COUNT_RCV"
         }
       ]
     }

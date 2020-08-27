@@ -42,6 +42,7 @@ namespace Otm.Server.Device.S7
         private bool firstLoadWrite;
 
         public bool Ready { get; private set; }
+        private object tagsActionLock;
 
         public S7Device(DeviceConfig dvConfig, IS7Client client, ILogger logger)
         {
@@ -56,6 +57,7 @@ namespace Otm.Server.Device.S7
             firstLoadRead = true;
             firstLoadWrite = true;
             Ready = false;
+            tagsActionLock = new object();
         }
 
         private void GetConfig(DeviceConfig dvConfig)
@@ -316,7 +318,10 @@ namespace Otm.Server.Device.S7
                                 {
                                     if (tagsAction.ContainsKey(dbItem.Name))
                                     {
-                                        tagsAction[dbItem.Name](dbItem.Name, dbItem.Value);
+                                        lock (tagsActionLock)
+                                        {
+                                            tagsAction[dbItem.Name](dbItem.Name, dbItem.Value);
+                                        }
                                     }
                                 }
                             }

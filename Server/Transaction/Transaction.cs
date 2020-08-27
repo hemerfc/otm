@@ -22,7 +22,7 @@ namespace Otm.Server.Transaction
         private IDevice device;
         private IDataPoint dataPoint;
 
-        public BlockingCollection<Tuple<string, Object>> TriggerQueue { get; private set; }
+        public BlockingCollection<Dictionary<string, object>> TriggerQueue { get; private set; }
         public Stopwatch Stopwatch;
 
         private readonly ILogger logger;
@@ -33,7 +33,7 @@ namespace Otm.Server.Transaction
             this.config = trConfig;
             this.device = device;
             this.dataPoint = dataPoint;
-            this.TriggerQueue = new BlockingCollection<Tuple<string, Object>>(128);
+            this.TriggerQueue = new BlockingCollection<Dictionary<string, object>>(128);
             Stopwatch = new Stopwatch();
         }
 
@@ -55,19 +55,21 @@ namespace Otm.Server.Transaction
                 {
                     if (config.TriggerType == TriggerTypes.OnTagChange)
                     {
-                        Tuple<string, object> trigger;
+                        Dictionary<string, object> inParams; // = GetInParams();
                         // wait a trigger or 100ms
-                        if (TriggerQueue.TryTake(out trigger, 100))
-                            ExecuteTrigger(/*trigger.Item1, trigger.Item2*/);
+                        if (TriggerQueue.TryTake(out inParams, 100))
+                            ExecuteTrigger(inParams);
                     }
 
                     if (config.TriggerType == TriggerTypes.OnCycle)
                     {
                         var waitEvent = new ManualResetEvent(false);
+                        var inParams = GetInParams();
+
                         waitEvent.WaitOne(config.TriggerTime); // aguarda XXXms
                         if (device.Ready)
                         {
-                            ExecuteTrigger(/*trigger.Item1, trigger.Item2*/);
+                            ExecuteTrigger(inParams);
                         }
                     }
                 }
@@ -92,7 +94,8 @@ namespace Otm.Server.Transaction
         public void OnTrigger(string tagName, Object value)
         {
             // the BlockingCollection does this thread-safe
-            TriggerQueue.Add(new Tuple<string, Object>(tagName, value));
+            var inParams = GetInParams();  //  Dictionary<string, object>
+            TriggerQueue.Add(inParams);
         }
 
         /// <summary>
@@ -100,40 +103,10 @@ namespace Otm.Server.Transaction
         /// </summary>
         /// <param name="tagName">trigger tag name</param>
         /// <param name="value">tag value</param>
-        public void ExecuteTrigger(/*string tagName, Object value*/)
+        public void ExecuteTrigger(Dictionary<string, object> inParams)
         {
             Stopwatch.Restart();
 
-            var inParams = new Dictionary<string, object>();
-
-            foreach (var bind in config.Binds)
-            {
-                var dp = dataPoint.GetParamConfig(bind.DataPointParam);
-
-                // if DeviceTag is set, get value from device
-                if(!string.IsNullOrWhiteSpace(bind.DeviceTag) ) 
-                {
-                    var tag = device.GetTagConfig(bind.DeviceTag);
-
-                    if (tag.Mode == Modes.ToOTM) // from device to OTM  
-                    {
-                        inParams[dp.Name] = device.GetTagValue(tag.Name);
-                    }
-                } 
-                else // use the static value, provided
-                {
-                    /// TODO: only int and string for now...
-                    if (dp.TypeCode == TypeCode.Int32)
-                        inParams[dp.Name] = Int32.Parse(bind.Value);
-                    else if (dp.TypeCode == TypeCode.Byte)
-                        inParams[dp.Name] = (byte)Int32.Parse(bind.Value);
-                    else if (dp.TypeCode == TypeCode.String)
-                        inParams[dp.Name] = bind.Value;
-                    else
-                        throw new Exception($"Transaction {this.config.Name}: Fixed value only accept int or string!");
-                }
-            }
-            
             var outParams = dataPoint.Execute(inParams);
 
             foreach (var bind in config.Binds)
@@ -163,6 +136,41 @@ namespace Otm.Server.Transaction
                 str += $"({kvp.Key}:{kvp.Value})";
             logger.LogInformation($"Transaction {config.Name} ({time}ms) Output {str}");
 
+        }
+
+        private Dictionary<string, object> GetInParams()
+        {
+            var inParams = new Dictionary<string, object>();
+
+            foreach (var bind in config.Binds)
+            {
+                var dp = dataPoint.GetParamConfig(bind.DataPointParam);
+
+                // if DeviceTag is set, get value from device
+                if (!string.IsNullOrWhiteSpace(bind.DeviceTag))
+                {
+                    var tag = device.GetTagConfig(bind.DeviceTag);
+
+                    if (tag.Mode == Modes.ToOTM) // from device to OTM  
+                    {
+                        inParams[dp.Name] = device.GetTagValue(tag.Name);
+                    }
+                }
+                else // use the static value, provided
+                {
+                    /// TODO: only int and string for now...
+                    if (dp.TypeCode == TypeCode.Int32)
+                        inParams[dp.Name] = Int32.Parse(bind.Value);
+                    else if (dp.TypeCode == TypeCode.Byte)
+                        inParams[dp.Name] = (byte)Int32.Parse(bind.Value);
+                    else if (dp.TypeCode == TypeCode.String)
+                        inParams[dp.Name] = bind.Value;
+                    else
+                        throw new Exception($"Transaction {this.config.Name}: Fixed value only accept int or string!");
+                }
+            }
+
+            return inParams;
         }
     }
 }

@@ -41,6 +41,7 @@ namespace Otm.Server.Device.Ptl
         byte[] receiveBuffer = new byte[0];
 
         private Dictionary<char, byte> DisplayCodeDict; // tabela para conversao de caracteres do display
+        private object tagsActionLock;
 
         public PtlDevice(DeviceConfig dvConfig, ITcpClientAdapter client, ILogger logger)
         {
@@ -49,6 +50,7 @@ namespace Otm.Server.Device.Ptl
             this.client = client;
             this.tagsAction = new Dictionary<string, Action<string, object>>();
             this.sendDataQueue = new Queue<byte[]>();
+            tagsActionLock = new object();
 
             GetConfig(dvConfig);
             //firstLoadRead = true;
@@ -285,6 +287,7 @@ namespace Otm.Server.Device.Ptl
             var recv = client.GetData();
             if (recv != null && recv.Length > 0)
             {
+                Logger.LogInformation($"ReceieData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\nString: '{ASCIIEncoding.ASCII.GetString(recv)}'\n ByteArray: '{string.Join(", ", recv)}'");
                 var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
                 receiveBuffer.CopyTo(tempBuffer, 0);
                 recv.CopyTo(tempBuffer, receiveBuffer.Length);
@@ -356,7 +359,7 @@ namespace Otm.Server.Device.Ptl
                         var subCmd = (byte)cmdAT[6];
                         var subNode = (byte)cmdAT[7];
                         var cmdValue = cmdAT.Substring(8, 6);
-
+ 
                         var sendCMD = $"{Config.Name}|AT|{subNode:000}|{cmdValue}";
                         // ptl01|AT|001|000001
                         cmd_rcvd = sendCMD;
@@ -365,11 +368,17 @@ namespace Otm.Server.Device.Ptl
 
                         if (tagsAction.ContainsKey("cmd_rcvd"))
                         {
-                            tagsAction["cmd_rcvd"]("cmd_rcvd", cmd_rcvd);
+                            lock (tagsActionLock)
+                            {
+                                tagsAction["cmd_rcvd"]("cmd_rcvd", cmd_rcvd);
+                            }
                         }
                         else if (tagsAction.ContainsKey("cmd_count"))
                         {
-                            tagsAction["cmd_count"]("cmd_count", cmd_count);
+                            lock (tagsActionLock)
+                            {
+                                tagsAction["cmd_count"]("cmd_count", cmd_count);
+                            }
                         }
                     }
                 }
