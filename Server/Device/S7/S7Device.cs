@@ -474,7 +474,7 @@ namespace Otm.Server.Device.S7
             public int Lenght;
             public Modes Mode;
             public byte[] Buffer;
-            public Dictionary<string, DBItem> Itens;
+            public ConcurrentDictionary<string, DBItem> Itens;
         }
 
         private class DBItem
