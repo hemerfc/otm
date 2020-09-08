@@ -12,8 +12,8 @@ namespace Otm.Server.Device.Ptl
 {
     public class PtlDevice : IDevice
     {
-        private const string STX_LC = "\x02";
-        private const string ETX_LC = "\x03";
+        private const string STX_LC = "\x02\x02";
+        private const string ETX_LC = "\x03\x03";
         private const string STX_AT = "\x0F\x00\x60";
 
         public string Name { get { return Config.Name; } }
