@@ -254,10 +254,22 @@ namespace Otm.Server.Device.S7
                 }
                 catch (Exception ex)
                 {
-                    Ready = false;
                     Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
+                    
+                    Ready = false;
+                    count = 0;
+                    readTime = 0;
+                    writeTime = 0;
+
+                    SetForReconnect();
                 }
             }
+        }
+
+        public void SetForReconnect()
+        {
+            this.Reconnect();
+            ReadDeviceTags();
         }
 
         public void Stop()
