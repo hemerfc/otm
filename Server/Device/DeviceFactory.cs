@@ -30,7 +30,8 @@ namespace Otm.Server.Device
                     switch (dvConfig.Driver)
                     {
                         case "s7":
-                            devices.Add(dvConfig.Name, new S7Device(dvConfig, new S7Client(), logger));
+                            var client = new S7Client() { PduSizeRequested = 960 };
+                            devices.Add(dvConfig.Name, new S7Device(dvConfig, client, logger));
                             logger.LogError($"Device {dvConfig?.Name}: Created");
                             break;
                         case "ptl":
