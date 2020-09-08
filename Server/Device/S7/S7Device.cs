@@ -160,7 +160,7 @@ namespace Otm.Server.Device.S7
                         {
                             Number = dbValue,
                             Mode = t.Mode,
-                            Itens = new Dictionary<string, DBItem>()
+                            Itens = new ConcurrentDictionary<string, DBItem>()
                         };
                     }
                     else
