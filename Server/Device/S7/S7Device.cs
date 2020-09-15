@@ -254,22 +254,11 @@ namespace Otm.Server.Device.S7
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
-                    
                     Ready = false;
-                    count = 0;
-                    readTime = 0;
-                    writeTime = 0;
-
-                    SetForReconnect();
+                    Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
+                    client.Disconnect();   
                 }
             }
-        }
-
-        public void SetForReconnect()
-        {
-            this.Reconnect();
-            ReadDeviceTags();
         }
 
         public void Stop()
@@ -372,7 +361,7 @@ namespace Otm.Server.Device.S7
                 {
                     foreach (var dbItem in db.Itens.Values)
                     {
-                        if (dbItem.Value != null && !dbItem.Value.Equals(dbItem.OldValue))
+                        if (dbItem.Value != null/* && !dbItem.Value.Equals(dbItem.OldValue)*/)
                         {
                             dbItem.OldValue = dbItem.Value;
 

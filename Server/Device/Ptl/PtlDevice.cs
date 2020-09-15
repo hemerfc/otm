@@ -287,7 +287,7 @@ namespace Otm.Server.Device.Ptl
             var recv = client.GetData();
             if (recv != null && recv.Length > 0)
             {
-                Logger.LogInformation($"ReceieData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\nString: '{ASCIIEncoding.ASCII.GetString(recv)}'\n ByteArray: '{string.Join(", ", recv)}'");
+                Logger.LogInformation($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
                 var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
                 receiveBuffer.CopyTo(tempBuffer, 0);
                 recv.CopyTo(tempBuffer, receiveBuffer.Length);
