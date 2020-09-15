@@ -31,15 +31,16 @@ namespace Otm.Server
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-          .ConfigureWebHostDefaults(webBuilder =>
-          {
-              webBuilder.UseStartup<Startup>();
-          })
-          .ConfigureLogging(logging =>
-          {
-              logging.ClearProviders();
-              logging.SetMinimumLevel(LogLevel.Trace);
-          })
-          .UseNLog();  // NLog: Setup NLog for Dependency injection
+              .UseWindowsService()
+              .ConfigureWebHostDefaults(webBuilder =>
+              {
+                  webBuilder.UseStartup<Startup>();
+              })
+              .ConfigureLogging(logging =>
+              {
+                  logging.ClearProviders();
+                  logging.SetMinimumLevel(LogLevel.Trace);
+              })
+              .UseNLog();  // NLog: Setup NLog for Dependency injection
     }
 }
