@@ -7,6 +7,7 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using System.Diagnostics;
 
 namespace Otm.Server.Device.Ptl
 {
@@ -263,7 +264,7 @@ namespace Otm.Server.Device.Ptl
                     // wait 50ms
                     /// TODO: wait time must be equals the minimum update rate of tags
                     var waitEvent = new ManualResetEvent(false);
-                    waitEvent.WaitOne(50);
+                    waitEvent.WaitOne(150);
 
                     if (Worker.CancellationPending)
                     {
@@ -394,12 +395,39 @@ namespace Otm.Server.Device.Ptl
             if (sendDataQueue.Count > 0)
                 lock (lockSendDataQueue)
                 {
+                    var st = new Stopwatch();
+                    st.Start();
+
+                    var totalLength = 0;
+                    foreach (var it in sendDataQueue)
+                    {
+                        totalLength += it.Length;
+                    }
+
+                    var obj = new byte[totalLength];
+                    var pos = 0;
+                    while (sendDataQueue.Count > 0)
+                    {
+                        var it = sendDataQueue.Dequeue();
+                        Array.Copy(it, 0, obj, pos, it.Length);
+                        pos += it.Length;
+                    }
+
+                    client.SendData(obj);
+
+                    st.Stop();
+
+                    Logger.LogDebug($"Dev {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
+
+
+                    /*
                     while (sendDataQueue.Count > 0)
                     {
                         var obj = sendDataQueue.Dequeue();
                         client.SendData(obj);
                         sent = true;
                     }
+                    */
                     this.LastSend = DateTime.Now;
                 }
             else
@@ -423,7 +451,7 @@ namespace Otm.Server.Device.Ptl
 
                 if (client.Connected)
                 {
-                    Logger.LogError($"Dev {Config.Name}: Connected.");
+                    Logger.LogDebug($"Dev {Config.Name}: Connected.");
                 }
                 else
                 {
