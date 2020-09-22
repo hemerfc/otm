@@ -148,7 +148,7 @@ namespace Otm.Server.Transaction
                     logger.LogError(ex, $"Retry no. {retries} of Transaction {this.config.Name}");
 
                     Thread.Sleep(200);
-                    ExecuteTrigger(inParams, retries++);
+                    ExecuteTrigger(inParams, ++retries);
                 }
                 else
                 {
