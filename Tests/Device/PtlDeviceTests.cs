@@ -34,9 +34,44 @@ namespace Otm.Test.Device
         // scanner read
         /*[InlineData("`GSTXLC|001|aaaETX`GSTXLC|002|bbbETX`GSTXLC|003|ccc|ETX",
             new string[] { "ptl01|LC|001|aaa", "ptl01|LC|002|bbb", "ptl01|LC|003|ccc" })]*/
-        [InlineData("\x0F\x00\x60\x00\x00\x00\x06\x11\x20\x20\x20\x20\x20\x33\x01" + // Cmd=6 Node=1 Value=1 Dot=0
-                    "\x0F\x00\x60\x00\x00\x00\x06\x12\x20\x20\x20\x20\x20\x33\x01", // Cmd=6 Node=1 Value=1 Dot=0                    
+
+        [InlineData(new byte[] {
+                36, 0, 96, 0, 0, 0, 6, 40,
+                2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48,
+                49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 51, 3, 3
+            },
+            new string[] { "ptl01|LC|002|i0000124613100003" })]
+        [InlineData(new byte[] {
+                36, 0, 96, 0, 0, 0, 6, 40, 
+                2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48,
+                49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 51, 3, 3,
+                0x0f, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x32, 0x00,
+                2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48,
+                49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 51, 3, 3,
+            },
+            new string[] { "ptl01|LC|002|i0000124613100003", 
+                           "ptl01|AT|017|     2",
+                           "ptl01|LC|002|i0000124613100003" })]
+        [InlineData(new byte[] {
+                0x0f, 0x00, 0x60, 0x00, 0x00, 0x00, 0xfc, 0x16, 0x02, 0x13, 0x73, 0x08, 0x02, 0x00, 0x02, // STATUS Cmd=252
+                0x0f, 0x00, 0x60, 0x00, 0x00, 0x00, 0xfc, 0x17, 0x02, 0x13, 0x73, 0x08, 0x02, 0x00, 0x02, // STATUS Cmd=252
+                0x0c, 0x00, 0x60, 0x00, 0x00, 0x00, 0xfc, 0x27, 0x02, 0x10, 0x30, 0x08,                   // STATUS Cmd=252
+                0x0f, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x32, 0x00  // Cmd=6 Node=17 Value=2 Dot=0
+            },
+            new string[] { "ptl01|AT|017|     2" })]
+        [InlineData(new byte[]{
+                0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00, // Cmd=6 Node=17 Value=1 Dot=0
+                0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x12, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00  // Cmd=6 Node=18 Value=1 Dot=0 
+            },    
             new string[] { "ptl01|AT|017|     3", "ptl01|AT|018|     3" })]
+        [InlineData(new byte[]{
+                0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00, // Cmd=6 Node=17 Value=1 Dot=0
+                0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20,                         // lixo
+                0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20,                         // lixo
+                0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x12, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00  // Cmd=6 Node=18 Value=1 Dot=0 
+            },
+            new string[] { "ptl01|AT|017|     3", "ptl01|AT|018|     3" })]
+
         /*[InlineData("\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x31\x00" + // Cmd=6 Node=1 Value=1 Dot=0
                     "lixoaqui!" +
                     "`GSTXLC|001|aaaETX" +
@@ -47,23 +82,25 @@ namespace Otm.Test.Device
                     "\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x33\x00",  // Cmd=6 Node=1 Value=1 Dot=0
             new string[] { "ptl01|AT|001|000001", "ptl01|LC|001|aaa" , "ptl01|AT|001|000002",
                            "ptl01|LC|002|bbb", "ptl01|LC|003|ccc", "ptl01|AT|001|000003" })]*/
-        public void Receive_Ptl_Command(string recv, string[] result)
+        public void Receive_Ptl_Command(byte[] recv, string[] result)
         {
             var waitEvent = new ManualResetEvent(false);
 
-            recvFromPtlBuffer = Encoding.ASCII.GetBytes(recv);
+            recvFromPtlBuffer = recv;
             sendToPtlBuffer = new byte[0];
 
             var devPtl = CreateDevice(out BackgroundWorker bgWorker);
 
             // contador de 
             var commandsRcvd = 0;
+            var falhaNoTeste = false;
             // prepara a funcao que dispara o trigger da trasação
             devPtl.OnTagChangeAdd("cmd_rcvd", (str, value) =>
             {
                 // quando receber um commando do Ptl dispararia a transação,
                 // mas para o teste apenas confirma o valor recebido
-                Assert.Equal(result[commandsRcvd], (string)value);
+                if (result[commandsRcvd] != (string)value)
+                    falhaNoTeste = true;
 
                 commandsRcvd++;
 
@@ -75,6 +112,8 @@ namespace Otm.Test.Device
             bgWorker.RunWorkerAsync();
 
             waitEvent.WaitOne(500);
+
+            Assert.False(falhaNoTeste); // tem que receber dois commandos
 
             Assert.Equal(result.Length, commandsRcvd); // tem que receber dois commandos
 
