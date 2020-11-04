@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -51,6 +52,7 @@ namespace Otm.Server.Transaction
 
             while (true)
             {
+
                 try
                 {
                     if (config.TriggerType == TriggerTypes.OnTagChange)
@@ -75,7 +77,7 @@ namespace Otm.Server.Transaction
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, $"Error in ExecuteTrigger of Transaction {this.config.Name}");
+                    logger.LogError(ex, $"Error starting the Transaction {this.config.Name}");
                 }
 
                 if (Worker.CancellationPending)
@@ -103,39 +105,60 @@ namespace Otm.Server.Transaction
         /// </summary>
         /// <param name="tagName">trigger tag name</param>
         /// <param name="value">tag value</param>
-        public void ExecuteTrigger(Dictionary<string, object> inParams)
+        public void ExecuteTrigger(Dictionary<string, object> inParams, int retries = 0)
         {
-            Stopwatch.Restart();
-
-            var outParams = dataPoint.Execute(inParams);
-
-            foreach (var bind in config.Binds)
+            try
             {
-                var dp = dataPoint.GetParamConfig(bind.DataPointParam);
+                String str = "";
+                foreach (KeyValuePair<string, object> kvp in inParams)
+                    str += $"({kvp.Key}:{kvp.Value})";
+                logger.LogInformation($"Transaction {config.Name} Input {str}");
 
-                if (!string.IsNullOrWhiteSpace(bind.DeviceTag))
+
+                Stopwatch.Restart();
+
+                var outParams = dataPoint.Execute(inParams);
+
+                foreach (var bind in config.Binds)
                 {
-                    var tag = device.GetTagConfig(bind.DeviceTag);
+                    var dp = dataPoint.GetParamConfig(bind.DataPointParam);
 
-                    if (tag.Mode == Modes.FromOTM) // from OTM to device  
+                    if (!string.IsNullOrWhiteSpace(bind.DeviceTag))
                     {
-                        device.SetTagValue(tag.Name, outParams[dp.Name]);
+                        var tag = device.GetTagConfig(bind.DeviceTag);
+
+                        if (tag.Mode == Modes.FromOTM) // from OTM to device  
+                        {
+                            device.SetTagValue(tag.Name, outParams[dp.Name]);
+                        }
                     }
                 }
+
+                var time = Stopwatch.ElapsedMilliseconds;
+
+                str = "";
+                foreach (KeyValuePair<string, object> kvp in outParams)
+                    str += $"({kvp.Key}:{kvp.Value})";
+                logger.LogInformation($"Transaction {config.Name} ({time}ms) Output {str}");
             }
+            catch (SqlException ex) when (ex.Number == 1205)
+            {
+                if (retries <= 5)
+                {
+                    logger.LogError(ex, $"Retry no. {retries} of Transaction {this.config.Name}");
 
-            var time = Stopwatch.ElapsedMilliseconds;
-
-            String str = "";
-            foreach (KeyValuePair<string, object> kvp in inParams)
-                str += $"({kvp.Key}:{kvp.Value})";
-            logger.LogInformation($"Transaction {config.Name} Input {str}");
-
-            str = "";
-            foreach (KeyValuePair<string, object> kvp in outParams)
-                str += $"({kvp.Key}:{kvp.Value})";
-            logger.LogInformation($"Transaction {config.Name} ({time}ms) Output {str}");
-
+                    Thread.Sleep(200);
+                    ExecuteTrigger(inParams, ++retries);
+                }
+                else
+                {
+                    logger.LogError(ex, $"Retry exceeded Transaction {this.config.Name}");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, $"Error in ExecuteTrigger of Transaction {this.config.Name}");
+            }
         }
 
         private Dictionary<string, object> GetInParams()

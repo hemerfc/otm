@@ -7,14 +7,15 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using System.Diagnostics;
 
 namespace Otm.Server.Device.Ptl
 {
     public class PtlDevice : IDevice
     {
-        private const string STX_LC = "\x02";
-        private const string ETX_LC = "\x03";
-        private const string STX_AT = "\x0F\x00\x60";
+        private byte[] STX_LC = new byte[] { 0x02, 0x02 };       // "\x02\x02";
+        private byte[] ETX_LC = new byte[] { 0x03, 0x03 };       // "\x03\x03";
+        private byte[] STX_AT = new byte[] { 0x0f, 0x00, 0x60 }; //"\x0F\x00\x60";
 
         public string Name { get { return Config.Name; } }
 
@@ -263,7 +264,7 @@ namespace Otm.Server.Device.Ptl
                     // wait 50ms
                     /// TODO: wait time must be equals the minimum update rate of tags
                     var waitEvent = new ManualResetEvent(false);
-                    waitEvent.WaitOne(50);
+                    waitEvent.WaitOne(150);
 
                     if (Worker.CancellationPending)
                     {
@@ -287,7 +288,7 @@ namespace Otm.Server.Device.Ptl
             var recv = client.GetData();
             if (recv != null && recv.Length > 0)
             {
-                Logger.LogInformation($"ReceieData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\nString: '{ASCIIEncoding.ASCII.GetString(recv)}'\n ByteArray: '{string.Join(", ", recv)}'");
+                Logger.LogInformation($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
                 var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
                 receiveBuffer.CopyTo(tempBuffer, 0);
                 recv.CopyTo(tempBuffer, receiveBuffer.Length);
@@ -296,12 +297,13 @@ namespace Otm.Server.Device.Ptl
 
             if (receiveBuffer.Length > 0)
             {
-                var strRcvd = Encoding.ASCII.GetString(receiveBuffer);
+                //var strRcvd = Encoding.ASCII.GetString(receiveBuffer);
+                var strRcvd = receiveBuffer;
 
                 /// TODO: falta processar os bytes recebidos
-                var stxLcPos = strRcvd.IndexOf(STX_LC, StringComparison.Ordinal);
-                var etxLcPos = strRcvd.IndexOf(ETX_LC, StringComparison.Ordinal);
-                var stxAtPos = strRcvd.IndexOf(STX_AT, StringComparison.Ordinal);
+                var stxLcPos = SearchBytes(strRcvd, STX_LC);
+                var etxLcPos = SearchBytes(strRcvd, ETX_LC);
+                var stxAtPos = SearchBytes(strRcvd, STX_AT);
 
                 // se tem LC e ( nao tem AT ou tem mas esta depois do LC)
                 // processa o LC
@@ -316,7 +318,7 @@ namespace Otm.Server.Device.Ptl
                     {
                         receiveBuffer = receiveBuffer[(etxLcPos + ETX_LC.Length)..];
 
-                        var cmdLC = strRcvd[(stxLcPos + STX_LC.Length)..etxLcPos];
+                        var cmdLC = Encoding.ASCII.GetString(strRcvd[(stxLcPos + STX_LC.Length)..etxLcPos]);
                         // LC|001|aaa => ptl01|LC|001|aaa
                         var cmdParts = cmdLC.Split('|');
 
@@ -342,11 +344,12 @@ namespace Otm.Server.Device.Ptl
                 }
                 else //if (stxLcPos >= 0 && (stxAtPos == -1 || (stxAtPos > stxLcPos)))
                 {
-                    if (etxLcPos >= 0)
+                    /*if (etxLcPos >= 0)
                     {
                         receiveBuffer = receiveBuffer[(etxLcPos + ETX_LC.Length)..];
                     }
-                    else if (stxAtPos >= 0)
+                    else*/ 
+                    if (stxAtPos >= 0)
                     {
                         // processa o AT
                         var len = 15; // \x0F\x00\x60
@@ -356,28 +359,36 @@ namespace Otm.Server.Device.Ptl
                         // remove o commando do buffer
                         receiveBuffer = receiveBuffer[(stxAtPos + len)..];
 
-                        var subCmd = (byte)cmdAT[6];
-                        var subNode = (byte)cmdAT[7];
-                        var cmdValue = cmdAT.Substring(8, 6);
- 
-                        var sendCMD = $"{Config.Name}|AT|{subNode:000}|{cmdValue}";
-                        // ptl01|AT|001|000001
-                        cmd_rcvd = sendCMD;
-                        cmd_count++;
-                        received = true;
+                        var subCmd = cmdAT[6];
+                        var subNode = cmdAT[7];
+                        var cmdValue = Encoding.ASCII.GetString(cmdAT.Skip(8).Take(6).ToArray());
 
-                        if (tagsAction.ContainsKey("cmd_rcvd"))
+                        Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. CmdAT: '{cmdAT}' subCmd:{subCmd} subNode:{subNode} cmdValue:{cmdValue}");
+
+                        if (subCmd == 252)
                         {
-                            lock (tagsActionLock)
-                            {
-                                tagsAction["cmd_rcvd"]("cmd_rcvd", cmd_rcvd);
-                            }
+                            Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. subCmd: 252 IGNORADO");
                         }
-                        else if (tagsAction.ContainsKey("cmd_count"))
-                        {
-                            lock (tagsActionLock)
+                        else { 
+                            var sendCMD = $"{Config.Name}|AT|{subNode:000}|{cmdValue}";
+                            // ptl01|AT|001|000001
+                            cmd_rcvd = sendCMD;
+                            cmd_count++;
+                            received = true;
+
+                            if (tagsAction.ContainsKey("cmd_rcvd"))
                             {
-                                tagsAction["cmd_count"]("cmd_count", cmd_count);
+                                lock (tagsActionLock)
+                                {
+                                    tagsAction["cmd_rcvd"]("cmd_rcvd", cmd_rcvd);
+                                }
+                            }
+                            else if (tagsAction.ContainsKey("cmd_count"))
+                            {
+                                lock (tagsActionLock)
+                                {
+                                    tagsAction["cmd_count"]("cmd_count", cmd_count);
+                                }
                             }
                         }
                     }
@@ -385,6 +396,21 @@ namespace Otm.Server.Device.Ptl
             }
 
             return received;
+        }
+        private static int SearchBytes(byte[] haystack, byte[] needle)
+        {
+            var len = needle.Length;
+            var limit = haystack.Length - len;
+            for (var i = 0; i <= limit; i++)
+            {
+                var k = 0;
+                for (; k < len; k++)
+                {
+                    if (needle[k] != haystack[i + k]) break;
+                }
+                if (k == len) return i;
+            }
+            return -1;
         }
 
         private bool SendData()
@@ -394,12 +420,39 @@ namespace Otm.Server.Device.Ptl
             if (sendDataQueue.Count > 0)
                 lock (lockSendDataQueue)
                 {
+                    var st = new Stopwatch();
+                    st.Start();
+
+                    var totalLength = 0;
+                    foreach (var it in sendDataQueue)
+                    {
+                        totalLength += it.Length;
+                    }
+
+                    var obj = new byte[totalLength];
+                    var pos = 0;
+                    while (sendDataQueue.Count > 0)
+                    {
+                        var it = sendDataQueue.Dequeue();
+                        Array.Copy(it, 0, obj, pos, it.Length);
+                        pos += it.Length;
+                    }
+
+                    client.SendData(obj);
+
+                    st.Stop();
+
+                    Logger.LogDebug($"Dev {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
+
+
+                    /*
                     while (sendDataQueue.Count > 0)
                     {
                         var obj = sendDataQueue.Dequeue();
                         client.SendData(obj);
                         sent = true;
                     }
+                    */
                     this.LastSend = DateTime.Now;
                 }
             else
@@ -423,7 +476,7 @@ namespace Otm.Server.Device.Ptl
 
                 if (client.Connected)
                 {
-                    Logger.LogError($"Dev {Config.Name}: Connected.");
+                    Logger.LogDebug($"Dev {Config.Name}: Connected.");
                 }
                 else
                 {

@@ -160,7 +160,7 @@ namespace Otm.Server.Device.S7
                         {
                             Number = dbValue,
                             Mode = t.Mode,
-                            Itens = new Dictionary<string, DBItem>()
+                            Itens = new ConcurrentDictionary<string, DBItem>()
                         };
                     }
                     else
@@ -256,6 +256,7 @@ namespace Otm.Server.Device.S7
                 {
                     Ready = false;
                     Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
+                    client.Disconnect();   
                 }
             }
         }
@@ -360,7 +361,7 @@ namespace Otm.Server.Device.S7
                 {
                     foreach (var dbItem in db.Itens.Values)
                     {
-                        if (dbItem.Value != null && !dbItem.Value.Equals(dbItem.OldValue))
+                        if (dbItem.Value != null/* && !dbItem.Value.Equals(dbItem.OldValue)*/)
                         {
                             dbItem.OldValue = dbItem.Value;
 
