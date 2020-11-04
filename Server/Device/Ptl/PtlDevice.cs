@@ -16,6 +16,7 @@ namespace Otm.Server.Device.Ptl
         private byte[] STX_LC = new byte[] { 0x02, 0x02 };       // "\x02\x02";
         private byte[] ETX_LC = new byte[] { 0x03, 0x03 };       // "\x03\x03";
         private byte[] STX_AT = new byte[] { 0x0f, 0x00, 0x60 }; //"\x0F\x00\x60";
+        private byte[] STX_AT_MASTER = new byte[] { 0x14, 0x00, 0x60 }; //"\x2b\x00\x60";
 
         public string Name { get { return Config.Name; } }
 
@@ -29,6 +30,10 @@ namespace Otm.Server.Device.Ptl
         private readonly ITcpClientAdapter client;
         private string ip;
         private int port;
+
+        private byte MasterDevice;
+        private bool readGateOpen;
+
         //readonly bool firstLoadRead;
         //readonly bool firstLoadWrite;
         private bool Connecting;
@@ -56,6 +61,7 @@ namespace Otm.Server.Device.Ptl
             GetConfig(dvConfig);
             //firstLoadRead = true;
             //firstLoadWrite = true;
+            readGateOpen = false;
         }
 
         private void GetConfig(DeviceConfig dvConfig)
@@ -64,6 +70,8 @@ namespace Otm.Server.Device.Ptl
 
             this.ip = (cparts.FirstOrDefault(x => x.Contains("ip=")) ?? "").Replace("ip=", "").Trim();
             var strRack = (cparts.FirstOrDefault(x => x.Contains("port=")) ?? "").Replace("port=", "").Trim();
+
+            this.MasterDevice = Byte.Parse((cparts.FirstOrDefault(x => x.Contains("MasterDevice=")) ?? "").Replace("MasterDevice=", "").Trim());
 
             this.port = 0;
             int.TryParse(strRack, out this.port);
@@ -304,99 +312,146 @@ namespace Otm.Server.Device.Ptl
                 var stxLcPos = SearchBytes(strRcvd, STX_LC);
                 var etxLcPos = SearchBytes(strRcvd, ETX_LC);
                 var stxAtPos = SearchBytes(strRcvd, STX_AT);
+                var stxAtMasterPos = SearchBytes(strRcvd, STX_AT_MASTER);
 
-                // se tem LC e ( nao tem AT ou tem mas esta depois do LC)
-                // processa o LC
-                if (stxLcPos >= 0 && (stxAtPos < 0 || (stxAtPos > stxLcPos)))
+
+                var posicoesRelevantesEncontradas = new List<int>() { stxLcPos, stxAtPos, stxAtMasterPos }                                                            
+                                                            .Where(x => x >= 0)
+                                                            .OrderBy(x => x)
+                                                            .ToList();
+                
+                //Se encontrou algo relevante processa, senão zera...
+                if (posicoesRelevantesEncontradas.Count > 0)
                 {
-                    // sem etx com stx
-                    if (etxLcPos < 0 && stxLcPos > 0)
-                        receiveBuffer = receiveBuffer[(stxLcPos + STX_LC.Length)..];
-                    if (etxLcPos < stxLcPos)
-                        receiveBuffer = receiveBuffer[(stxLcPos + STX_LC.Length)..];
-                    else if (stxLcPos < etxLcPos)
+                    var primeiraPosRelevante = posicoesRelevantesEncontradas.First();
+                    //Filtra o array para remover o lixo do inicio
+                    //receiveBuffer = receiveBuffer[primeiraPosRelevante..];
+
+                    //Se for uma leitura, verifica se ja tem o STX
+                    if (primeiraPosRelevante == stxLcPos)
                     {
-                        receiveBuffer = receiveBuffer[(etxLcPos + ETX_LC.Length)..];
-
-                        var cmdLC = Encoding.ASCII.GetString(strRcvd[(stxLcPos + STX_LC.Length)..etxLcPos]);
-                        // LC|001|aaa => ptl01|LC|001|aaa
-                        var cmdParts = cmdLC.Split('|');
-
-                        var cmdType = cmdParts[0];
-                        var cmdDevice = cmdParts[1];
-                        var cmdValue = cmdParts[2];
-
-                        var sendCMD = $"{Config.Name}|{cmdType}|{cmdDevice}|{cmdValue}";
-
-                        cmd_rcvd = sendCMD;
-                        cmd_count++;
-                        received = true;
-
-                        if (tagsAction.ContainsKey("cmd_rcvd"))
+                        //Aguarda encontrar o ETX
+                        if (stxLcPos < etxLcPos)
                         {
-                            tagsAction["cmd_rcvd"]("cmd_rcvd", cmd_rcvd);
-                        }
-                        else if (tagsAction.ContainsKey("cmd_count"))
-                        {
-                            tagsAction["cmd_count"]("cmd_count", cmd_count);
-                        }
-                    }
-                }
-                else //if (stxLcPos >= 0 && (stxAtPos == -1 || (stxAtPos > stxLcPos)))
-                {
-                    /*if (etxLcPos >= 0)
-                    {
-                        receiveBuffer = receiveBuffer[(etxLcPos + ETX_LC.Length)..];
-                    }
-                    else*/ 
-                    if (stxAtPos >= 0)
-                    {
-                        // processa o AT
-                        var len = 15; // \x0F\x00\x60
-
-                        var cmdAT = strRcvd[stxAtPos..(stxAtPos + len)];
-
-                        // remove o commando do buffer
-                        receiveBuffer = receiveBuffer[(stxAtPos + len)..];
-
-                        var subCmd = cmdAT[6];
-                        var subNode = cmdAT[7];
-                        var cmdValue = Encoding.ASCII.GetString(cmdAT.Skip(8).Take(6).ToArray());
-
-                        Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. CmdAT: '{cmdAT}' subCmd:{subCmd} subNode:{subNode} cmdValue:{cmdValue}");
-
-                        if (subCmd == 252)
-                        {
-                            Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. subCmd: 252 IGNORADO");
-                        }
-                        else { 
-                            var sendCMD = $"{Config.Name}|AT|{subNode:000}|{cmdValue}";
-                            // ptl01|AT|001|000001
-                            cmd_rcvd = sendCMD;
-                            cmd_count++;
-                            received = true;
-
-                            if (tagsAction.ContainsKey("cmd_rcvd"))
+                            //Processa se o ReadGate estiver aberto e fecha-o em seguida
+                            if (readGateOpen)
                             {
-                                lock (tagsActionLock)
+                                var cmdLC = Encoding.ASCII.GetString(strRcvd[(stxLcPos + STX_LC.Length)..etxLcPos]);
+                                var cmdParts = cmdLC.Split('|');
+
+                                var cmdType = cmdParts[0];
+                                var cmdDevice = cmdParts[1];
+                                var cmdValue = cmdParts[2];
+
+                                var sendCMD = $"{Config.Name}|{cmdType}|{cmdDevice}|{cmdValue}";
+
+                                cmd_rcvd = sendCMD;
+                                cmd_count++;
+                                received = true;
+
+                                if (tagsAction.ContainsKey("cmd_rcvd"))
                                 {
                                     tagsAction["cmd_rcvd"]("cmd_rcvd", cmd_rcvd);
                                 }
-                            }
-                            else if (tagsAction.ContainsKey("cmd_count"))
-                            {
-                                lock (tagsActionLock)
+                                else if (tagsAction.ContainsKey("cmd_count"))
                                 {
                                     tagsAction["cmd_count"]("cmd_count", cmd_count);
                                 }
+
+                                EnviarBipLeituraMestre(MasterDevice);
+                                readGateOpen = false;
+                                Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. readGate fechado após leitura.");
+
                             }
+                            //Se o ReadGate estava aberto a leitura foi processada, se estava fechado ignorada...
+                            //Descartando a leitura do buffer pois ja foi processada
+                            receiveBuffer = receiveBuffer[(etxLcPos + STX_LC.Length)..];
+                        }
+                    }
+                    else if (primeiraPosRelevante == stxAtPos) //Se for um atendimento normal, verifica se ja tem 15 posicoes pra frente
+                    {
+                        var len = 15;
+
+                        //verifica se ja tem 20 posicoes pra frente e processa
+                        if (strRcvd.Length >= stxAtPos + len)
+                        {
+
+                            var cmdAT = strRcvd[stxAtPos..(stxAtPos + len)];
+
+                            var subCmd = cmdAT[6];
+                            var subNode = cmdAT[7];
+                            var cmdValue = Encoding.ASCII.GetString(cmdAT.Skip(8).Take(6).ToArray());
+
+                            Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. CmdAT: '{cmdAT}' subCmd:{subCmd} subNode:{subNode} cmdValue:{cmdValue}");
+
+                            if (subCmd == 252)
+                            {
+                                Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. subCmd: 252 IGNORADO");
+                            }
+                            else
+                            {
+                                var sendCMD = $"{Config.Name}|AT|{subNode:000}|{cmdValue}";
+                                // ptl01|AT|001|000001
+                                cmd_rcvd = sendCMD;
+                                cmd_count++;
+                                received = true;
+
+                                if (tagsAction.ContainsKey("cmd_rcvd"))
+                                {
+                                    lock (tagsActionLock)
+                                    {
+                                        tagsAction["cmd_rcvd"]("cmd_rcvd", cmd_rcvd);
+                                    }
+                                }
+                                else if (tagsAction.ContainsKey("cmd_count"))
+                                {
+                                    lock (tagsActionLock)
+                                    {
+                                        tagsAction["cmd_count"]("cmd_count", cmd_count);
+                                    }
+                                }
+                            }
+
+                            //Limpando o buffer que ja foi processado
+                            receiveBuffer = receiveBuffer[(stxAtPos + len)..];
+                        }
+                    }
+                    else if (primeiraPosRelevante == stxAtMasterPos) //Se for um atendimento master
+                    {
+                        var len = 20;
+
+                        //verifica se ja tem 20 posicoes pra frente e processa
+                        if (strRcvd.Length >= stxAtMasterPos + len)
+                        {
+                            readGateOpen = true;
+
+                            var cmdAT = strRcvd[stxAtMasterPos..(stxAtMasterPos + len)];
+
+                            var subCmd = cmdAT[6];
+                            var subNode = cmdAT[7];
+                            var cmdValue = Encoding.ASCII.GetString(cmdAT.Skip(8).Take(6).ToArray());
+
+                            Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. CmdAT: '{cmdAT}' subCmd:{subCmd} subNode:{subNode} cmdValue:{cmdValue}");
+
+                            //Limpando o buffer que ja foi processado
+                            receiveBuffer = receiveBuffer[(stxAtMasterPos + len)..];
                         }
                     }
                 }
+                else
+                    receiveBuffer = Array.Empty<byte>();
+
+
             }
 
             return received;
         }
+
+        private void EnviarBipLeituraMestre(byte MasterDevice)
+        {
+            Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. enviando BIP para o display mestre {MasterDevice}.");
+        }
+
         private static int SearchBytes(byte[] haystack, byte[] needle)
         {
             var len = needle.Length;
