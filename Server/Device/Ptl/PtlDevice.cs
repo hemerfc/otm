@@ -336,6 +336,7 @@ namespace Otm.Server.Device.Ptl
                             //Processa se o ReadGate estiver aberto e fecha-o em seguida
                             if (readGateOpen)
                             {
+
                                 var cmdLC = Encoding.ASCII.GetString(strRcvd[(stxLcPos + STX_LC.Length)..etxLcPos]);
                                 var cmdParts = cmdLC.Split('|');
 
@@ -432,6 +433,31 @@ namespace Otm.Server.Device.Ptl
                             var cmdValue = Encoding.ASCII.GetString(cmdAT.Skip(8).Take(6).ToArray());
 
                             Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. CmdAT: '{cmdAT}' subCmd:{subCmd} subNode:{subNode} cmdValue:{cmdValue}");
+
+
+
+
+                            var sendCMD = $"{Config.Name}|AT|{subNode:000}|{cmdValue}";
+                            // ptl01|AT|001|000001
+                            cmd_rcvd = sendCMD;
+                            cmd_count++;
+                            received = true;
+
+                            if (tagsAction.ContainsKey("cmd_rcvd"))
+                            {
+                                lock (tagsActionLock)
+                                {
+                                    tagsAction["cmd_rcvd"]("cmd_rcvd", cmd_rcvd);
+                                }
+                            }
+                            else if (tagsAction.ContainsKey("cmd_count"))
+                            {
+                                lock (tagsActionLock)
+                                {
+                                    tagsAction["cmd_count"]("cmd_count", cmd_count);
+                                }
+                            }
+
 
                             //Limpando o buffer que ja foi processado
                             receiveBuffer = receiveBuffer[(stxAtMasterPos + len)..];
