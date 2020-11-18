@@ -39,7 +39,7 @@ namespace Otm.Test.Device
                 /* LC */2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48, 49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 52, 3, 3,
                 /* LC */2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48, 49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 53, 3, 3
             },
-            new string[] { "ptl01|LC|002|i0000124613100004" })]
+            new string[] { "ptl01|AT|039|ZZZZZZ", "ptl01|LC|002|i0000124613100004" })]
         [InlineData(new byte[] {
                 /* Lixo */36, 0, 96, 0, 0, 0, 6, 40,
                 /* Abrindo read gate */0x14,   0x00,    0x60,   0x00,    0x00,    0x00,    0x06,    0x27,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,	 //Atendimento 012345678901
@@ -50,8 +50,10 @@ namespace Otm.Test.Device
                 /* LC */2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48, 49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 51, 3, 3,
                 /* LC */2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48, 49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 52, 3, 3,
             },
-            new string[] { "ptl01|LC|002|i0000124613100003",
+            new string[] { "ptl01|AT|039|ZZZZZZ",
+                            "ptl01|LC|002|i0000124613100003",
                            "ptl01|AT|017|     2",
+                           "ptl01|AT|039|ZZZZZZ",
                            "ptl01|LC|002|i0000124613100003" })]
         [InlineData(new byte[] {
                 0x0f, 0x00, 0x60, 0x00, 0x00, 0x00, 0xfc, 0x16, 0x02, 0x13, 0x73, 0x08, 0x02, 0x00, 0x02, // STATUS Cmd=252
@@ -99,9 +101,11 @@ namespace Otm.Test.Device
             },
             new string[] {
                             "ptl01|AT|017|     3",
+                           "ptl01|AT|039|ZZZZZZ",
                             "ptl01|AT|017|     3",
                             "ptl01|LC|002|i0000124613100003",
                            "ptl01|AT|017|     2",
+                           "ptl01|AT|039|ZZZZZZ",
                            "ptl01|LC|002|i0000124613100003",
                             "ptl01|AT|017|     3", 
                             "ptl01|AT|017|     3", 
@@ -180,7 +184,7 @@ namespace Otm.Test.Device
             {
                 Name = "ptl01",
                 Driver = "ptl",
-                Config = "ip=127.0.0.1;port=4660;MasterDevice=39",
+                Config = "ip=127.0.0.1;port=4660;MasterDevice=39;HasReadGate=True;TestCardCode=8888888888",
                 Tags = (new DeviceTagConfig[]
                 {
                     new DeviceTagConfig

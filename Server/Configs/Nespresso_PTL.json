@@ -5,7 +5,7 @@
     {
       "Name": "sp_EnviarLeitura",
       "Driver": "mssql",
-      "Config": "Server=localhost; Database=PICKTOLIGHTBR; User Id=sa2; Password=sa2sa2;",
+      "Config": "Server=localhost; Database=PICKTOLIGHTBR2; User Id=sa2; Password=sa2sa2;",
       "Params": [
         {
           "Name": "ptl_id",
@@ -24,7 +24,7 @@
     {
       "Name": "sp_PendingCommands",
       "Driver": "mssql",
-      "Config": "Server=localhost; Database=PICKTOLIGHTBR; User Id=sa2; Password=sa2sa2;",
+      "Config": "Server=localhost; Database=PICKTOLIGHTBR2; User Id=sa2; Password=sa2sa2;",
       "Params": [
         {
           "Name": "p1",
@@ -45,7 +45,7 @@
     {
       "Name": "ptl01",
       "Driver": "ptl",
-      "Config": "ip=192.168.202.10;port=4660;MasterDevice=39",
+      "Config": "ip=192.168.202.10;port=4660;MasterDevice=39;hasReadGate=false",
       "Tags": [
         {
           "Name": "cmd_count",

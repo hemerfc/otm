@@ -33,6 +33,8 @@ namespace Otm.Server.Device.Ptl
 
         private byte MasterDevice;
         private bool readGateOpen;
+        private bool hasReadGate;
+        private string testCardCode;
 
         //readonly bool firstLoadRead;
         //readonly bool firstLoadWrite;
@@ -70,6 +72,10 @@ namespace Otm.Server.Device.Ptl
 
             this.ip = (cparts.FirstOrDefault(x => x.Contains("ip=")) ?? "").Replace("ip=", "").Trim();
             var strRack = (cparts.FirstOrDefault(x => x.Contains("port=")) ?? "").Replace("port=", "").Trim();
+
+            hasReadGate = bool.Parse((cparts.FirstOrDefault(x => x.Contains("HasReadGate=")) ?? "").Replace("HasReadGate=", "").Trim());
+            testCardCode = (cparts.FirstOrDefault(x => x.Contains("TestCardCode=")) ?? "").Replace("TestCardCode=", "").Trim();
+
 
             this.MasterDevice = Byte.Parse((cparts.FirstOrDefault(x => x.Contains("MasterDevice=")) ?? "").Replace("MasterDevice=", "").Trim());
 
@@ -323,6 +329,8 @@ namespace Otm.Server.Device.Ptl
                 //Se encontrou algo relevante processa, senão zera...
                 if (posicoesRelevantesEncontradas.Count > 0)
                 {
+                    received = true;
+
                     var primeiraPosRelevante = posicoesRelevantesEncontradas.First();
                     //Filtra o array para remover o lixo do inicio
                     //receiveBuffer = receiveBuffer[primeiraPosRelevante..];
@@ -334,7 +342,7 @@ namespace Otm.Server.Device.Ptl
                         if (stxLcPos < etxLcPos)
                         {
                             //Processa se o ReadGate estiver aberto e fecha-o em seguida
-                            if (readGateOpen)
+                            if ((!hasReadGate) || (hasReadGate && readGateOpen))
                             {
 
                                 var cmdLC = Encoding.ASCII.GetString(strRcvd[(stxLcPos + STX_LC.Length)..etxLcPos]);
@@ -348,15 +356,22 @@ namespace Otm.Server.Device.Ptl
 
                                 cmd_rcvd = sendCMD;
                                 cmd_count++;
-                                received = true;
+                                //received = true;
 
-                                if (tagsAction.ContainsKey("cmd_rcvd"))
+                                if (cmd_rcvd == testCardCode)
                                 {
-                                    tagsAction["cmd_rcvd"]("cmd_rcvd", cmd_rcvd);
+                                    EnviarComandoTeste();
                                 }
-                                else if (tagsAction.ContainsKey("cmd_count"))
+                                else
                                 {
+                                    if (tagsAction.ContainsKey("cmd_rcvd"))
+                                    {
+                                        tagsAction["cmd_rcvd"]("cmd_rcvd", cmd_rcvd);
+                                    }
+                                    else if (tagsAction.ContainsKey("cmd_count"))
+                                    {
                                     tagsAction["cmd_count"]("cmd_count", cmd_count);
+                                    }
                                 }
 
                                 EnviarBipLeituraMestre(MasterDevice);
@@ -366,6 +381,7 @@ namespace Otm.Server.Device.Ptl
                             }
                             //Se o ReadGate estava aberto a leitura foi processada, se estava fechado ignorada...
                             //Descartando a leitura do buffer pois ja foi processada
+                            //received = true;
                             receiveBuffer = receiveBuffer[(etxLcPos + STX_LC.Length)..];
                         }
                     }
@@ -395,7 +411,7 @@ namespace Otm.Server.Device.Ptl
                                 // ptl01|AT|001|000001
                                 cmd_rcvd = sendCMD;
                                 cmd_count++;
-                                received = true;
+                                //received = true;
 
                                 if (tagsAction.ContainsKey("cmd_rcvd"))
                                 {
@@ -414,6 +430,7 @@ namespace Otm.Server.Device.Ptl
                             }
 
                             //Limpando o buffer que ja foi processado
+                            //received = true;
                             receiveBuffer = receiveBuffer[(stxAtPos + len)..];
                         }
                     }
@@ -441,7 +458,7 @@ namespace Otm.Server.Device.Ptl
                             // ptl01|AT|001|000001
                             cmd_rcvd = sendCMD;
                             cmd_count++;
-                            received = true;
+                            //received = true;
 
                             if (tagsAction.ContainsKey("cmd_rcvd"))
                             {
@@ -460,6 +477,7 @@ namespace Otm.Server.Device.Ptl
 
 
                             //Limpando o buffer que ja foi processado
+                            //received = true;
                             receiveBuffer = receiveBuffer[(stxAtMasterPos + len)..];
                         }
                     }
@@ -476,6 +494,11 @@ namespace Otm.Server.Device.Ptl
         private void EnviarBipLeituraMestre(byte MasterDevice)
         {
             Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. enviando BIP para o display mestre {MasterDevice}.");
+        }
+
+        private void EnviarComandoTeste()
+        {
+            Logger.LogInformation($"EnviarComandoTeste(): Device: '{Config.Name}'. enviando Comando teste para o controlador.");
         }
 
         private static int SearchBytes(byte[] haystack, byte[] needle)
