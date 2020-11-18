@@ -36,6 +36,8 @@ namespace Otm.Server.Device.Ptl
         private bool hasReadGate;
         private string testCardCode;
 
+        private bool testGateOpen;
+
         //readonly bool firstLoadRead;
         //readonly bool firstLoadWrite;
         private bool Connecting;
@@ -64,6 +66,7 @@ namespace Otm.Server.Device.Ptl
             //firstLoadRead = true;
             //firstLoadWrite = true;
             readGateOpen = false;
+            testGateOpen = false;
         }
 
         private void GetConfig(DeviceConfig dvConfig)
@@ -358,7 +361,7 @@ namespace Otm.Server.Device.Ptl
                                 cmd_count++;
                                 //received = true;
 
-                                if (cmd_rcvd == testCardCode)
+                                if (cmdValue == testCardCode)
                                 {
                                     EnviarComandoTeste();
                                 }
@@ -404,6 +407,9 @@ namespace Otm.Server.Device.Ptl
                             if (subCmd == 252)
                             {
                                 Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. subCmd: 252 IGNORADO");
+                            }else if (testGateOpen)
+                            {
+                                Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. Test gate aberto");
                             }
                             else
                             {
@@ -442,6 +448,10 @@ namespace Otm.Server.Device.Ptl
                         if (strRcvd.Length >= stxAtMasterPos + len)
                         {
                             readGateOpen = true;
+
+                            //Também finaliza o test gate
+                            EnviarComandoApagar();
+
 
                             var cmdAT = strRcvd[stxAtMasterPos..(stxAtMasterPos + len)];
 
@@ -493,12 +503,40 @@ namespace Otm.Server.Device.Ptl
 
         private void EnviarBipLeituraMestre(byte MasterDevice)
         {
+            var buffer = new List<byte>();
+
+            /*
+            buffer.AddRange(new byte[] { 0x09, 0x00, 0x60, 0x00, 0x00, 0x00, 0x04, MasterDevice, 0x01, 0x01 });
+            sendDataQueue.Enqueue(buffer.ToArray());
+
+
+            buffer = new List<byte>();
+
+            buffer.AddRange(new byte[] { 0x9, 0x00, 0x60, 0x00, 0x00, 0x00, 0x04, MasterDevice, 0x00, 0x01 });
+            sendDataQueue.Enqueue(buffer.ToArray());
+            */
             Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. enviando BIP para o display mestre {MasterDevice}.");
         }
 
         private void EnviarComandoTeste()
         {
+            var buffer = new List<byte>();
+            byte broadcast = 0xFC; // geral
+            buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x13, broadcast });
+            sendDataQueue.Enqueue(buffer.ToArray());
+
             Logger.LogInformation($"EnviarComandoTeste(): Device: '{Config.Name}'. enviando Comando teste para o controlador.");
+            testGateOpen = true;
+        }
+        private void EnviarComandoApagar()
+        {
+            var buffer = new List<byte>();
+            byte broadcast = 0xFC; // geral
+            buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, broadcast });
+            sendDataQueue.Enqueue(buffer.ToArray());
+
+            Logger.LogInformation($"EnviarComandoTeste(): Device: '{Config.Name}'. enviando Comando apagar para o controlador.");
+            testGateOpen = false;
         }
 
         private static int SearchBytes(byte[] haystack, byte[] needle)

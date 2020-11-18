@@ -45,7 +45,7 @@
     {
       "Name": "ptl01",
       "Driver": "ptl",
-      "Config": "ip=192.168.202.10;port=4660;MasterDevice=39;hasReadGate=false",
+      "Config": "ip=192.168.202.10;port=4660;MasterDevice=39;HasReadGate=True;TestCardCode=i88888888",
       "Tags": [
         {
           "Name": "cmd_count",
