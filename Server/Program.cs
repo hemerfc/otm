@@ -1,8 +1,12 @@
 ﻿using System;
-using NLog.Web;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using NLog.Web;
 
 namespace Otm.Server
 {
@@ -13,7 +17,7 @@ namespace Otm.Server
             var logger = NLog.Web.NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
             try
             {
-                logger.Debug("init main");
+                logger.Debug("OTM Start");
                 CreateHostBuilder(args).Build().Run();
             }
             catch (Exception exception)

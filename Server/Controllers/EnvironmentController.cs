@@ -43,7 +43,7 @@ namespace Otm.Server.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(RootConfig), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ModelStateDictionary), StatusCodes.Status400BadRequest)]
+        //[ProducesResponseType(typeof(ModelStateDictionary), StatusCodes.Status400BadRequest)]
         public IActionResult Create(RootConfig config)
         {
             var validation = ConfigService.ValidateCreate(config);
@@ -60,7 +60,7 @@ namespace Otm.Server.Controllers
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(RootConfig), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ModelStateDictionary), StatusCodes.Status400BadRequest)]
+        //[ProducesResponseType(typeof(ModelStateDictionary), StatusCodes.Status400BadRequest)]
         public IActionResult Update(string id, RootConfig config)
         {
             if (!ConfigService.Exists(id))
