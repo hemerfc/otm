@@ -41,7 +41,6 @@ namespace Otm.Server.Device.Ptl
 
         byte[] receiveBuffer = new byte[0];
 
-        private Dictionary<char, byte> DisplayCodeDict; // tabela para conversao de caracteres do display
         private object tagsActionLock;
 
         public PtlDevice(DeviceConfig dvConfig, ITcpClientAdapter client, ILogger logger)

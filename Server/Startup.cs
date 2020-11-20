@@ -6,9 +6,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Linq;
-using Otm.Server.Services;
 using Otm.Server.ContextConfig;
-using Microsoft.Extensions.Logging;
+using Otm.Server.Services;
 
 namespace Otm.Server
 {
@@ -29,29 +28,16 @@ namespace Otm.Server
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            //**** SIGNALR***/
-            services.AddSignalR();
-            services.AddResponseCompression(opts =>
-            {
-                opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
-                    new[] { "application/octet-stream" });
-            });
-            //**** SIGNALR***/
-
+            services.AddControllersWithViews();
+            services.AddRazorPages();
             services.AddSingleton<IConfigService>(ConfigService);
             services.AddSingleton<IStatusService>(StatusService);
             services.AddHostedService<OtmWorkerService>();
-            services.AddControllersWithViews();
-            services.AddRazorPages();
-            services.AddSingleton<ILoggerProvider, SignalrRLoggerProvider>();
-
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            app.UseResponseCompression();
-
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -74,7 +60,6 @@ namespace Otm.Server
             {
                 endpoints.MapRazorPages();
                 endpoints.MapControllers();
-                endpoints.MapHub<LogHub>("/hub/log");
                 endpoints.MapFallbackToFile("index.html");
             });
         }
