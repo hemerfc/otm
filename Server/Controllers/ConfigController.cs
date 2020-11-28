@@ -12,24 +12,33 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Otm.Shared.ContextConfig;
+using System.Collections.Generic;
 
 namespace Otm.Server.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
-    public class EnviromentController : ControllerBase
+    [Route("api/[controller]")]
+    public class ConfigController : ControllerBase
     {
-        public ILogger<EnviromentController> Logger { get; }
+        public ILogger<ConfigController> Logger { get; }
         public IConfigService ConfigService { get; }
-        public EnviromentController(ILogger<EnviromentController> logger, IConfigService configService)
+        public ConfigController(ILogger<ConfigController> logger, IConfigService configService)
         {
             this.Logger = logger;
             this.ConfigService = configService;
+        }
 
+        [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<ConfigFile>), StatusCodes.Status200OK)]
+        public IActionResult GetAll()
+        {
+            var configFiles = ConfigService.GetAll();
+
+            return Ok(configFiles);
         }
 
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(RootConfig), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(OtmContextConfig), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult GetById(string id)
         {
@@ -42,9 +51,9 @@ namespace Otm.Server.Controllers
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(RootConfig), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(OtmContextConfig), StatusCodes.Status200OK)]
         //[ProducesResponseType(typeof(ModelStateDictionary), StatusCodes.Status400BadRequest)]
-        public IActionResult Create(RootConfig config)
+        public IActionResult Create(OtmContextConfig config)
         {
             var validation = ConfigService.ValidateCreate(config);
 
@@ -58,10 +67,10 @@ namespace Otm.Server.Controllers
         }
 
         [HttpPut("{id}")]
-        [ProducesResponseType(typeof(RootConfig), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(OtmContextConfig), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         //[ProducesResponseType(typeof(ModelStateDictionary), StatusCodes.Status400BadRequest)]
-        public IActionResult Update(string id, RootConfig config)
+        public IActionResult Update(string id, OtmContextConfig config)
         {
             if (!ConfigService.Exists(id))
                 return NotFound();

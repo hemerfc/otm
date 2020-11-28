@@ -14,13 +14,13 @@ namespace Otm.Server
 {
     public class OtmContext
     {
-        public RootConfig Config { get; }
+        public OtmContextConfig Config { get; }
         public IDictionary<string, IDataPoint> DataPoints { get; private set; }
         public IDictionary<string, IDevice> Devices { get; private set; }
         public IDictionary<string, ITransaction> Transactions { get; private set; }
         private readonly ILogger Logger;
 
-        public OtmContext(RootConfig config, ILogger logger)
+        public OtmContext(OtmContextConfig config, ILogger logger)
         {
             Config = config;
             Logger = logger;

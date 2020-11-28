@@ -9,7 +9,7 @@ using Otm.Shared;
 namespace Otm.Server.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/api/[controller]")]
     public class WeatherForecastController : ControllerBase
     {
         private static readonly string[] Summaries = new[]

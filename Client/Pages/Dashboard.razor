@@ -3,7 +3,6 @@
 @using Otm.Client.Api;
 
 @inject NavigationManager NavigationManager
-@inject ILogClient LogClient
 @inject ILogger<Dashboard> Logger;
 
 <h1>Dashboard</h1>
@@ -17,15 +16,12 @@
 </ul>
 
 @code {
-    private List<string> Messages = new List<string>();
+    private IEnumerable<string> Messages = new List<string>();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        LogClient.Get(list =>
-        {
-            Messages = list;
-            Logger.LogInformation("Received {0} messages", list.Count);
-            StateHasChanged();
-        });
+        //Messages = (await LogClient.GetAsync());
+        Logger.LogInformation("Received {0} messages", Messages.Count());
+        StateHasChanged();
     }
 }
