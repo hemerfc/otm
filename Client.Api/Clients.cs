@@ -16,6 +16,7 @@ using Beffyman.AspNetCore.Client;
 using Flurl.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Otm.Shared.ContextConfig;
+using Otm.Shared.Status;
 using Otm.Shared;
 using System.Collections.Generic;
 using System.IO;
@@ -31,43 +32,60 @@ using System;
 
 namespace Otm.Client.Api.Routes
 {
-	public static class EnviromentClientRoutes
+	public static class ConfigClientRoutes
 	{
+		public static string GetAll()
+		{
+			var controller = "Config";
+			string url = $@"api/{controller}/";
+			return url;
+		}
+
 		public static string GetById(string id)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
 			return url;
 		}
 
 		public static string Create()
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/";
+			var controller = "Config";
+			string url = $@"api/{controller}/";
 			return url;
 		}
 
 		public static string Update(string id)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
 			return url;
 		}
 
 		public static string Delete(string id)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
 			return url;
 		}
 	}
 
-	public static class LogClientRoutes
+	public static class LogReaderClientRoutes
+	{
+		public static string GetMessages(string origin, string level = null)
+		{
+			var controller = "LogReader";
+			string url = $@"api/{controller}/?{nameof(origin)}={origin.EncodeForUrl()}&{nameof(level)}={level.EncodeForUrl()}";
+			return url;
+		}
+	}
+
+	public static class StatusClientRoutes
 	{
 		public static string Get()
 		{
-			var controller = "Log";
-			string url = $@"{controller}/";
+			var controller = "Status";
+			string url = $@"api/{controller}/";
 			return url;
 		}
 	}
@@ -77,7 +95,7 @@ namespace Otm.Client.Api.Routes
 		public static string Get()
 		{
 			var controller = "WeatherForecast";
-			string url = $@"{controller}/";
+			string url = $@"api/api/{controller}/";
 			return url;
 		}
 	}
@@ -100,8 +118,9 @@ namespace Otm.Client.Api
 			configuration.UseClientWrapper<IMyServiceClientWrapper, MyServiceClientWrapper>((provider) => new MyServiceClientWrapper(provider.GetService<Func<IMyServiceClient, IFlurlClient>>(), configuration.GetSettings(), provider));
 			configure?.Invoke(configuration);
 			services.AddScoped<IMyServiceClientRepository, MyServiceClientRepository>();
-			services.AddScoped<IEnviromentClient, EnviromentClient>();
-			services.AddScoped<ILogClient, LogClient>();
+			services.AddScoped<IConfigClient, ConfigClient>();
+			services.AddScoped<ILogReaderClient, LogReaderClient>();
+			services.AddScoped<IStatusClient, StatusClient>();
 			services.AddScoped<IWeatherForecastClient, WeatherForecastClient>();
 			return configuration.ApplyConfiguration<IMyServiceClient>(services);
 		}
@@ -148,12 +167,17 @@ namespace Otm.Client.Api
 
 	public interface IMyServiceClientRepository
 	{
-		IEnviromentClient Enviroment
+		IConfigClient Config
 		{
 			get;
 		}
 
-		ILogClient Log
+		ILogReaderClient LogReader
+		{
+			get;
+		}
+
+		IStatusClient Status
 		{
 			get;
 		}
@@ -167,17 +191,20 @@ namespace Otm.Client.Api
 	internal class MyServiceClientRepository : IMyServiceClientRepository
 	{
 		protected readonly IServiceProvider _provider;
-		private readonly Lazy<IEnviromentClient> lazy_Enviroment;
-		public IEnviromentClient Enviroment => lazy_Enviroment.Value;
-		private readonly Lazy<ILogClient> lazy_Log;
-		public ILogClient Log => lazy_Log.Value;
+		private readonly Lazy<IConfigClient> lazy_Config;
+		public IConfigClient Config => lazy_Config.Value;
+		private readonly Lazy<ILogReaderClient> lazy_LogReader;
+		public ILogReaderClient LogReader => lazy_LogReader.Value;
+		private readonly Lazy<IStatusClient> lazy_Status;
+		public IStatusClient Status => lazy_Status.Value;
 		private readonly Lazy<IWeatherForecastClient> lazy_WeatherForecast;
 		public IWeatherForecastClient WeatherForecast => lazy_WeatherForecast.Value;
 		public MyServiceClientRepository(IServiceProvider provider)
 		{
 			this._provider = provider;
-			this.lazy_Enviroment = new Lazy<IEnviromentClient>(() => _provider.GetService<IEnviromentClient>());
-			this.lazy_Log = new Lazy<ILogClient>(() => _provider.GetService<ILogClient>());
+			this.lazy_Config = new Lazy<IConfigClient>(() => _provider.GetService<IConfigClient>());
+			this.lazy_LogReader = new Lazy<ILogReaderClient>(() => _provider.GetService<ILogReaderClient>());
+			this.lazy_Status = new Lazy<IStatusClient>(() => _provider.GetService<IStatusClient>());
 			this.lazy_WeatherForecast = new Lazy<IWeatherForecastClient>(() => _provider.GetService<IWeatherForecastClient>());
 		}
 	}
@@ -185,33 +212,37 @@ namespace Otm.Client.Api
 
 namespace Otm.Client.Api
 {
-	public interface IEnviromentClient : IMyServiceClient
+	public interface IConfigClient : IMyServiceClient
 	{
-		void GetById(string id, Action<RootConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		void GetAll(Action<IEnumerable<ConfigFile>> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		HttpResponseMessage GetAllRaw(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		Task GetAllAsync(Action<IEnumerable<ConfigFile>> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		ValueTask<HttpResponseMessage> GetAllRawAsync(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		void GetById(string id, Action<OtmContextConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
 		HttpResponseMessage GetByIdRaw(string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
-		Task GetByIdAsync(string id, Action<RootConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		Task GetByIdAsync(string id, Action<OtmContextConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
 		ValueTask<HttpResponseMessage> GetByIdRawAsync(string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
-		void Create(RootConfig config, Action<RootConfig> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
-		HttpResponseMessage CreateRaw(RootConfig config, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
-		Task CreateAsync(RootConfig config, Action<RootConfig> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
-		ValueTask<HttpResponseMessage> CreateRawAsync(RootConfig config, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
-		void Update(RootConfig config, string id, Action<RootConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
-		HttpResponseMessage UpdateRaw(RootConfig config, string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
-		Task UpdateAsync(RootConfig config, string id, Action<RootConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
-		ValueTask<HttpResponseMessage> UpdateRawAsync(RootConfig config, string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		void Create(OtmContextConfig config, Action<OtmContextConfig> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		HttpResponseMessage CreateRaw(OtmContextConfig config, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		Task CreateAsync(OtmContextConfig config, Action<OtmContextConfig> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		ValueTask<HttpResponseMessage> CreateRawAsync(OtmContextConfig config, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		void Update(OtmContextConfig config, string id, Action<OtmContextConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		HttpResponseMessage UpdateRaw(OtmContextConfig config, string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		Task UpdateAsync(OtmContextConfig config, string id, Action<OtmContextConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		ValueTask<HttpResponseMessage> UpdateRawAsync(OtmContextConfig config, string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
 		void Delete(string id, Action OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
 		HttpResponseMessage DeleteRaw(string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
 		Task DeleteAsync(string id, Action OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
 		ValueTask<HttpResponseMessage> DeleteRawAsync(string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
 	}
 
-	internal class EnviromentClient : IEnviromentClient
+	internal class ConfigClient : IConfigClient
 	{
 		protected readonly IMyServiceClientWrapper Client;
 		protected readonly IHttpOverride HttpOverride;
 		protected readonly IHttpSerializer Serializer;
 		protected readonly IHttpRequestModifier Modifier;
-		public EnviromentClient(IMyServiceClientWrapper param_client, Func<IMyServiceClient, IHttpOverride> param_httpoverride, Func<IMyServiceClient, IHttpSerializer> param_serializer, Func<IMyServiceClient, IHttpRequestModifier> param_modifier)
+		public ConfigClient(IMyServiceClientWrapper param_client, Func<IMyServiceClient, IHttpOverride> param_httpoverride, Func<IMyServiceClient, IHttpSerializer> param_serializer, Func<IMyServiceClient, IHttpRequestModifier> param_modifier)
 		{
 			Client = param_client;
 			HttpOverride = param_httpoverride(this);
@@ -219,10 +250,10 @@ namespace Otm.Client.Api
 			Modifier = param_modifier(this);
 		}
 
-		public void GetById(string id, Action<RootConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		public void GetAll(Action<IEnumerable<ConfigFile>> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/";
 			HttpResponseMessage response = null;
 			response = HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 			bool responseHandled = response != null;
@@ -265,7 +296,223 @@ namespace Otm.Client.Api
 				if (OKCallback != null)
 				{
 					responseHandled = true;
-					OKCallback.Invoke(Serializer.Deserialize<RootConfig>(response.Content).ConfigureAwait(false).GetAwaiter().GetResult());
+					OKCallback.Invoke(Serializer.Deserialize<IEnumerable<ConfigFile>>(response.Content).ConfigureAwait(false).GetAwaiter().GetResult());
+				}
+			}
+
+			if (ResponseCallback != null && ResponseCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+			{
+				throw new NotSupportedException("Async void action delegates for ResponseCallback are not supported.As they will run out of the scope of this call.");
+			}
+
+			if (ResponseCallback != null)
+			{
+				responseHandled = true;
+				ResponseCallback.Invoke(response);
+			}
+
+			if (!responseHandled)
+			{
+				throw new System.InvalidOperationException($"Response Status of {response.StatusCode} was not handled properly.");
+			}
+
+			return;
+		}
+
+		public HttpResponseMessage GetAllRaw(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "Config";
+			string url = $@"api/{controller}/";
+			HttpResponseMessage response = null;
+			response = HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return null;
+				}
+
+				HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			}
+
+			return response;
+		}
+
+		public async Task GetAllAsync(Action<IEnumerable<ConfigFile>> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "Config";
+			string url = $@"api/{controller}/";
+			HttpResponseMessage response = null;
+			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = await Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false);
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return;
+				}
+
+				await HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false);
+			}
+
+			if (OKCallback != null && OKCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+			{
+				throw new NotSupportedException("Async void action delegates for OKCallback are not supported.As they will run out of the scope of this call.");
+			}
+
+			if (response.StatusCode == System.Net.HttpStatusCode.OK)
+			{
+				if (OKCallback != null)
+				{
+					responseHandled = true;
+					OKCallback.Invoke(await Serializer.Deserialize<IEnumerable<ConfigFile>>(response.Content).ConfigureAwait(false));
+				}
+			}
+
+			if (ResponseCallback != null && ResponseCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+			{
+				throw new NotSupportedException("Async void action delegates for ResponseCallback are not supported.As they will run out of the scope of this call.");
+			}
+
+			if (ResponseCallback != null)
+			{
+				responseHandled = true;
+				ResponseCallback.Invoke(response);
+			}
+
+			if (!responseHandled)
+			{
+				throw new System.InvalidOperationException($"Response Status of {response.StatusCode} was not handled properly.");
+			}
+
+			return;
+		}
+
+		public async ValueTask<HttpResponseMessage> GetAllRawAsync(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "Config";
+			string url = $@"api/{controller}/";
+			HttpResponseMessage response = null;
+			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = await Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false);
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return null;
+				}
+
+				await HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false);
+			}
+
+			return response;
+		}
+
+		public void GetById(string id, Action<OtmContextConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
+			HttpResponseMessage response = null;
+			response = HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return;
+				}
+
+				HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			}
+
+			if (OKCallback != null && OKCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+			{
+				throw new NotSupportedException("Async void action delegates for OKCallback are not supported.As they will run out of the scope of this call.");
+			}
+
+			if (response.StatusCode == System.Net.HttpStatusCode.OK)
+			{
+				if (OKCallback != null)
+				{
+					responseHandled = true;
+					OKCallback.Invoke(Serializer.Deserialize<OtmContextConfig>(response.Content).ConfigureAwait(false).GetAwaiter().GetResult());
 				}
 			}
 
@@ -304,8 +551,8 @@ namespace Otm.Client.Api
 
 		public HttpResponseMessage GetByIdRaw(string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 			bool responseHandled = response != null;
@@ -341,10 +588,10 @@ namespace Otm.Client.Api
 			return response;
 		}
 
-		public async Task GetByIdAsync(string id, Action<RootConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		public async Task GetByIdAsync(string id, Action<OtmContextConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
 			bool responseHandled = response != null;
@@ -387,7 +634,7 @@ namespace Otm.Client.Api
 				if (OKCallback != null)
 				{
 					responseHandled = true;
-					OKCallback.Invoke(await Serializer.Deserialize<RootConfig>(response.Content).ConfigureAwait(false));
+					OKCallback.Invoke(await Serializer.Deserialize<OtmContextConfig>(response.Content).ConfigureAwait(false));
 				}
 			}
 
@@ -426,8 +673,8 @@ namespace Otm.Client.Api
 
 		public async ValueTask<HttpResponseMessage> GetByIdRawAsync(string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
 			bool responseHandled = response != null;
@@ -463,10 +710,10 @@ namespace Otm.Client.Api
 			return response;
 		}
 
-		public void Create(RootConfig config, Action<RootConfig> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		public void Create(OtmContextConfig config, Action<OtmContextConfig> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/";
+			var controller = "Config";
+			string url = $@"api/{controller}/";
 			HttpResponseMessage response = null;
 			response = HttpOverride.GetResponseAsync(HttpMethod.Post, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 			bool responseHandled = response != null;
@@ -509,7 +756,7 @@ namespace Otm.Client.Api
 				if (OKCallback != null)
 				{
 					responseHandled = true;
-					OKCallback.Invoke(Serializer.Deserialize<RootConfig>(response.Content).ConfigureAwait(false).GetAwaiter().GetResult());
+					OKCallback.Invoke(Serializer.Deserialize<OtmContextConfig>(response.Content).ConfigureAwait(false).GetAwaiter().GetResult());
 				}
 			}
 
@@ -532,10 +779,10 @@ namespace Otm.Client.Api
 			return;
 		}
 
-		public HttpResponseMessage CreateRaw(RootConfig config, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		public HttpResponseMessage CreateRaw(OtmContextConfig config, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/";
+			var controller = "Config";
+			string url = $@"api/{controller}/";
 			HttpResponseMessage response = null;
 			response = HttpOverride.GetResponseAsync(HttpMethod.Post, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 			bool responseHandled = response != null;
@@ -571,10 +818,10 @@ namespace Otm.Client.Api
 			return response;
 		}
 
-		public async Task CreateAsync(RootConfig config, Action<RootConfig> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		public async Task CreateAsync(OtmContextConfig config, Action<OtmContextConfig> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/";
+			var controller = "Config";
+			string url = $@"api/{controller}/";
 			HttpResponseMessage response = null;
 			response = await HttpOverride.GetResponseAsync(HttpMethod.Post, url, null, cancellationToken).ConfigureAwait(false);
 			bool responseHandled = response != null;
@@ -617,7 +864,7 @@ namespace Otm.Client.Api
 				if (OKCallback != null)
 				{
 					responseHandled = true;
-					OKCallback.Invoke(await Serializer.Deserialize<RootConfig>(response.Content).ConfigureAwait(false));
+					OKCallback.Invoke(await Serializer.Deserialize<OtmContextConfig>(response.Content).ConfigureAwait(false));
 				}
 			}
 
@@ -640,10 +887,10 @@ namespace Otm.Client.Api
 			return;
 		}
 
-		public async ValueTask<HttpResponseMessage> CreateRawAsync(RootConfig config, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		public async ValueTask<HttpResponseMessage> CreateRawAsync(OtmContextConfig config, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/";
+			var controller = "Config";
+			string url = $@"api/{controller}/";
 			HttpResponseMessage response = null;
 			response = await HttpOverride.GetResponseAsync(HttpMethod.Post, url, null, cancellationToken).ConfigureAwait(false);
 			bool responseHandled = response != null;
@@ -679,10 +926,10 @@ namespace Otm.Client.Api
 			return response;
 		}
 
-		public void Update(RootConfig config, string id, Action<RootConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		public void Update(OtmContextConfig config, string id, Action<OtmContextConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = HttpOverride.GetResponseAsync(HttpMethod.Put, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 			bool responseHandled = response != null;
@@ -725,7 +972,7 @@ namespace Otm.Client.Api
 				if (OKCallback != null)
 				{
 					responseHandled = true;
-					OKCallback.Invoke(Serializer.Deserialize<RootConfig>(response.Content).ConfigureAwait(false).GetAwaiter().GetResult());
+					OKCallback.Invoke(Serializer.Deserialize<OtmContextConfig>(response.Content).ConfigureAwait(false).GetAwaiter().GetResult());
 				}
 			}
 
@@ -762,10 +1009,10 @@ namespace Otm.Client.Api
 			return;
 		}
 
-		public HttpResponseMessage UpdateRaw(RootConfig config, string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		public HttpResponseMessage UpdateRaw(OtmContextConfig config, string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = HttpOverride.GetResponseAsync(HttpMethod.Put, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 			bool responseHandled = response != null;
@@ -801,10 +1048,10 @@ namespace Otm.Client.Api
 			return response;
 		}
 
-		public async Task UpdateAsync(RootConfig config, string id, Action<RootConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		public async Task UpdateAsync(OtmContextConfig config, string id, Action<OtmContextConfig> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = await HttpOverride.GetResponseAsync(HttpMethod.Put, url, null, cancellationToken).ConfigureAwait(false);
 			bool responseHandled = response != null;
@@ -847,7 +1094,7 @@ namespace Otm.Client.Api
 				if (OKCallback != null)
 				{
 					responseHandled = true;
-					OKCallback.Invoke(await Serializer.Deserialize<RootConfig>(response.Content).ConfigureAwait(false));
+					OKCallback.Invoke(await Serializer.Deserialize<OtmContextConfig>(response.Content).ConfigureAwait(false));
 				}
 			}
 
@@ -884,10 +1131,10 @@ namespace Otm.Client.Api
 			return;
 		}
 
-		public async ValueTask<HttpResponseMessage> UpdateRawAsync(RootConfig config, string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		public async ValueTask<HttpResponseMessage> UpdateRawAsync(OtmContextConfig config, string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = await HttpOverride.GetResponseAsync(HttpMethod.Put, url, null, cancellationToken).ConfigureAwait(false);
 			bool responseHandled = response != null;
@@ -925,8 +1172,8 @@ namespace Otm.Client.Api
 
 		public void Delete(string id, Action OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = HttpOverride.GetResponseAsync(HttpMethod.Delete, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 			bool responseHandled = response != null;
@@ -1008,8 +1255,8 @@ namespace Otm.Client.Api
 
 		public HttpResponseMessage DeleteRaw(string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = HttpOverride.GetResponseAsync(HttpMethod.Delete, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 			bool responseHandled = response != null;
@@ -1047,8 +1294,8 @@ namespace Otm.Client.Api
 
 		public async Task DeleteAsync(string id, Action OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = await HttpOverride.GetResponseAsync(HttpMethod.Delete, url, null, cancellationToken).ConfigureAwait(false);
 			bool responseHandled = response != null;
@@ -1130,8 +1377,8 @@ namespace Otm.Client.Api
 
 		public async ValueTask<HttpResponseMessage> DeleteRawAsync(string id, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Enviroment";
-			string url = $@"{controller}/{id.EncodeForUrl()}";
+			var controller = "Config";
+			string url = $@"api/{controller}/{id.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = await HttpOverride.GetResponseAsync(HttpMethod.Delete, url, null, cancellationToken).ConfigureAwait(false);
 			bool responseHandled = response != null;
@@ -1168,21 +1415,21 @@ namespace Otm.Client.Api
 		}
 	}
 
-	public interface ILogClient : IMyServiceClient
+	public interface ILogReaderClient : IMyServiceClient
 	{
-		void Get(Action<List<string>> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
-		HttpResponseMessage GetRaw(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
-		Task GetAsync(Action<List<string>> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
-		ValueTask<HttpResponseMessage> GetRawAsync(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		void GetMessages(string origin, string level = null, Action<IEnumerable<LogMessage>> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		HttpResponseMessage GetMessagesRaw(string origin, string level = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		Task GetMessagesAsync(string origin, string level = null, Action<IEnumerable<LogMessage>> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		ValueTask<HttpResponseMessage> GetMessagesRawAsync(string origin, string level = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
 	}
 
-	internal class LogClient : ILogClient
+	internal class LogReaderClient : ILogReaderClient
 	{
 		protected readonly IMyServiceClientWrapper Client;
 		protected readonly IHttpOverride HttpOverride;
 		protected readonly IHttpSerializer Serializer;
 		protected readonly IHttpRequestModifier Modifier;
-		public LogClient(IMyServiceClientWrapper param_client, Func<IMyServiceClient, IHttpOverride> param_httpoverride, Func<IMyServiceClient, IHttpSerializer> param_serializer, Func<IMyServiceClient, IHttpRequestModifier> param_modifier)
+		public LogReaderClient(IMyServiceClientWrapper param_client, Func<IMyServiceClient, IHttpOverride> param_httpoverride, Func<IMyServiceClient, IHttpSerializer> param_serializer, Func<IMyServiceClient, IHttpRequestModifier> param_modifier)
 		{
 			Client = param_client;
 			HttpOverride = param_httpoverride(this);
@@ -1190,10 +1437,10 @@ namespace Otm.Client.Api
 			Modifier = param_modifier(this);
 		}
 
-		public void Get(Action<List<string>> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		public void GetMessages(string origin, string level = null, Action<IEnumerable<LogMessage>> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Log";
-			string url = $@"{controller}/";
+			var controller = "LogReader";
+			string url = $@"api/{controller}/?{nameof(origin)}={origin.EncodeForUrl()}&{nameof(level)}={level.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 			bool responseHandled = response != null;
@@ -1236,21 +1483,7 @@ namespace Otm.Client.Api
 				if (OKCallback != null)
 				{
 					responseHandled = true;
-					OKCallback.Invoke(Serializer.Deserialize<List<string>>(response.Content).ConfigureAwait(false).GetAwaiter().GetResult());
-				}
-			}
-
-			if (NotFoundCallback != null && NotFoundCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
-			{
-				throw new NotSupportedException("Async void action delegates for NotFoundCallback are not supported.As they will run out of the scope of this call.");
-			}
-
-			if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-			{
-				if (NotFoundCallback != null)
-				{
-					responseHandled = true;
-					NotFoundCallback.Invoke();
+					OKCallback.Invoke(Serializer.Deserialize<IEnumerable<LogMessage>>(response.Content).ConfigureAwait(false).GetAwaiter().GetResult());
 				}
 			}
 
@@ -1273,10 +1506,10 @@ namespace Otm.Client.Api
 			return;
 		}
 
-		public HttpResponseMessage GetRaw(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		public HttpResponseMessage GetMessagesRaw(string origin, string level = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Log";
-			string url = $@"{controller}/";
+			var controller = "LogReader";
+			string url = $@"api/{controller}/?{nameof(origin)}={origin.EncodeForUrl()}&{nameof(level)}={level.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 			bool responseHandled = response != null;
@@ -1312,10 +1545,10 @@ namespace Otm.Client.Api
 			return response;
 		}
 
-		public async Task GetAsync(Action<List<string>> OKCallback = null, Action NotFoundCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		public async Task GetMessagesAsync(string origin, string level = null, Action<IEnumerable<LogMessage>> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Log";
-			string url = $@"{controller}/";
+			var controller = "LogReader";
+			string url = $@"api/{controller}/?{nameof(origin)}={origin.EncodeForUrl()}&{nameof(level)}={level.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
 			bool responseHandled = response != null;
@@ -1358,21 +1591,246 @@ namespace Otm.Client.Api
 				if (OKCallback != null)
 				{
 					responseHandled = true;
-					OKCallback.Invoke(await Serializer.Deserialize<List<string>>(response.Content).ConfigureAwait(false));
+					OKCallback.Invoke(await Serializer.Deserialize<IEnumerable<LogMessage>>(response.Content).ConfigureAwait(false));
 				}
 			}
 
-			if (NotFoundCallback != null && NotFoundCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+			if (ResponseCallback != null && ResponseCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
 			{
-				throw new NotSupportedException("Async void action delegates for NotFoundCallback are not supported.As they will run out of the scope of this call.");
+				throw new NotSupportedException("Async void action delegates for ResponseCallback are not supported.As they will run out of the scope of this call.");
 			}
 
-			if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+			if (ResponseCallback != null)
 			{
-				if (NotFoundCallback != null)
+				responseHandled = true;
+				ResponseCallback.Invoke(response);
+			}
+
+			if (!responseHandled)
+			{
+				throw new System.InvalidOperationException($"Response Status of {response.StatusCode} was not handled properly.");
+			}
+
+			return;
+		}
+
+		public async ValueTask<HttpResponseMessage> GetMessagesRawAsync(string origin, string level = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "LogReader";
+			string url = $@"api/{controller}/?{nameof(origin)}={origin.EncodeForUrl()}&{nameof(level)}={level.EncodeForUrl()}";
+			HttpResponseMessage response = null;
+			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = await Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false);
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return null;
+				}
+
+				await HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false);
+			}
+
+			return response;
+		}
+	}
+
+	public interface IStatusClient : IMyServiceClient
+	{
+		void Get(Action<OtmStatusDto> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		HttpResponseMessage GetRaw(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		Task GetAsync(Action<OtmStatusDto> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		ValueTask<HttpResponseMessage> GetRawAsync(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+	}
+
+	internal class StatusClient : IStatusClient
+	{
+		protected readonly IMyServiceClientWrapper Client;
+		protected readonly IHttpOverride HttpOverride;
+		protected readonly IHttpSerializer Serializer;
+		protected readonly IHttpRequestModifier Modifier;
+		public StatusClient(IMyServiceClientWrapper param_client, Func<IMyServiceClient, IHttpOverride> param_httpoverride, Func<IMyServiceClient, IHttpSerializer> param_serializer, Func<IMyServiceClient, IHttpRequestModifier> param_modifier)
+		{
+			Client = param_client;
+			HttpOverride = param_httpoverride(this);
+			Serializer = param_serializer(this);
+			Modifier = param_modifier(this);
+		}
+
+		public void Get(Action<OtmStatusDto> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "Status";
+			string url = $@"api/{controller}/";
+			HttpResponseMessage response = null;
+			response = HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return;
+				}
+
+				HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			}
+
+			if (OKCallback != null && OKCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+			{
+				throw new NotSupportedException("Async void action delegates for OKCallback are not supported.As they will run out of the scope of this call.");
+			}
+
+			if (response.StatusCode == System.Net.HttpStatusCode.OK)
+			{
+				if (OKCallback != null)
 				{
 					responseHandled = true;
-					NotFoundCallback.Invoke();
+					OKCallback.Invoke(Serializer.Deserialize<OtmStatusDto>(response.Content).ConfigureAwait(false).GetAwaiter().GetResult());
+				}
+			}
+
+			if (ResponseCallback != null && ResponseCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+			{
+				throw new NotSupportedException("Async void action delegates for ResponseCallback are not supported.As they will run out of the scope of this call.");
+			}
+
+			if (ResponseCallback != null)
+			{
+				responseHandled = true;
+				ResponseCallback.Invoke(response);
+			}
+
+			if (!responseHandled)
+			{
+				throw new System.InvalidOperationException($"Response Status of {response.StatusCode} was not handled properly.");
+			}
+
+			return;
+		}
+
+		public HttpResponseMessage GetRaw(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "Status";
+			string url = $@"api/{controller}/";
+			HttpResponseMessage response = null;
+			response = HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return null;
+				}
+
+				HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			}
+
+			return response;
+		}
+
+		public async Task GetAsync(Action<OtmStatusDto> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "Status";
+			string url = $@"api/{controller}/";
+			HttpResponseMessage response = null;
+			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = await Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false);
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return;
+				}
+
+				await HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false);
+			}
+
+			if (OKCallback != null && OKCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+			{
+				throw new NotSupportedException("Async void action delegates for OKCallback are not supported.As they will run out of the scope of this call.");
+			}
+
+			if (response.StatusCode == System.Net.HttpStatusCode.OK)
+			{
+				if (OKCallback != null)
+				{
+					responseHandled = true;
+					OKCallback.Invoke(await Serializer.Deserialize<OtmStatusDto>(response.Content).ConfigureAwait(false));
 				}
 			}
 
@@ -1397,8 +1855,8 @@ namespace Otm.Client.Api
 
 		public async ValueTask<HttpResponseMessage> GetRawAsync(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
-			var controller = "Log";
-			string url = $@"{controller}/";
+			var controller = "Status";
+			string url = $@"api/{controller}/";
 			HttpResponseMessage response = null;
 			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
 			bool responseHandled = response != null;
@@ -1460,7 +1918,7 @@ namespace Otm.Client.Api
 		public IEnumerable<WeatherForecast> Get(Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
 			var controller = "WeatherForecast";
-			string url = $@"{controller}/";
+			string url = $@"api/api/{controller}/";
 			HttpResponseMessage response = null;
 			response = HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 			bool responseHandled = response != null;
@@ -1522,7 +1980,7 @@ namespace Otm.Client.Api
 		public HttpResponseMessage GetRaw(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
 			var controller = "WeatherForecast";
-			string url = $@"{controller}/";
+			string url = $@"api/api/{controller}/";
 			HttpResponseMessage response = null;
 			response = HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
 			bool responseHandled = response != null;
@@ -1561,7 +2019,7 @@ namespace Otm.Client.Api
 		public async ValueTask<IEnumerable<WeatherForecast>> GetAsync(Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
 			var controller = "WeatherForecast";
-			string url = $@"{controller}/";
+			string url = $@"api/api/{controller}/";
 			HttpResponseMessage response = null;
 			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
 			bool responseHandled = response != null;
@@ -1623,7 +2081,7 @@ namespace Otm.Client.Api
 		public async ValueTask<HttpResponseMessage> GetRawAsync(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
 			var controller = "WeatherForecast";
-			string url = $@"{controller}/";
+			string url = $@"api/api/{controller}/";
 			HttpResponseMessage response = null;
 			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
 			bool responseHandled = response != null;

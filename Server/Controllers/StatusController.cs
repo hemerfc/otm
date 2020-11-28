@@ -13,28 +13,29 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Otm.Shared.ContextConfig;
 using System.Collections.Generic;
-using Otm.Shared;
+using Otm.Shared.Status;
 
 namespace Otm.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class LogReaderController : ControllerBase
+    public class StatusController : ControllerBase
     {
-        public ILogger<LogReaderController> Logger { get; }
-        public IConfigService ConfigService { get; }
-        public LogReaderController()
+        public ILogger<StatusController> Logger { get; }
+        public IStatusService StatusService { get; }
+        public StatusController(ILogger<StatusController> logger, IStatusService statusService)
         {
+            this.Logger = logger;
+            this.StatusService = statusService;
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<LogMessage>), StatusCodes.Status200OK)]
-        public IActionResult GetMessages(string origin, string level = null)
+        [ProducesResponseType(typeof(OtmStatusDto), StatusCodes.Status200OK)]
+        public IActionResult Get()
         {
-            var msgs = Enumerable.Range(0, 10)
-                .Select(x => new LogMessage(Guid.NewGuid(), DateTime.Now, "Debug", origin, $"Message {x:00000}."));
+            var status = StatusService.Get();
 
-            return Ok(msgs);
+            return Ok(status);
         }
 
     }

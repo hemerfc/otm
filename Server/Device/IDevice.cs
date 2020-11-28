@@ -3,12 +3,14 @@ using System;
 using System.ComponentModel;
 using Otm.Server.ContextConfig;
 using Otm.Shared.ContextConfig;
+using Otm.Shared.Status;
 
 namespace Otm.Server.Device
 {
-    public interface IDevice
+    public interface IDevice : IDeviceStatus
     {
-        string Name { get; }
+
+
         BackgroundWorker Worker { get; }
 
         void OnTagChangeAdd(string tagName, Action<string, object> triggerAction);
@@ -25,5 +27,4 @@ namespace Otm.Server.Device
 
         bool Ready { get; }
     }
-
 }

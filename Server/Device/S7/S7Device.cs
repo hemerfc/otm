@@ -11,13 +11,13 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Otm.Shared.ContextConfig;
 using System.Collections.Concurrent;
+using Otm.Shared.Status;
 
 namespace Otm.Server.Device.S7
 {
     public class S7Device : IDevice
     {
         public string Name { get { return Config.Name; } }
-        public bool Connected { get { return client?.Connected ?? false; } }
 
         public BackgroundWorker Worker { get; private set; }
 
@@ -42,6 +42,13 @@ namespace Otm.Server.Device.S7
         private bool firstLoadWrite;
 
         public bool Ready { get; private set; }
+
+        public bool Enabled { get { return true; } }
+        public bool Connected { get { return client?.Connected ?? false; } }
+        public DateTime LastErrorTime { get { return DateTime.Now; } }
+
+        public IReadOnlyDictionary<string, object> TagValues { get { return null; } }
+
         private object tagsActionLock;
 
         public S7Device(DeviceConfig dvConfig, IS7Client client, ILogger logger)

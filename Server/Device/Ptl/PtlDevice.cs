@@ -43,6 +43,13 @@ namespace Otm.Server.Device.Ptl
 
         private object tagsActionLock;
 
+        public bool Enabled { get { return true; } }
+        public bool Connected { get { return client?.Connected??false; } }
+
+        public DateTime LastErrorTime { get { return DateTime.Now; } }
+
+        public IReadOnlyDictionary<string, object> TagValues { get { return null; } }
+
         public PtlDevice(DeviceConfig dvConfig, ITcpClientAdapter client, ILogger logger)
         {
             this.Logger = logger;

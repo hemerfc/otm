@@ -6,12 +6,15 @@ using System.Reflection;
 using System.Text.Json;
 using FluentValidation;
 using FluentValidation.Results;
+using Otm.Shared;
 using Otm.Shared.ContextConfig;
+using Otm.Shared.Status;
 
 namespace Otm.Server.ContextConfig
 {
     public interface IStatusService
     {
-        RootConfig GetStatus(string configid);
+        OtmStatusDto Get();
+        void SetOtmContextManager(OtmContextManager otmContextManager);
     }
 }

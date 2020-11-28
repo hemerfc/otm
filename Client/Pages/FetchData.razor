@@ -1,6 +1,8 @@
 ﻿@page "/fetchdata"
-@using Otm.Shared
-@inject HttpClient Http
+@using Otm.Client.Api;
+@using Otm.Shared;
+
+@inject IWeatherForecastClient WeatherForecastClient
 
 <h1>Weather forecast</h1>
 
@@ -40,7 +42,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("WeatherForecast");
+        forecasts = (await WeatherForecastClient.GetAsync()).ToArray();
     }
 
 }

@@ -48,3 +48,29 @@ a, .btn-link {
         right: 0.75rem;
         top: 0.5rem;
     }
+
+
+@keyframes rotating {
+    from {
+        transform-origin: 27% 47%;
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform-origin: 27% 47%;
+        transform: rotate(360deg);
+    }
+}
+
+.rotating {
+    animation: rotating 2s linear infinite;
+}
+
+.oi-status {
+    margin-left: auto;
+    width: auto;
+}
+
+.oi-circle-x {
+    color: orangered;
+}

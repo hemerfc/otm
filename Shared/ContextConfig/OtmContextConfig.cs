@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Otm.Shared.ContextConfig
 {
-    public class RootConfig
+    public class OtmContextConfig
     {
         public bool Enabled { get; set; }
         public string Name { get; set; }
