@@ -26,7 +26,7 @@ namespace Otm.Server.Device.S7
         //public DeviceColector Colector { get; }
 
         private ConcurrentDictionary<int, DB> dbDict;
-        private readonly IS7Client client;
+        private IS7Client client;
         private readonly ConcurrentDictionary<string, Action<string, object>> tagsAction;
         // private readonly Dictionary<string, object> tagValues;
         private readonly ConcurrentDictionary<string, int> tagDbIndex;
@@ -37,7 +37,7 @@ namespace Otm.Server.Device.S7
         private int rack;
         private int slot;
         private DateTime? connError = null;
-        private readonly ILogger Logger;
+        private ILogger Logger;
         private bool firstLoadRead;
         private bool firstLoadWrite;
 
@@ -51,20 +51,28 @@ namespace Otm.Server.Device.S7
 
         private object tagsActionLock;
 
-        public S7Device(DeviceConfig dvConfig, IS7Client client, ILogger logger)
+        public S7Device()
         {
-            this.Logger = logger;
-            this.Config = dvConfig;
-            //this.Colector = colector;
-            this.client = client;
             this.tagsAction = new ConcurrentDictionary<string, Action<string, object>>();
             this.tagDbIndex = new ConcurrentDictionary<string, int>();
             this.Stopwatch = new Stopwatch();
-            GetConfig(dvConfig);
             firstLoadRead = true;
             firstLoadWrite = true;
             Ready = false;
             tagsActionLock = new object();
+        }
+
+        public void Init(DeviceConfig dvConfig, IS7Client client, ILogger logger)
+        {
+            this.client = client;
+            Init(dvConfig, logger);
+        }
+
+        public void Init(DeviceConfig dvConfig, ILogger logger)
+        {
+            this.Logger = logger;
+            this.Config = dvConfig;
+            GetConfig(dvConfig);
         }
 
         private void GetConfig(DeviceConfig dvConfig)
@@ -140,7 +148,8 @@ namespace Otm.Server.Device.S7
 
                     if (it.TypeCode == TypeCode.String)
                         it.Value = null;
-                    else {
+                    else
+                    {
                         var type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), it.TypeCode));
                         it.Value = Activator.CreateInstance(type);
                     }
@@ -263,7 +272,7 @@ namespace Otm.Server.Device.S7
                 {
                     Ready = false;
                     Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
-                    client.Disconnect();   
+                    client.Disconnect();
                 }
             }
         }
@@ -315,7 +324,7 @@ namespace Otm.Server.Device.S7
                                     throw new Exception(msg);
                             }
                         }
-                        
+
                         // this is the first execution of ReadDeviceTags?
                         if (!firstLoadRead)
                         {

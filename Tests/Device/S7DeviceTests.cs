@@ -65,8 +65,8 @@ namespace Otm.Test.Device
                 });
 
             var loggerMock = new Mock<ILogger>();
-            var devPlc01 = new S7Device(dvConfig, clientMock.Object, loggerMock.Object);
-
+            var devPlc01 = new S7Device();
+            devPlc01.Init(dvConfig, clientMock.Object, loggerMock.Object);
             devPlc01.ReadDeviceTags();
 
             var tag2 = -1;

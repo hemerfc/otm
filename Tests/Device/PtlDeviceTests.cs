@@ -206,7 +206,8 @@ namespace Otm.Test.Device
 
             var loggerMock = new Mock<ILogger>();
 
-            var devPtl = new PtlDevice(dvConfig, clientMock.Object, loggerMock.Object);
+            var devPtl = new PtlDevice();
+            devPtl.Init(dvConfig, clientMock.Object, loggerMock.Object);
 
             var bgWorker = new BackgroundWorker
             {

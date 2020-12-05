@@ -1,6 +1,6 @@
 {
   "Name": "SuperNosso",
-  "Enabled": true,
+  "Enabled": false,
   "DataPoints": [
     {
       "Name": "dbo.sp_estacao",

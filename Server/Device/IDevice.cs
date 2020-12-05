@@ -1,6 +1,7 @@
 
 using System;
 using System.ComponentModel;
+using Microsoft.Extensions.Logging;
 using Otm.Server.ContextConfig;
 using Otm.Shared.ContextConfig;
 using Otm.Shared.Status;
@@ -8,11 +9,9 @@ using Otm.Shared.Status;
 namespace Otm.Server.Device
 {
     public interface IDevice : IDeviceStatus
-    {
-
-
-        BackgroundWorker Worker { get; }
-
+    { 
+        void Init(DeviceConfig dvConfig,  ILogger logger);
+    
         void OnTagChangeAdd(string tagName, Action<string, object> triggerAction);
 
         void OnTagChangeRemove(string tagName, Action<string, object> triggerAction);
@@ -26,5 +25,6 @@ namespace Otm.Server.Device
         void Stop();
 
         bool Ready { get; }
+        BackgroundWorker Worker { get;  }
     }
 }
