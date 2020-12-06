@@ -16,7 +16,8 @@ namespace Otm.Server.Device.Ptl
         private byte[] STX_LC = new byte[] { 0x02, 0x02 };       // "\x02\x02";
         private byte[] ETX_LC = new byte[] { 0x03, 0x03 };       // "\x03\x03";
         private byte[] STX_AT = new byte[] { 0x0f, 0x00, 0x60 }; //"\x0F\x00\x60";
-        private byte[] STX_AT_MASTER = new byte[] { 0x14, 0x00, 0x60 }; //"\x2b\x00\x60";
+        private byte[] STX_AT_MASTER_DISP12 = new byte[] { 0x14, 0x00, 0x60 }; //"\x2b\x00\x60";
+        private byte[] STX_AT_MASTER_DISP08 = new byte[] { 0x11, 0x00, 0x60 }; //"\x2b\x00\x60";
 
         public string Name { get { return Config.Name; } }
 
@@ -48,7 +49,6 @@ namespace Otm.Server.Device.Ptl
 
         byte[] receiveBuffer = new byte[0];
 
-        private Dictionary<char, byte> DisplayCodeDict; // tabela para conversao de caracteres do display
         private object tagsActionLock;
 
         public PtlDevice(DeviceConfig dvConfig, ITcpClientAdapter client, ILogger logger)
@@ -318,10 +318,11 @@ namespace Otm.Server.Device.Ptl
                 var stxLcPos = SearchBytes(strRcvd, STX_LC);
                 var etxLcPos = SearchBytes(strRcvd, ETX_LC);
                 var stxAtPos = SearchBytes(strRcvd, STX_AT);
-                var stxAtMasterPos = SearchBytes(strRcvd, STX_AT_MASTER);
+                var stxAtMasterPos12 = SearchBytes(strRcvd, STX_AT_MASTER_DISP12);
+                var stxAtMasterPos8 = SearchBytes(strRcvd, STX_AT_MASTER_DISP08);
 
 
-                var posicoesRelevantesEncontradas = new List<int>() { stxLcPos, stxAtPos, stxAtMasterPos }                                                            
+                var posicoesRelevantesEncontradas = new List<int>() { stxLcPos, stxAtPos, stxAtMasterPos12, stxAtMasterPos8 }                                                            
                                                             .Where(x => x >= 0)
                                                             .OrderBy(x => x)
                                                             .ToList();
@@ -434,16 +435,17 @@ namespace Otm.Server.Device.Ptl
                             receiveBuffer = receiveBuffer[(stxAtPos + len)..];
                         }
                     }
-                    else if (primeiraPosRelevante == stxAtMasterPos) //Se for um atendimento master
+                    else if ((primeiraPosRelevante == stxAtMasterPos12) || (primeiraPosRelevante == stxAtMasterPos8)) //Se for um atendimento master
                     {
-                        var len = 20;
+                        var posMaster = (primeiraPosRelevante == stxAtMasterPos12) ? stxAtMasterPos12 : stxAtMasterPos8;
+                        var len = (primeiraPosRelevante == stxAtMasterPos12) ? 20 : 17;
 
                         //verifica se ja tem 20 posicoes pra frente e processa
-                        if (strRcvd.Length >= stxAtMasterPos + len)
+                        if (strRcvd.Length >= posMaster + len)
                         {
                             readGateOpen = true;
 
-                            var cmdAT = strRcvd[stxAtMasterPos..(stxAtMasterPos + len)];
+                            var cmdAT = strRcvd[posMaster..(posMaster + len)];
 
                             var subCmd = cmdAT[6];
                             var subNode = cmdAT[7];
@@ -478,7 +480,7 @@ namespace Otm.Server.Device.Ptl
 
                             //Limpando o buffer que ja foi processado
                             //received = true;
-                            receiveBuffer = receiveBuffer[(stxAtMasterPos + len)..];
+                            receiveBuffer = receiveBuffer[(posMaster + len)..];
                         }
                     }
                 }

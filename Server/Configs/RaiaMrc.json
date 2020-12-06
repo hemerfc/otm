@@ -1,39 +1,14 @@
 {
-  "Name": "Nespresso_PTL",
+  "Name": "teste",
   "Enabled": true,
   "DataPoints": [
     {
-      "Name": "sp_EnviarLeitura",
+      "Name": "sp_PendingMessages",
       "Driver": "mssql",
       "Config": "Server=localhost; Database=PICKTOLIGHTBR2; User Id=sa2; Password=sa2sa2;",
       "Params": [
-        {
-          "Name": "ptl_id",
-          "Mode": "FromOTM",
-          "TypeCode": "String",
-          "Length": 3
-        },
         {
           "Name": "mensagem",
-          "Mode": "FromOTM",
-          "TypeCode": "String",
-          "Length": 100
-        }
-      ]
-    },
-    {
-      "Name": "sp_PendingCommands",
-      "Driver": "mssql",
-      "Config": "Server=localhost; Database=PICKTOLIGHTBR2; User Id=sa2; Password=sa2sa2;",
-      "Params": [
-        {
-          "Name": "p1",
-          "Mode": "FromOTM",
-          "TypeCode": "String",
-          "Length": 10
-        },
-        {
-          "Name": "p2",
           "Mode": "ToOTM",
           "TypeCode": "String",
           "Length": 4000
@@ -43,7 +18,7 @@
   ],
   "Devices": [
     {
-      "Name": "ptl01",
+      "Name": "manhattan",
       "Driver": "ptl",
       "Config": "ip=192.168.202.10;port=4660;MasterDevice=39;hasReadGate=false",
       "Tags": [

@@ -1293,7 +1293,9 @@ namespace Otm.Server.Device.S7
         {
             for (int c = 0; c < Count; c++)
             {
+#pragma warning disable CS8073 // O resultado da expressão é sempre o mesmo, pois um valor deste tipo nunca é 'null' 
                 if (Handles[c] != null)
+#pragma warning restore CS8073 // O resultado da expressão é sempre o mesmo, pois um valor deste tipo nunca é 'null' 
                     Handles[c].Free();
             }
             Count = 0;
