@@ -8,6 +8,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Otm.Client.Api;
+using Microsoft.AspNetCore.Components;
+using Otm.Client.ViewModel;
+using Otm.Client.Services;
 
 namespace Otm.Client
 {
@@ -18,9 +21,19 @@ namespace Otm.Client
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
             builder.RootComponents.Add<App>("#app");
 
+            builder.Services.AddSingleton(sp => new OtmStatusViewModel());
+            builder.Services.AddTransient<BlazorTimer>();
+
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
-            MyServiceClientInstaller.AddMyServiceClients(builder.Services, x => { });
+            builder.Services.AddMyServiceClients(config =>
+            {
+                config.UseJsonClientSerializer()
+                .UseJsonClientDeserializer()
+                .UseExistingHttpClient()
+                .WithBaseAddress(builder.HostEnvironment.BaseAddress);
+            });
+
 
             builder.Logging.SetMinimumLevel(LogLevel.Debug);
 

@@ -13,30 +13,28 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Otm.Shared.ContextConfig;
 using System.Collections.Generic;
+using Otm.Shared;
 
 namespace Otm.Server.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
-    public class LogController : ControllerBase
+    [Route("api/[controller]")]
+    public class LogReaderController : ControllerBase
     {
-        public ILogger<EnviromentController> Logger { get; }
+        public ILogger<LogReaderController> Logger { get; }
         public IConfigService ConfigService { get; }
-        public LogController()
+        public LogReaderController()
         {
         }
 
-        [HttpGet()]
-        [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult Get()
+        [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<LogMessage>), StatusCodes.Status200OK)]
+        public IActionResult GetMessages(string origin, string level = null)
         {
-            var msg = new List<string> { "TESTE 1", "TESTE 2", "TESTE 3" };
+            var msgs = Enumerable.Range(0, 10)
+                .Select(x => new LogMessage(Guid.NewGuid(), DateTime.Now, "Debug", origin, $"Message {x:00000}."));
 
-            if (msg == null)
-                return NotFound();
-
-            return Ok(msg);
+            return Ok(msgs);
         }
 
     }

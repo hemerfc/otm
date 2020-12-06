@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net5.0</TargetFramework>
+		<AssemblyName>Otm.Plugins.Devices.RaiaMrcPTLv1</AssemblyName>
+		<RootNamespace>Otm.Plugins.Devices.RaiaMrcPTLv1</RootNamespace>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<OutDir>$(SolutionDir)Server\bin\$(Configuration)\$(TargetFramework)\Plugins\Devices</OutDir>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	  <DebugType>full</DebugType>
+	  <DebugSymbols>true</DebugSymbols>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\..\Server\Otm.Server.csproj" />
+	  <ProjectReference Include="..\..\..\Shared\Otm.Shared.csproj" />
+	</ItemGroup>
+
+</Project>

@@ -5,11 +5,30 @@
     {
       "Name": "sp_PendingMessages",
       "Driver": "mssql",
-      "Config": "Server=localhost; Database=PICKTOLIGHTBR2; User Id=sa2; Password=sa2sa2;",
+      "Config": "Server=localhost; Database=PICKTOLIGHTBR; User Id=sa2; Password=sa2sa2;",
       "Params": [
         {
-          "Name": "mensagem",
+          "Name": "id",
           "Mode": "ToOTM",
+          "TypeCode": "String",
+          "Length": 100
+        },
+        {
+          "Name": "message",
+          "Mode": "ToOTM",
+          "TypeCode": "String",
+          "Length": 4000
+        }
+      ]
+    },
+    {
+      "Name": "sp_PendingMessagesConfirm",
+      "Driver": "mssql",
+      "Config": "Server=localhost; Database=PICKTOLIGHTBR; User Id=sa2; Password=sa2sa2;",
+      "Params": [
+        {
+          "Name": "message",
+          "Mode": "FromOTM",
           "TypeCode": "String",
           "Length": 4000
         }
@@ -19,8 +38,8 @@
   "Devices": [
     {
       "Name": "manhattan",
-      "Driver": "ptl",
-      "Config": "ip=192.168.202.10;port=4660;MasterDevice=39;hasReadGate=false",
+      "Driver": "RaiaMrcPTLv1",
+      "Config": "ip=127.0.0.1;port=9004",
       "Tags": [
         {
           "Name": "cmd_count",
@@ -37,8 +56,15 @@
           "TypeCode": "String"
         },
         {
-          "Name": "cmd_send",
-          "Address": "cmd_send",
+          "Name": "msg_id",
+          "Address": "msg_id",
+          "Rate": 0,
+          "Mode": "FromOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "msg_to_send",
+          "Address": "msg_to_send",
           "Rate": 0,
           "Mode": "FromOTM",
           "TypeCode": "String"
@@ -48,40 +74,34 @@
   ],
   "Transactions": [
     {
-      "Name": "ptl01_recv",
-      "DataPointName": "sp_EnviarLeitura",
-      "DeviceName": "ptl01",
-      "TriggerType": "OnTagChange",
-      "TriggerTagName": "cmd_count",
+      "Name": "PendingMessages",
+      "DataPointName": "sp_PendingMessages",
+      "DeviceName": "manhattan",
+      "TriggerType": "OnCycle",
+      "TriggerTime": 5000,
       "Binds": [
         {
-          "DataPointParam": "ptl_id",
-          "Value": "001"
+          "DataPointParam": "id",
+          "DeviceTag": "msg_id"
         },
         {
-          "DataPointParam": "mensagem",
-          "DeviceTag": "cmd_rcvd"
+          "DataPointParam": "message",
+          "DeviceTag": "msg_to_send"
         }
       ]
     },
     {
-      "Name": "PendingCommands_cycle_p001",
-      "DataPointName": "sp_PendingCommands",
-      "DeviceName": "ptl01",
-      "TriggerType": "OnCycle",
-      "TriggerTime": 500,
+      "Name": "PendingMessagesConfirm",
+      "DataPointName": "sp_PendingMessagesConfirm",
+      "DeviceName": "manhattan",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "cmd_count",
       "Binds": [
         {
-          "DataPointParam": "p1",
-          "Value": "001"
-        },
-        {
-          "DataPointParam": "p2",
-          "DeviceTag": "cmd_send"
+          "DataPointParam": "message",
+          "DeviceTag": "cmd_rcvd"
         }
       ]
     }
   ]
 }
-
-

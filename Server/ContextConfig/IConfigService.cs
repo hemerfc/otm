@@ -14,14 +14,14 @@ namespace Otm.Server.ContextConfig
     {
         IEnumerable<ConfigFile> GetAll();
 
-        RootConfig Get(string id);
+        OtmContextConfig Get(string id);
 
-        ValidationResult ValidateCreate(RootConfig config);
-        ValidationResult ValidateUpdate(string id, RootConfig config);
+        ValidationResult ValidateCreate(OtmContextConfig config);
+        ValidationResult ValidateUpdate(string id, OtmContextConfig config);
 
-        void Create(RootConfig config);
+        void Create(OtmContextConfig config);
 
-        void Update(string oldId, RootConfig config);
+        void Update(string oldId, OtmContextConfig config);
         bool Exists(string id);
         void Delete(string id);
     }

@@ -1,0 +1,74 @@
+{
+  "Name": "Hemerson",
+  "Enabled": true,
+  "DataPoints": [
+    {
+      "Name": "sp_PendingMessages",
+      "Driver": "mssql",
+      "Config": "Server=localhost;Database=PICKTOLIGHTBR;User Id=sa2;Password=sa2sa2;",
+      "Params": [
+        {
+          "Name": "p1",
+          "Mode": "FromOTM",
+          "TypeCode": "String",
+          "Length": 10
+        },
+        {
+          "Name": "p2",
+          "Mode": "ToOTM",
+          "TypeCode": "String",
+          "Length": 4000
+        }
+      ]
+    }
+  ],
+  "Devices": [
+    {
+      "Name": "RaiaMrcPTL01",
+      "Driver": "RaiaMrcPTL",
+      "Config": "ip=127.0.0.1;port=9002",
+      "Tags": [
+        {
+          "Name": "cmd_count",
+          "Address": "cmd_count",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "Int32"
+        },
+        {
+          "Name": "cmd_rcvd",
+          "Address": "cmd_rcvd",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "cmd_send",
+          "Address": "cmd_send",
+          "Rate": 0,
+          "Mode": "FromOTM",
+          "TypeCode": "String"
+        }
+      ]
+    }
+  ],
+  "Transactions": [
+    {
+      "Name": "PendingCommands_cycle",
+      "DataPointName": "sp_PendingCommands",
+      "DeviceName": "RaiaMrcPTL01",
+      "TriggerType": "OnCycle",
+      "TriggerTime": 30000,
+      "Binds": [
+        {
+          "DataPointParam": "p1",
+          "Value": "001"
+        },
+        {
+          "DataPointParam": "p2",
+          "DeviceTag": "cmd_send"
+        }
+      ]
+    }
+  ]
+}

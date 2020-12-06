@@ -31,29 +31,26 @@ namespace Otm.Test.Device
             Exemplo ´G|AT|F01.L01.C04|5|
         */
         [Theory]
+        // scanner read
+        /*[InlineData("`GSTXLC|001|aaaETX`GSTXLC|002|bbbETX`GSTXLC|003|ccc|ETX",
+            new string[] { "ptl01|LC|001|aaa", "ptl01|LC|002|bbb", "ptl01|LC|003|ccc" })]*/
 
         [InlineData(new byte[] {
-                /* LC */2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48, 49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 51, 3, 3,
-                /* Lixo */36, 0, 96, 0, 0, 0, 6, 40,
-                /* Abrindo read gate */0x14,   0x00,    0x60,   0x00,    0x00,    0x00,    0x06,    0x27,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,	 //Atendimento 012345678901
-                /* LC */2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48, 49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 52, 3, 3,
-                /* LC */2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48, 49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 53, 3, 3
+                36, 0, 96, 0, 0, 0, 6, 40,
+                2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48,
+                49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 51, 3, 3
             },
-            new string[] { "ptl01|AT|039|ZZZZZZ", "ptl01|LC|002|i0000124613100004" })]
+            new string[] { "ptl01|LC|002|i0000124613100003" })]
         [InlineData(new byte[] {
-                /* Lixo */36, 0, 96, 0, 0, 0, 6, 40,
-                /* Abrindo read gate */0x14,   0x00,    0x60,   0x00,    0x00,    0x00,    0x06,    0x27,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,	 //Atendimento 012345678901
-                /* Lixo */36, 0, 96, 0, 0, 0, 6, 40,
-                /* LC */2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48, 49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 51, 3, 3,
-                /* AT */0x0f, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x32, 0x00, // AT
-                /* Abrindo read gate */0x14,   0x00,    0x60,   0x00,    0x00,    0x00,    0x06,    0x27,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,	 //Atendimento 012345678901
-                /* LC */2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48, 49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 51, 3, 3,
-                /* LC */2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48, 49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 52, 3, 3,
+                36, 0, 96, 0, 0, 0, 6, 40, 
+                2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48,
+                49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 51, 3, 3,
+                0x0f, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x32, 0x00,
+                2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48,
+                49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 51, 3, 3,
             },
-            new string[] { "ptl01|AT|039|ZZZZZZ",
-                            "ptl01|LC|002|i0000124613100003",
+            new string[] { "ptl01|LC|002|i0000124613100003", 
                            "ptl01|AT|017|     2",
-                           "ptl01|AT|039|ZZZZZZ",
                            "ptl01|LC|002|i0000124613100003" })]
         [InlineData(new byte[] {
                 0x0f, 0x00, 0x60, 0x00, 0x00, 0x00, 0xfc, 0x16, 0x02, 0x13, 0x73, 0x08, 0x02, 0x00, 0x02, // STATUS Cmd=252
@@ -65,7 +62,7 @@ namespace Otm.Test.Device
         [InlineData(new byte[]{
                 0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00, // Cmd=6 Node=17 Value=1 Dot=0
                 0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x12, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00  // Cmd=6 Node=18 Value=1 Dot=0 
-            },
+            },    
             new string[] { "ptl01|AT|017|     3", "ptl01|AT|018|     3" })]
         [InlineData(new byte[]{
                 0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00, // Cmd=6 Node=17 Value=1 Dot=0
@@ -74,42 +71,17 @@ namespace Otm.Test.Device
                 0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x12, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00  // Cmd=6 Node=18 Value=1 Dot=0 
             },
             new string[] { "ptl01|AT|017|     3", "ptl01|AT|018|     3" })]
-        [InlineData(new byte[]{
-                0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00, // Cmd=6 Node=17 Value=1 Dot=0
-                0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00, // Cmd=6 Node=17 Value=1 Dot=0
-                0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20,                         // lixo
-                0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20,                         // lixo
-                0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x12, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00  // Cmd=6 Node=18 Value=1 Dot=0 
-            },
-            new string[] { "ptl01|AT|017|     3", "ptl01|AT|017|     3", "ptl01|AT|018|     3" })]
-        [InlineData(new byte[] {
-                /* Lixo */36, 0, 96, 0, 0, 0, 6, 40,
-                /*Cmd=6 Node=17 Value=1 Dot=0*/0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00,  
-                /* Abrindo read gate */0x14,   0x00,    0x60,   0x00,    0x00,    0x00,    0x06,    0x27,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,	 //Atendimento 012345678901
-                /*Cmd=6 Node=17 Value=1 Dot=0*/0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00,  
-                /* Lixo */36, 0, 96, 0, 0, 0, 6, 40,
-                /* LC */2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48, 49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 51, 3, 3,
-                /* AT */0x0f, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x32, 0x00, 
-                /* Abrindo read gate */0x14,   0x00,    0x60,   0x00,    0x00,    0x00,    0x06,    0x27,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,   0x5A,	 //Atendimento 012345678901
-                /* LC */2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48, 49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 51, 3, 3,
-                /* LC */2, 2, 76, 67, 124, 48, 48, 50, 124, 105, 48, 48, 48, 48, 49, 50, 52, 54, 49, 51, 49, 48, 48, 48, 48, 52, 3, 3,
-                /*Cmd=6 Node=17 Value=1 Dot=0*/0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00,  
-                /*Cmd=6 Node=17 Value=1 Dot=0*/0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00, 
-                /*lixo*/0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20,                          
-                /*lixo*/0x60, 0x00, 0x00, 0x00, 0x06, 0x11, 0x20, 0x20, 0x20, 0x20, 0x20,                         
-                /*Cmd=6 Node=18 Value=1 Dot=0  */0x0F, 0x00, 0x60, 0x00, 0x00, 0x00, 0x06, 0x12, 0x20, 0x20, 0x20, 0x20, 0x20, 0x33, 0x00   
-            },
-            new string[] {
-                            "ptl01|AT|017|     3",
-                           "ptl01|AT|039|ZZZZZZ",
-                            "ptl01|AT|017|     3",
-                            "ptl01|LC|002|i0000124613100003",
-                           "ptl01|AT|017|     2",
-                           "ptl01|AT|039|ZZZZZZ",
-                           "ptl01|LC|002|i0000124613100003",
-                            "ptl01|AT|017|     3", 
-                            "ptl01|AT|017|     3", 
-                            "ptl01|AT|018|     3"})]
+
+        /*[InlineData("\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x31\x00" + // Cmd=6 Node=1 Value=1 Dot=0
+                    "lixoaqui!" +
+                    "`GSTXLC|001|aaaETX" +
+                    "\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x32\x00" + // Cmd=6 Node=1 Value=1 Dot=0
+                    "`GSTXLC|002|bbbETX" +
+                    "`GSTXLC|003|ccc|ETX" +
+                    "lixoaquidenovo!" +
+                    "\x0F\x00\x60\x00\x00\x00\x06\x01\x30\x30\x30\x30\x30\x33\x00",  // Cmd=6 Node=1 Value=1 Dot=0
+            new string[] { "ptl01|AT|001|000001", "ptl01|LC|001|aaa" , "ptl01|AT|001|000002",
+                           "ptl01|LC|002|bbb", "ptl01|LC|003|ccc", "ptl01|AT|001|000003" })]*/
         public void Receive_Ptl_Command(byte[] recv, string[] result)
         {
             var waitEvent = new ManualResetEvent(false);
@@ -155,7 +127,7 @@ namespace Otm.Test.Device
             /*LOCATION|displayValue|masterMessage*/
             var cmd1 = $"001:002|{(byte)E_DisplayColor.Verde}|00000000001|{(int)E_PTLMasterMessage.None};001:003|1||{(int)E_PTLMasterMessage.ItemOk}";
             var cmd2 = $"001:005|{(byte)E_DisplayColor.Laranja}|00000000002|{(int)E_PTLMasterMessage.None};001:003|1||{(int)E_PTLMasterMessage.ToteOk}";
-
+            
             recvFromPtlBuffer = new byte[0];
             sendToPtlBuffer = new byte[0];
 
@@ -184,7 +156,7 @@ namespace Otm.Test.Device
             {
                 Name = "ptl01",
                 Driver = "ptl",
-                Config = "ip=127.0.0.1;port=4660;MasterDevice=39;HasReadGate=True;TestCardCode=8888888888",
+                Config = "ip=127.0.0.1;port=4660",
                 Tags = (new DeviceTagConfig[]
                 {
                     new DeviceTagConfig
@@ -234,7 +206,8 @@ namespace Otm.Test.Device
 
             var loggerMock = new Mock<ILogger>();
 
-            var devPtl = new PtlDevice(dvConfig, clientMock.Object, loggerMock.Object);
+            var devPtl = new PtlDevice();
+            devPtl.Init(dvConfig, clientMock.Object, loggerMock.Object);
 
             var bgWorker = new BackgroundWorker
             {

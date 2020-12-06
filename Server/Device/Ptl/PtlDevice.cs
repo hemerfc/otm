@@ -26,9 +26,9 @@ namespace Otm.Server.Device.Ptl
         private readonly Dictionary<string, Action<string, object>> tagsAction;
         private readonly object lockSendDataQueue = new object();
         private Queue<byte[]> sendDataQueue;
-        private readonly ILogger Logger;
-        private readonly DeviceConfig Config;
-        private readonly ITcpClientAdapter client;
+        private ILogger Logger;
+        private DeviceConfig Config;
+        private ITcpClientAdapter client;
         private string ip;
         private int port;
 
@@ -51,20 +51,35 @@ namespace Otm.Server.Device.Ptl
 
         private object tagsActionLock;
 
-        public PtlDevice(DeviceConfig dvConfig, ITcpClientAdapter client, ILogger logger)
+        public bool Enabled { get { return true; } }
+        public bool Connected { get { return client?.Connected ?? false; } }
+
+        public DateTime LastErrorTime { get { return DateTime.Now; } }
+
+        public IReadOnlyDictionary<string, object> TagValues { get { return null; } }
+
+
+        public PtlDevice()
         {
-            this.Logger = logger;
-            this.Config = dvConfig;
-            this.client = client;
             this.tagsAction = new Dictionary<string, Action<string, object>>();
             this.sendDataQueue = new Queue<byte[]>();
             tagsActionLock = new object();
-
-            GetConfig(dvConfig);
-            //firstLoadRead = true;
-            //firstLoadWrite = true;
-            readGateOpen = false;
         }
+
+        public void Init(DeviceConfig dvConfig, ITcpClientAdapter client, ILogger logger)
+        {
+            this.client = client;
+            Init(dvConfig, logger);
+        }
+
+        public void Init(DeviceConfig dvConfig, ILogger logger)
+        {
+            this.Logger = logger;
+            this.Config = dvConfig;
+            this.client = new TcpClientAdapter();
+            GetConfig(dvConfig);
+        }
+
 
         private void GetConfig(DeviceConfig dvConfig)
         {
