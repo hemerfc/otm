@@ -11,6 +11,7 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Otm.Shared.ContextConfig;
 using System.Collections.Concurrent;
+using Otm.Shared.Status;
 
 namespace Otm.Server.Device.S7
 {
@@ -41,7 +42,6 @@ namespace Otm.Server.Device.S7
         private bool firstLoadWrite;
 
         public bool Ready { get; private set; }
-        private object tagsActionLock;
 
         public bool Enabled { get { return true; } }
         public bool Connected { get { return client?.Connected ?? false; } }
@@ -49,7 +49,18 @@ namespace Otm.Server.Device.S7
 
         public IReadOnlyDictionary<string, object> TagValues { get { return null; } }
 
+        private object tagsActionLock;
 
+<<<<<<< HEAD
+        public bool Enabled { get { return true; } }
+        public bool Connected { get { return client?.Connected ?? false; } }
+        public DateTime LastErrorTime { get { return DateTime.Now; } }
+
+        public IReadOnlyDictionary<string, object> TagValues { get { return null; } }
+
+
+=======
+>>>>>>> RaiaMrc
         public S7Device()
         {
             this.tagsAction = new ConcurrentDictionary<string, Action<string, object>>();
@@ -74,7 +85,10 @@ namespace Otm.Server.Device.S7
             GetConfig(dvConfig);
         }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> RaiaMrc
         private void GetConfig(DeviceConfig dvConfig)
         {
             // dvConfig.Config = host=192.168.1.1;rack=0;slot=0
@@ -148,7 +162,8 @@ namespace Otm.Server.Device.S7
 
                     if (it.TypeCode == TypeCode.String)
                         it.Value = null;
-                    else {
+                    else
+                    {
                         var type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), it.TypeCode));
                         it.Value = Activator.CreateInstance(type);
                     }
@@ -271,7 +286,7 @@ namespace Otm.Server.Device.S7
                 {
                     Ready = false;
                     Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
-                    client.Disconnect();   
+                    client.Disconnect();
                 }
             }
         }
@@ -323,7 +338,7 @@ namespace Otm.Server.Device.S7
                                     throw new Exception(msg);
                             }
                         }
-                        
+
                         // this is the first execution of ReadDeviceTags?
                         if (!firstLoadRead)
                         {

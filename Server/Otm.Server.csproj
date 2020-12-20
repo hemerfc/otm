@@ -2,13 +2,20 @@
 
 	<PropertyGroup>
 		<TargetFramework>net5.0</TargetFramework>
+<<<<<<< HEAD
+=======
+		<UserSecretsId>a372e9ee-0ac8-4e44-a6fc-f8a94734c4c7</UserSecretsId>
+>>>>>>> RaiaMrc
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Beffyman.AspNetCore.Server" Version="1.0.2" />
 		<PackageReference Include="FluentValidation.AspNetCore" Version="9.3.0" />
 		<PackageReference Include="Jint" Version="2.11.58" />
+<<<<<<< HEAD
 		<PackageReference Include="McMaster.NETCore.Plugins" Version="1.3.1" />
+=======
+>>>>>>> RaiaMrc
 		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="3.1.8" />
 		<PackageReference Include="NLog.Web.AspNetCore" Version="4.9.3" />
 		<PackageReference Include="Npgsql" Version="4.1.4" />
@@ -24,5 +31,13 @@
 	<ItemGroup>
 		<Folder Include="Logs\" />
 	</ItemGroup>
+<<<<<<< HEAD
+=======
+	<ItemGroup>
+	  <None Update="Plugins\**\*.*">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
+>>>>>>> RaiaMrc
 
 </Project>

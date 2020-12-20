@@ -52,13 +52,20 @@ namespace Otm.Server.Device.Ptl
         private object tagsActionLock;
 
         public bool Enabled { get { return true; } }
+<<<<<<< HEAD
         public bool Connected { get { return client?.Connected ?? false; } }
+=======
+        public bool Connected { get { return client?.Connected??false; } }
+>>>>>>> RaiaMrc
 
         public DateTime LastErrorTime { get { return DateTime.Now; } }
 
         public IReadOnlyDictionary<string, object> TagValues { get { return null; } }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> RaiaMrc
         public PtlDevice()
         {
             this.tagsAction = new Dictionary<string, Action<string, object>>();

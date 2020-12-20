@@ -50,7 +50,10 @@ namespace Otm.Server
               })
               .UseNLog();  // NLog: Setup NLog for Dependency injection
 
+<<<<<<< HEAD
         /*
+=======
+>>>>>>> RaiaMrc
         static Assembly LoadPlugin(string relativePath)
         {
             // Navigate up to the solution root
@@ -66,6 +69,9 @@ namespace Otm.Server
             PluginLoadContext loadContext = new PluginLoadContext(pluginLocation);
             return loadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
         }
+<<<<<<< HEAD
         */
+=======
+>>>>>>> RaiaMrc
     }
 }

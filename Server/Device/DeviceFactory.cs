@@ -29,6 +29,11 @@ namespace Otm.Server.Device
                         throw ex;
                     }
 
+<<<<<<< HEAD
+=======
+                    var pluginsNames = PluginLoadContext.GetDevicePlugins();
+
+>>>>>>> RaiaMrc
                     switch (dvConfig.Driver)
                     {
                         case "s7":
@@ -47,9 +52,14 @@ namespace Otm.Server.Device
                         default:
                             try
                             {
+<<<<<<< HEAD
                                 var pluginsNames = PluginLoadContext.GetDevicePlugins(logger);
                                 var pluginName = pluginsNames.Single(x => x.Name == dvConfig.Driver);
                                 var device = PluginLoadContext.LoadAndCreateDevicePlugin(pluginName.FileName, logger);
+=======
+                                var pluginName = pluginsNames.Single(x => x.Name == dvConfig.Driver);
+                                var device = PluginLoadContext.LoadAndCreateDevicePlugin(pluginName.FileName);
+>>>>>>> RaiaMrc
                                 device.Init(dvConfig, logger);
                                 devices.Add(dvConfig.Name, device);
                             }

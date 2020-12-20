@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net5.0</TargetFramework>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	  <OutputPath>..\Server\Plugins\Devices\</OutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\..\Server\Otm.Server.csproj" />
+	  <ProjectReference Include="..\..\..\Shared\Otm.Shared.csproj" />
+	</ItemGroup>
+
+</Project>
