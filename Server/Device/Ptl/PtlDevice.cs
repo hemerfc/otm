@@ -16,7 +16,8 @@ namespace Otm.Server.Device.Ptl
         private byte[] STX_LC = new byte[] { 0x02, 0x02 };       // "\x02\x02";
         private byte[] ETX_LC = new byte[] { 0x03, 0x03 };       // "\x03\x03";
         private byte[] STX_AT = new byte[] { 0x0f, 0x00, 0x60 }; //"\x0F\x00\x60";
-        private byte[] STX_AT_MASTER = new byte[] { 0x14, 0x00, 0x60 }; //"\x2b\x00\x60";
+        private byte[] STX_AT_MASTER_DISP12 = new byte[] { 0x14, 0x00, 0x60 }; //"\x2b\x00\x60";
+        private byte[] STX_AT_MASTER_DISP08 = new byte[] { 0x11, 0x00, 0x60 }; //"\x2b\x00\x60";
 
         public string Name { get { return Config.Name; } }
 
@@ -25,9 +26,9 @@ namespace Otm.Server.Device.Ptl
         private readonly Dictionary<string, Action<string, object>> tagsAction;
         private readonly object lockSendDataQueue = new object();
         private Queue<byte[]> sendDataQueue;
-        private readonly ILogger Logger;
-        private readonly DeviceConfig Config;
-        private readonly ITcpClientAdapter client;
+        private ILogger Logger;
+        private DeviceConfig Config;
+        private ITcpClientAdapter client;
         private string ip;
         private int port;
 
@@ -35,8 +36,6 @@ namespace Otm.Server.Device.Ptl
         private bool readGateOpen;
         private bool hasReadGate;
         private string testCardCode;
-
-        private bool testGateOpen;
 
         //readonly bool firstLoadRead;
         //readonly bool firstLoadWrite;
@@ -50,24 +49,36 @@ namespace Otm.Server.Device.Ptl
 
         byte[] receiveBuffer = new byte[0];
 
-        private Dictionary<char, byte> DisplayCodeDict; // tabela para conversao de caracteres do display
         private object tagsActionLock;
 
-        public PtlDevice(DeviceConfig dvConfig, ITcpClientAdapter client, ILogger logger)
+        public bool Enabled { get { return true; } }
+        public bool Connected { get { return client?.Connected ?? false; } }
+
+        public DateTime LastErrorTime { get { return DateTime.Now; } }
+
+        public IReadOnlyDictionary<string, object> TagValues { get { return null; } }
+
+        public PtlDevice()
         {
-            this.Logger = logger;
-            this.Config = dvConfig;
-            this.client = client;
             this.tagsAction = new Dictionary<string, Action<string, object>>();
             this.sendDataQueue = new Queue<byte[]>();
             tagsActionLock = new object();
-
-            GetConfig(dvConfig);
-            //firstLoadRead = true;
-            //firstLoadWrite = true;
-            readGateOpen = false;
-            testGateOpen = false;
         }
+
+        public void Init(DeviceConfig dvConfig, ITcpClientAdapter client, ILogger logger)
+        {
+            this.client = client;
+            Init(dvConfig, logger);
+        }
+
+        public void Init(DeviceConfig dvConfig, ILogger logger)
+        {
+            this.Logger = logger;
+            this.Config = dvConfig;
+            this.client = new TcpClientAdapter();
+            GetConfig(dvConfig);
+        }
+
 
         private void GetConfig(DeviceConfig dvConfig)
         {
@@ -76,11 +87,24 @@ namespace Otm.Server.Device.Ptl
             this.ip = (cparts.FirstOrDefault(x => x.Contains("ip=")) ?? "").Replace("ip=", "").Trim();
             var strRack = (cparts.FirstOrDefault(x => x.Contains("port=")) ?? "").Replace("port=", "").Trim();
 
-            hasReadGate = bool.Parse((cparts.FirstOrDefault(x => x.Contains("HasReadGate=")) ?? "").Replace("HasReadGate=", "").Trim());
+            var hasReadGateParam = (cparts.FirstOrDefault(x => x.Contains("HasReadGate=")) ?? "").Replace("HasReadGate=", "").Trim();
+
+            if (string.IsNullOrWhiteSpace(hasReadGateParam))
+                hasReadGateParam = "false";
+
+            hasReadGate = bool.Parse(hasReadGateParam);
+
             testCardCode = (cparts.FirstOrDefault(x => x.Contains("TestCardCode=")) ?? "").Replace("TestCardCode=", "").Trim();
 
+            if (string.IsNullOrWhiteSpace(testCardCode))
+                testCardCode = "i88888888";
 
-            this.MasterDevice = Byte.Parse((cparts.FirstOrDefault(x => x.Contains("MasterDevice=")) ?? "").Replace("MasterDevice=", "").Trim());
+            var masterDeviceParam = (cparts.FirstOrDefault(x => x.Contains("MasterDevice=")) ?? "").Replace("MasterDevice=", "").Trim();
+
+            if (string.IsNullOrWhiteSpace(masterDeviceParam))
+                masterDeviceParam = "255";
+
+            this.MasterDevice = Byte.Parse(masterDeviceParam);
 
             this.port = 0;
             int.TryParse(strRack, out this.port);
@@ -321,14 +345,15 @@ namespace Otm.Server.Device.Ptl
                 var stxLcPos = SearchBytes(strRcvd, STX_LC);
                 var etxLcPos = SearchBytes(strRcvd, ETX_LC);
                 var stxAtPos = SearchBytes(strRcvd, STX_AT);
-                var stxAtMasterPos = SearchBytes(strRcvd, STX_AT_MASTER);
+                var stxAtMasterPos12 = SearchBytes(strRcvd, STX_AT_MASTER_DISP12);
+                var stxAtMasterPos8 = SearchBytes(strRcvd, STX_AT_MASTER_DISP08);
 
 
-                var posicoesRelevantesEncontradas = new List<int>() { stxLcPos, stxAtPos, stxAtMasterPos }                                                            
+                var posicoesRelevantesEncontradas = new List<int>() { stxLcPos, stxAtPos, stxAtMasterPos12, stxAtMasterPos8 }
                                                             .Where(x => x >= 0)
                                                             .OrderBy(x => x)
                                                             .ToList();
-                
+
                 //Se encontrou algo relevante processa, senão zera...
                 if (posicoesRelevantesEncontradas.Count > 0)
                 {
@@ -361,7 +386,7 @@ namespace Otm.Server.Device.Ptl
                                 cmd_count++;
                                 //received = true;
 
-                                if (cmdValue == testCardCode)
+                                if (cmd_rcvd == testCardCode)
                                 {
                                     EnviarComandoTeste();
                                 }
@@ -373,7 +398,7 @@ namespace Otm.Server.Device.Ptl
                                     }
                                     else if (tagsAction.ContainsKey("cmd_count"))
                                     {
-                                    tagsAction["cmd_count"]("cmd_count", cmd_count);
+                                        tagsAction["cmd_count"]("cmd_count", cmd_count);
                                     }
                                 }
 
@@ -407,9 +432,6 @@ namespace Otm.Server.Device.Ptl
                             if (subCmd == 252)
                             {
                                 Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. subCmd: 252 IGNORADO");
-                            }else if (testGateOpen)
-                            {
-                                Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. Test gate aberto");
                             }
                             else
                             {
@@ -440,20 +462,17 @@ namespace Otm.Server.Device.Ptl
                             receiveBuffer = receiveBuffer[(stxAtPos + len)..];
                         }
                     }
-                    else if (primeiraPosRelevante == stxAtMasterPos) //Se for um atendimento master
+                    else if ((primeiraPosRelevante == stxAtMasterPos12) || (primeiraPosRelevante == stxAtMasterPos8)) //Se for um atendimento master
                     {
-                        var len = 20;
+                        var posMaster = (primeiraPosRelevante == stxAtMasterPos12) ? stxAtMasterPos12 : stxAtMasterPos8;
+                        var len = (primeiraPosRelevante == stxAtMasterPos12) ? 20 : 17;
 
                         //verifica se ja tem 20 posicoes pra frente e processa
-                        if (strRcvd.Length >= stxAtMasterPos + len)
+                        if (strRcvd.Length >= posMaster + len)
                         {
                             readGateOpen = true;
 
-                            //Também finaliza o test gate
-                            EnviarComandoApagar();
-
-
-                            var cmdAT = strRcvd[stxAtMasterPos..(stxAtMasterPos + len)];
+                            var cmdAT = strRcvd[posMaster..(posMaster + len)];
 
                             var subCmd = cmdAT[6];
                             var subNode = cmdAT[7];
@@ -488,7 +507,7 @@ namespace Otm.Server.Device.Ptl
 
                             //Limpando o buffer que ja foi processado
                             //received = true;
-                            receiveBuffer = receiveBuffer[(stxAtMasterPos + len)..];
+                            receiveBuffer = receiveBuffer[(posMaster + len)..];
                         }
                     }
                 }
@@ -503,40 +522,12 @@ namespace Otm.Server.Device.Ptl
 
         private void EnviarBipLeituraMestre(byte MasterDevice)
         {
-            var buffer = new List<byte>();
-
-            /*
-            buffer.AddRange(new byte[] { 0x09, 0x00, 0x60, 0x00, 0x00, 0x00, 0x04, MasterDevice, 0x01, 0x01 });
-            sendDataQueue.Enqueue(buffer.ToArray());
-
-
-            buffer = new List<byte>();
-
-            buffer.AddRange(new byte[] { 0x9, 0x00, 0x60, 0x00, 0x00, 0x00, 0x04, MasterDevice, 0x00, 0x01 });
-            sendDataQueue.Enqueue(buffer.ToArray());
-            */
             Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. enviando BIP para o display mestre {MasterDevice}.");
         }
 
         private void EnviarComandoTeste()
         {
-            var buffer = new List<byte>();
-            byte broadcast = 0xFC; // geral
-            buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x13, broadcast });
-            sendDataQueue.Enqueue(buffer.ToArray());
-
             Logger.LogInformation($"EnviarComandoTeste(): Device: '{Config.Name}'. enviando Comando teste para o controlador.");
-            testGateOpen = true;
-        }
-        private void EnviarComandoApagar()
-        {
-            var buffer = new List<byte>();
-            byte broadcast = 0xFC; // geral
-            buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, broadcast });
-            sendDataQueue.Enqueue(buffer.ToArray());
-
-            Logger.LogInformation($"EnviarComandoTeste(): Device: '{Config.Name}'. enviando Comando apagar para o controlador.");
-            testGateOpen = false;
         }
 
         private static int SearchBytes(byte[] haystack, byte[] needle)

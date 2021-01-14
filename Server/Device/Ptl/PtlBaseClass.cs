@@ -140,7 +140,7 @@ namespace Otm.Server.Device.Ptl
                 else
                     return 0;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return 0;
             }

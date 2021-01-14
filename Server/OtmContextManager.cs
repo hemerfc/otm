@@ -15,7 +15,7 @@ namespace Otm.Server
     {
         private readonly Dictionary<string, OtmContext> _contexts;
 
-        private IReadOnlyDictionary<string, OtmContext> Contexts { get { return _contexts; } }
+        public IReadOnlyDictionary<string, OtmContext> Contexts { get { return _contexts; } }
 
         private readonly IConfigService ConfigService;
 
@@ -25,6 +25,8 @@ namespace Otm.Server
         {
             ConfigService = configService;
             StatusService = statusService;
+
+            StatusService.SetOtmContextManager(this);
 
             _contexts = new Dictionary<string, OtmContext>();
             // load config files

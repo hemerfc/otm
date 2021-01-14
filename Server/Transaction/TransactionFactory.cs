@@ -137,7 +137,7 @@ namespace Otm.Server.Transaction
                     var transaction = new Transaction(trConfig, devices[trConfig.DeviceName], dataPoints[trConfig.DataPointName], logger);
                     transactions[trConfig.Name] = transaction;
 
-                    logger.LogError($"Transaction {trConfig.Name}: Created");
+                    logger.LogInformation($"Transaction {trConfig.Name}: Created");
                 }
 
             return transactions;

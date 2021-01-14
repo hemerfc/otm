@@ -1,67 +1,27 @@
 ﻿@page "/dashboard"
-@using Microsoft.AspNetCore.SignalR.Client
-@using Microsoft.Extensions.Logging
+@using Microsoft.Extensions.Logging;
+@using Otm.Client.Api;
 
 @inject NavigationManager NavigationManager
-@inject ILoggerProvider loggingprovider;
-@inject ILoggerFactory LoggerFactory
-
-@implements IDisposable
+@inject ILogger<Dashboard> Logger;
 
 <h1>Dashboard</h1>
-
 <hr>
 
-
 <ul id="messagesList">
-    @foreach (var message in messages)
+    @foreach (var message in Messages)
     {
         <li>@message</li>
     }
 </ul>
 
 @code {
-    private HubConnection hubConnection;
-    private List<string> messages = new List<string>();
-    private ILogger<Log> logger;
+    private IEnumerable<string> Messages = new List<string>();
 
     protected override async Task OnInitializedAsync()
     {
-        logger = LoggerFactory.CreateLogger<Log>();
-
-        hubConnection = new HubConnectionBuilder()
-        .WithUrl(NavigationManager.ToAbsoluteUri("/hub/log"))
-        .WithAutomaticReconnect()
-        .ConfigureLogging(logging =>
-        {
-            logging.SetMinimumLevel(LogLevel.Trace);
-            logging.AddProvider(loggingprovider);
-        })
-        .Build();
-
-        hubConnection.On<string>("LogEvent", (msg) =>
-        {
-            var encodedMsg = $"{msg}";
-            messages.Add(encodedMsg);
-            StateHasChanged();
-        }); 
-
-        try
-        {
-            await hubConnection.StartAsync();
-        }
-        catch (Exception ex)
-        {
-            logger.LogInformation(ex.Message);
-        }
+        //Messages = (await LogClient.GetAsync());
+        Logger.LogInformation("Received {0} messages", Messages.Count());
+        StateHasChanged();
     }
-
-    public bool IsConnected =>
-        hubConnection.State == HubConnectionState.Connected;
-
-    public void Dispose()
-    {
-        _ = hubConnection.DisposeAsync();
-    }
-
 }

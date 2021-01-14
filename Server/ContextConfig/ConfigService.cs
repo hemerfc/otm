@@ -35,18 +35,18 @@ namespace Otm.Server.ContextConfig
             return configPath;
         }
 
-        public RootConfig Get(string id)
+        public OtmContextConfig Get(string id)
         {
             var configFolder = GetConfigFolder();
             var fileName = id + ".json";
             var configPath = Path.Combine(configFolder, fileName);
 
             var configString = File.ReadAllText(configPath);
-            var rootconfig = JsonSerializer.Deserialize<RootConfig>(configString);
+            var rootconfig = JsonSerializer.Deserialize<OtmContextConfig>(configString);
             return rootconfig;
         }
 
-        public ValidationResult ValidateCreate(RootConfig config)
+        public ValidationResult ValidateCreate(OtmContextConfig config)
         {
             var result = new ValidationResult();
 
@@ -69,7 +69,7 @@ namespace Otm.Server.ContextConfig
             return result;
         }
 
-        public ValidationResult ValidateUpdate(string oldId, RootConfig config)
+        public ValidationResult ValidateUpdate(string oldId, OtmContextConfig config)
         {
             var result = new ValidationResult();
 
@@ -102,23 +102,23 @@ namespace Otm.Server.ContextConfig
             return result;
         }
 
-        public void Create(RootConfig config)
+        public void Create(OtmContextConfig config)
         {
             var configFolder = GetConfigFolder();
             var fileName = config.Name + ".json";
             var configPath = Path.Combine(configFolder, fileName);
 
-            var configJson = JsonSerializer.Serialize<RootConfig>(config);
+            var configJson = JsonSerializer.Serialize<OtmContextConfig>(config);
             File.WriteAllText(configPath, configJson);
         }
 
-        public void Update(string oldId, RootConfig config)
+        public void Update(string oldId, OtmContextConfig config)
         {
             var configFolder = GetConfigFolder();
             var fileName = config.Name + ".json";
             var configPath = Path.Combine(configFolder, fileName);
 
-            var configJson = JsonSerializer.Serialize<RootConfig>(config);
+            var configJson = JsonSerializer.Serialize<OtmContextConfig>(config);
             File.WriteAllText(configPath, configJson);
 
             if (config.Name != oldId)

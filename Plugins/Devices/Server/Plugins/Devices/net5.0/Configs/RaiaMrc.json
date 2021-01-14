@@ -1,0 +1,93 @@
+{
+  "Name": "teste",
+  "Enabled": true,
+  "DataPoints": [
+    {
+      "Name": "sp_PendingMessages",
+      "Driver": "mssql",
+      "Config": "Server=localhost; Database=PICKTOLIGHTBR2; User Id=sa2; Password=sa2sa2;",
+      "Params": [
+        {
+          "Name": "mensagem",
+          "Mode": "ToOTM",
+          "TypeCode": "String",
+          "Length": 4000
+        }
+      ]
+    }
+  ],
+  "Devices": [
+    {
+<<<<<<< HEAD:Server/Configs/Nespresso_PTL.json
+      "Name": "ptl01",
+      "Driver": "ptl",
+      "Config": "ip=192.168.202.10;port=4660;MasterDevice=39;HasReadGate=True;TestCardCode=i88888888",
+=======
+      "Name": "manhattan",
+      "Driver": "RaiaMrcPTL",
+      "Config": "ip=192.168.202.10;port=4660;MasterDevice=39;hasReadGate=false",
+>>>>>>> d7c6ce37711b0d4d1c972fd09e93d65d66a0a81e:Plugins/Devices/Server/Plugins/Devices/net5.0/Configs/RaiaMrc.json
+      "Tags": [
+        {
+          "Name": "cmd_count",
+          "Address": "cmd_count",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "Int32"
+        },
+        {
+          "Name": "cmd_rcvd",
+          "Address": "cmd_rcvd",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "cmd_send",
+          "Address": "cmd_send",
+          "Rate": 0,
+          "Mode": "FromOTM",
+          "TypeCode": "String"
+        }
+      ]
+    }
+  ],
+  "Transactions": [
+    {
+      "Name": "ptl01_recv",
+      "DataPointName": "sp_EnviarLeitura",
+      "DeviceName": "ptl01",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "cmd_count",
+      "Binds": [
+        {
+          "DataPointParam": "ptl_id",
+          "Value": "001"
+        },
+        {
+          "DataPointParam": "mensagem",
+          "DeviceTag": "cmd_rcvd"
+        }
+      ]
+    },
+    {
+      "Name": "PendingCommands_cycle_p001",
+      "DataPointName": "sp_PendingCommands",
+      "DeviceName": "ptl01",
+      "TriggerType": "OnCycle",
+      "TriggerTime": 500,
+      "Binds": [
+        {
+          "DataPointParam": "p1",
+          "Value": "001"
+        },
+        {
+          "DataPointParam": "p2",
+          "DeviceTag": "cmd_send"
+        }
+      ]
+    }
+  ]
+}
+
+
