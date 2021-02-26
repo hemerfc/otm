@@ -63,7 +63,7 @@ namespace Otm.Server.DataPoint
                     logger.LogInformation($"DataPoint {dpConfig.Name}: Created");
                     break;
                 case "mssql":
-                    datapoint = new MsSqlDataPoint(dpConfig);
+                    datapoint = new MsSqlDataPoint(dpConfig, logger);
                     logger.LogInformation($"DataPoint {dpConfig.Name}: Created");
                     break;
                 case "script":

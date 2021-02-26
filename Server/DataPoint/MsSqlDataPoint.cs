@@ -15,9 +15,19 @@ namespace Otm.Server.DataPoint
         public string Name { get { return Config.Name; } }
         private DataPointConfig Config { get; set; }
 
-        public MsSqlDataPoint(DataPointConfig config)
+        private readonly ILogger logger;
+
+        public bool DebugMessages { get; set; }
+        public string Driver { get; set; }
+        public string Script { get; set; }
+
+        public MsSqlDataPoint(DataPointConfig config, ILogger logger)
         {
             Config = config;
+            this.logger = logger;
+            this.DebugMessages = config.DebugMessages;
+            this.Driver = config.Driver;
+            this.Script = config.Script;
         }
 
         public DataPointParamConfig GetParamConfig(string name)
@@ -31,6 +41,9 @@ namespace Otm.Server.DataPoint
 
             using (var conn = CreateConnection())
             {
+                if(this.DebugMessages)
+                    conn.InfoMessage += connection_InfoMessage;
+
 #pragma warning disable CA2100 // Review SQL queries for security vulnerabilities
                 using (var command = new SqlCommand(Config.Name, conn))
 #pragma warning restore CA2100 // Review SQL queries for security vulnerabilities
@@ -61,6 +74,8 @@ namespace Otm.Server.DataPoint
                         }
                     }
 
+                    
+
                     command.ExecuteNonQuery();
 
                     foreach (var param in Config.Params)
@@ -69,9 +84,18 @@ namespace Otm.Server.DataPoint
                             output[param.Name] = command.Parameters[param.Name].Value;
                     }
 
+
+
                     return output;
                 }
             }
+        }
+
+        public void connection_InfoMessage(object sender, SqlInfoMessageEventArgs e)
+        {
+            // this gets the print statements (maybe the error statements?)
+            var outputFromStoredProcedure = e.Message;
+            logger.LogInformation($"ProcOutput: {outputFromStoredProcedure}");
         }
 
         private SqlConnection CreateConnection()

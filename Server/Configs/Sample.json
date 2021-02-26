@@ -1,14 +1,41 @@
 {
-  "Name": "teste",
+  "Name": "Sample",
   "Enabled": true,
   "DataPoints": [
     {
-      "Name": "sp_PendingMessages",
+      "Name": "sp_EnviarLeitura",
       "Driver": "mssql",
-      "Config": "Server=localhost; Database=PICKTOLIGHTBR2; User Id=sa2; Password=sa2sa2;",
+      "DebugMessages" :  false,
+      "Config": "Server=localhost; Database=PICKTOLIGHTBR_PROD_NOVO; User ID=sa;Password=sa2sa2;",
       "Params": [
         {
+          "Name": "ptl_id",
+          "Mode": "FromOTM",
+          "TypeCode": "String",
+          "Length": 3
+        },
+        {
           "Name": "mensagem",
+          "Mode": "FromOTM",
+          "TypeCode": "String",
+          "Length": 100
+        }
+      ]
+    },
+    {
+      "Name": "sp_PendingCommands",
+      "Driver": "mssql",
+      "DebugMessages": false,
+      "Config": "Server=localhost; Database=PICKTOLIGHTBR_PROD_NOVO; User ID=sa;Password=sa2sa2;",
+      "Params": [
+        {
+          "Name": "p1",
+          "Mode": "FromOTM",
+          "TypeCode": "String",
+          "Length": 10
+        },
+        {
+          "Name": "p2",
           "Mode": "ToOTM",
           "TypeCode": "String",
           "Length": 4000
@@ -18,9 +45,9 @@
   ],
   "Devices": [
     {
-      "Name": "ptl01",
+      "Name": "ptl11",
       "Driver": "ptl",
-      "Config": "ip=192.168.202.10;port=4660;MasterDevice=39;HasReadGate=True;TestCardCode=i88888888",
+      "Config": "ip=192.168.1.13;port=4660;MasterDevice=40;HasReadGate=False;TestCardCode=i88888888",
       "Tags": [
         {
           "Name": "cmd_count",
@@ -48,15 +75,15 @@
   ],
   "Transactions": [
     {
-      "Name": "ptl01_recv",
+      "Name": "ptl11_recv",
       "DataPointName": "sp_EnviarLeitura",
-      "DeviceName": "ptl01",
+      "DeviceName": "ptl11",
       "TriggerType": "OnTagChange",
       "TriggerTagName": "cmd_count",
       "Binds": [
         {
           "DataPointParam": "ptl_id",
-          "Value": "001"
+          "Value": "011"
         },
         {
           "DataPointParam": "mensagem",
@@ -65,15 +92,15 @@
       ]
     },
     {
-      "Name": "PendingCommands_cycle_p001",
+      "Name": "PendingCommands_cycle_p011",
       "DataPointName": "sp_PendingCommands",
-      "DeviceName": "ptl01",
+      "DeviceName": "ptl11",
       "TriggerType": "OnCycle",
       "TriggerTime": 500,
       "Binds": [
         {
           "DataPointParam": "p1",
-          "Value": "001"
+          "Value": "011"
         },
         {
           "DataPointParam": "p2",
@@ -83,5 +110,3 @@
     }
   ]
 }
-
-

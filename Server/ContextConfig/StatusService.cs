@@ -40,7 +40,8 @@ namespace Otm.Server.ContextConfig
             {
                 Name = ctx.Config.Name,
                 Enabled = ctx.Config.Enabled,
-                DeviceStatus = new Dictionary<string, DeviceStatusDto>()
+                DeviceStatus = new Dictionary<string, DeviceStatusDto>(),
+                DataPointStatus = new Dictionary<string, DataPointStatusDto>()
             };
 
             if (ctx.Devices != null)
@@ -58,8 +59,26 @@ namespace Otm.Server.ContextConfig
                     ctxStatus.DeviceStatus[device.Name] = deviceStatusDto;
                 }
 
+            if (ctx.DataPoints != null)
+                foreach (var dataPoint in ctx.DataPoints.Values)
+                {
+                    var datapointStatusDto = new DataPointStatusDto
+                    {
+                        Name = dataPoint.Name,
+                        DebugMessages = dataPoint.DebugMessages,
+                        Script = dataPoint.Script,
+                        Driver = dataPoint.Driver,
+                    };
+
+                    ctxStatus.DataPointStatus[dataPoint.Name] = datapointStatusDto;
+                }
             return ctxStatus;
         }
 
+        public bool ToggleDebugMessages(string ctxName, string dataPointName)
+        {
+            OtmContextManager.Contexts[ctxName].DataPoints[dataPointName].DebugMessages = !OtmContextManager.Contexts[ctxName].DataPoints[dataPointName].DebugMessages;
+            return OtmContextManager.Contexts[ctxName].DataPoints[dataPointName].DebugMessages;
+        }
     }
 }

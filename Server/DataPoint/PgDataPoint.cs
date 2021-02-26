@@ -12,12 +12,19 @@ namespace Otm.Server.DataPoint
     public class PgDataPoint : IDataPoint
     {
         public string Name { get { return Config.Name; } }
-        private DataPointConfig Config { get; set; }
+        public DataPointConfig Config { get; set; }
+        public bool DebugMessages { get; set; }
+        public string Driver { get;  set; }
+        public string Script { get; set; }
+
         //private static readonly ILogger Logger = LoggerFactory.GetCurrentClassLogger();
 
         public PgDataPoint(DataPointConfig config)
         {
             Config = config;
+            this.DebugMessages = config.DebugMessages;
+            this.Driver = config.Driver;
+            this.Script = config.Script;
         }
 
         public DataPointParamConfig GetParamConfig(string name)

@@ -43,6 +43,26 @@
                         <ul class="nav-sub flex-column @(ctx.Collapsed ? "hide" : null)">
                             <li class="nav-item px-3">
                                 <a class="nav-link"><span class="oi oi-script" aria-hidden="true"></span> Data Point</a>
+
+                                @foreach (var dtp in ctx?.DataPointStatus?.Values)
+                                {
+                                    <ul class="nav-sub flex-column">
+                                        <li class="nav-item px-3">
+                                            <a class="nav-link"  @onclick="@(() => OnDataPointClick(ctx.Name, dtp.Name))"><i class="oi @((dtp.DebugMessages ? "oi-media-stop" : "oi-play-circle"))"></i>@(dtp.Name)</a>
+                                        </li>
+                                        @*
+                                            <li class="nav-item px-3">
+                                                <a class="nav-link"><span class="oi oi-script" aria-hidden="true"></span>Script: @(dtp.Value.Script)</a>
+                                            </li>
+                                            <li class="nav-item px-3">
+                                                <a class="nav-link"><span class="oi oi-script" aria-hidden="true"></span>Driver: @(dtp.Value.Driver)</a>
+                                            </li>
+                                            <li class="nav-item px-3">
+                                                <a class="nav-link"><span class="oi oi-script" aria-hidden="true"></span>DebugMessages: @(dtp.Value.DebugMessages)</a>
+                                            </li>
+                                        *@
+                                    </ul>
+                                }
                             </li>
                             <li class="nav-item px-3">
                                 <a class="nav-link"><span class="oi oi-monitor" aria-hidden="true"></span> Dispositivos</a>

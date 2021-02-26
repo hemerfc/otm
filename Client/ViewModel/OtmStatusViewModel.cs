@@ -9,10 +9,10 @@ namespace Otm.Client.ViewModel
     public class OtmStatusViewModel : ViewModelBase
     {
         private bool loading;
-        private Dictionary<string, ContextStatusViewModel> deviceStatus;
+        private Dictionary<string, ContextStatusViewModel> contextsStatus;
 
         public bool Loading { get => loading; set => SetField(ref loading, value); }
-        public Dictionary<string, ContextStatusViewModel> ContextsStatus { get => deviceStatus; set => SetField(ref deviceStatus, value); }
+        public Dictionary<string, ContextStatusViewModel> ContextsStatus { get => contextsStatus; set => SetField(ref contextsStatus, value); }
 
         public void UpdateViewModel(OtmStatusDto otmStatusDto)
         {

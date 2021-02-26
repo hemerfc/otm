@@ -30,6 +30,15 @@ namespace Otm.Client.Components
         {
             contextStatus.Collapsed = !contextStatus.Collapsed;
         }
+        public void OnDataPointClick(string ctxName, string dtpName)
+        {
+            StatusClient.ToggleDebugMessagesAsync(ctxName, dtpName, response =>
+            {
+                Console.WriteLine(response);
+                ViewModel.ContextsStatus[ctxName].DataPointStatus[dtpName].DebugMessages = response;
+                StateHasChanged();
+            });
+        }
 
         protected override async Task OnInitializedAsync()
         {
@@ -38,11 +47,11 @@ namespace Otm.Client.Components
                 {
                     ViewModel.UpdateViewModel(response);
                 });
-            
+
             BlazorTimer.OnElapsed += () =>
             {
                 Console.WriteLine("Timer Elapsed.");
-                
+
                 StatusClient.GetAsync(
                 response =>
                 {

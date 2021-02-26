@@ -16,5 +16,6 @@ namespace Otm.Server.ContextConfig
     {
         OtmStatusDto Get();
         void SetOtmContextManager(OtmContextManager otmContextManager);
+        bool ToggleDebugMessages(string ctxName, string dataPointName);
     }
 }

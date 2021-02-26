@@ -88,6 +88,13 @@ namespace Otm.Client.Api.Routes
 			string url = $@"api/{controller}/";
 			return url;
 		}
+
+		public static string ToggleDebugMessages(string ctxName, string dataPointName)
+		{
+			var controller = "Status";
+			string url = $@"api/{controller}/api/{controller}/ToggleDebugMessages?{nameof(ctxName)}={ctxName.EncodeForUrl()}&{nameof(dataPointName)}={dataPointName.EncodeForUrl()}";
+			return url;
+		}
 	}
 
 	public static class WeatherForecastClientRoutes
@@ -1660,6 +1667,10 @@ namespace Otm.Client.Api
 		HttpResponseMessage GetRaw(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
 		Task GetAsync(Action<OtmStatusDto> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
 		ValueTask<HttpResponseMessage> GetRawAsync(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		void ToggleDebugMessages(string ctxName, string dataPointName, Action<bool> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		HttpResponseMessage ToggleDebugMessagesRaw(string ctxName, string dataPointName, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		Task ToggleDebugMessagesAsync(string ctxName, string dataPointName, Action<bool> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		ValueTask<HttpResponseMessage> ToggleDebugMessagesRawAsync(string ctxName, string dataPointName, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
 	}
 
 	internal class StatusClient : IStatusClient
@@ -1857,6 +1868,222 @@ namespace Otm.Client.Api
 		{
 			var controller = "Status";
 			string url = $@"api/{controller}/";
+			HttpResponseMessage response = null;
+			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = await Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false);
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return null;
+				}
+
+				await HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false);
+			}
+
+			return response;
+		}
+
+		public void ToggleDebugMessages(string ctxName, string dataPointName, Action<bool> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "Status";
+			string url = $@"api/{controller}/api/{controller}/ToggleDebugMessages?{nameof(ctxName)}={ctxName.EncodeForUrl()}&{nameof(dataPointName)}={dataPointName.EncodeForUrl()}";
+			HttpResponseMessage response = null;
+			response = HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return;
+				}
+
+				HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			}
+
+			if (OKCallback != null && OKCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+			{
+				throw new NotSupportedException("Async void action delegates for OKCallback are not supported.As they will run out of the scope of this call.");
+			}
+
+			if (response.StatusCode == System.Net.HttpStatusCode.OK)
+			{
+				if (OKCallback != null)
+				{
+					responseHandled = true;
+					OKCallback.Invoke(Serializer.Deserialize<bool>(response.Content).ConfigureAwait(false).GetAwaiter().GetResult());
+				}
+			}
+
+			if (ResponseCallback != null && ResponseCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+			{
+				throw new NotSupportedException("Async void action delegates for ResponseCallback are not supported.As they will run out of the scope of this call.");
+			}
+
+			if (ResponseCallback != null)
+			{
+				responseHandled = true;
+				ResponseCallback.Invoke(response);
+			}
+
+			if (!responseHandled)
+			{
+				throw new System.InvalidOperationException($"Response Status of {response.StatusCode} was not handled properly.");
+			}
+
+			return;
+		}
+
+		public HttpResponseMessage ToggleDebugMessagesRaw(string ctxName, string dataPointName, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "Status";
+			string url = $@"api/{controller}/api/{controller}/ToggleDebugMessages?{nameof(ctxName)}={ctxName.EncodeForUrl()}&{nameof(dataPointName)}={dataPointName.EncodeForUrl()}";
+			HttpResponseMessage response = null;
+			response = HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return null;
+				}
+
+				HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			}
+
+			return response;
+		}
+
+		public async Task ToggleDebugMessagesAsync(string ctxName, string dataPointName, Action<bool> OKCallback = null, Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "Status";
+			string url = $@"api/{controller}/api/{controller}/ToggleDebugMessages?{nameof(ctxName)}={ctxName.EncodeForUrl()}&{nameof(dataPointName)}={dataPointName.EncodeForUrl()}";
+			HttpResponseMessage response = null;
+			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = await Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false);
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return;
+				}
+
+				await HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false);
+			}
+
+			if (OKCallback != null && OKCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+			{
+				throw new NotSupportedException("Async void action delegates for OKCallback are not supported.As they will run out of the scope of this call.");
+			}
+
+			if (response.StatusCode == System.Net.HttpStatusCode.OK)
+			{
+				if (OKCallback != null)
+				{
+					responseHandled = true;
+					OKCallback.Invoke(await Serializer.Deserialize<bool>(response.Content).ConfigureAwait(false));
+				}
+			}
+
+			if (ResponseCallback != null && ResponseCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+			{
+				throw new NotSupportedException("Async void action delegates for ResponseCallback are not supported.As they will run out of the scope of this call.");
+			}
+
+			if (ResponseCallback != null)
+			{
+				responseHandled = true;
+				ResponseCallback.Invoke(response);
+			}
+
+			if (!responseHandled)
+			{
+				throw new System.InvalidOperationException($"Response Status of {response.StatusCode} was not handled properly.");
+			}
+
+			return;
+		}
+
+		public async ValueTask<HttpResponseMessage> ToggleDebugMessagesRawAsync(string ctxName, string dataPointName, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "Status";
+			string url = $@"api/{controller}/api/{controller}/ToggleDebugMessages?{nameof(ctxName)}={ctxName.EncodeForUrl()}&{nameof(dataPointName)}={dataPointName.EncodeForUrl()}";
 			HttpResponseMessage response = null;
 			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
 			bool responseHandled = response != null;

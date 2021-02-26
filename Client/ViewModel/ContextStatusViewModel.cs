@@ -12,12 +12,14 @@ namespace Otm.Client.ViewModel
         private string name;
         private bool enabled;
         private Dictionary<string, DeviceStatusViewModel> deviceStatus;
+        private Dictionary<string, DataPointStatusViewModel> dataPointStatus;
 
         public string Name { get => name; set => SetField(ref name, value); }
 
         public bool Enabled { get => enabled; set => SetField(ref enabled, value); }
 
         public Dictionary<string, DeviceStatusViewModel> DeviceStatus { get => deviceStatus; set => SetField(ref deviceStatus, value); }
+        public Dictionary<string, DataPointStatusViewModel> DataPointStatus { get => dataPointStatus; set => SetField(ref dataPointStatus, value); }
         #endregion
 
         private bool collapsed = true;
@@ -36,9 +38,21 @@ namespace Otm.Client.ViewModel
                 foreach (var deviceDto in ctxDto.DeviceStatus.Values)
                 {
                     if (!DeviceStatus.ContainsKey(deviceDto.Name))
-                        DeviceStatus[ctxDto.Name] = new DeviceStatusViewModel();
+                        DeviceStatus[deviceDto.Name] = new DeviceStatusViewModel();
 
-                    DeviceStatus[ctxDto.Name].UpdateViewModel(deviceDto);
+                    DeviceStatus[deviceDto.Name].UpdateViewModel(deviceDto);
+                }
+
+            if (DataPointStatus == null)
+                DataPointStatus = new Dictionary<string, DataPointStatusViewModel>();
+
+            if (ctxDto.DataPointStatus != null)
+                foreach (var datapointDto in ctxDto.DataPointStatus.Values)
+                {
+                    if (!DataPointStatus.ContainsKey(datapointDto.Name))
+                        DataPointStatus[datapointDto.Name] = new DataPointStatusViewModel();
+
+                    DataPointStatus[datapointDto.Name].UpdateViewModel(datapointDto);
                 }
         }
     }

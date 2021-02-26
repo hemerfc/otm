@@ -15,12 +15,18 @@ namespace Otm.Server.DataPoint
     {
         public string Name { get { return Config.Name; } }
         private DataPointConfig Config { get; set; }
-        public Engine Engine { get; }
+        public Engine Engine { get;  }
+        public bool DebugMessages { get; set; }
+        public string Driver { get; }
+        public string Script { get; }
 
         public ScriptDataPoint(DataPointConfig config)
         {
             Config = config;
             Engine = new Engine();
+            this.DebugMessages = config.DebugMessages;
+            this.Driver = config.Driver;
+            this.Script = config.Script;
         }
 
         public DataPointParamConfig GetParamConfig(string name)
