@@ -38,5 +38,15 @@ namespace Otm.Server.Controllers
             return Ok(status);
         }
 
+
+        [Route("api/[controller]/ToggleDebugMessages")]
+        [HttpGet]
+        [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+        public IActionResult ToggleDebugMessages(string ctxName, string dataPointName)
+        {
+            var status = StatusService.ToggleDebugMessages(ctxName, dataPointName);
+
+            return Ok(status);
+        }
     }
 }

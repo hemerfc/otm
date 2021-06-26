@@ -22,10 +22,13 @@ namespace Otm.Server.Controllers
     {
         public ILogger<ConfigController> Logger { get; }
         public IConfigService ConfigService { get; }
-        public ConfigController(ILogger<ConfigController> logger, IConfigService configService)
+        public OtmContextManager ContextManager { get; }
+
+        public ConfigController(ILogger<ConfigController> logger, IConfigService configService, OtmContextManager contextManager)
         {
             this.Logger = logger;
             this.ConfigService = configService;
+            ContextManager = contextManager;
         }
 
         [HttpGet]
@@ -98,5 +101,7 @@ namespace Otm.Server.Controllers
             ConfigService.Delete(id);
             return Ok();
         }
+
+
     }
 }

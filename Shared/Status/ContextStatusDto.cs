@@ -13,5 +13,6 @@ namespace Otm.Shared.Status
         public bool Enabled { get; set; }
 
         public IDictionary<string, DeviceStatusDto> DeviceStatus { get;set;}
-}
+        public IDictionary<string, DataPointStatusDto> DataPointStatus { get; set; }
+    }
 }
