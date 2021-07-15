@@ -46,9 +46,9 @@ namespace Otm.Server.Transaction
                     }
 
                     // verify the trigger tag name
-                    if (trConfig.TriggerType == TriggerTypes.OnTagChange && !devices[trConfig.DeviceName].ContainsTag(trConfig.TriggerTagName))
+                    if (trConfig.TriggerType == TriggerTypes.OnTagChange && !devices[trConfig.SourceDeviceName].ContainsTag(trConfig.TriggerTagName))
                     {
-                        var ex = new Exception($"Invalid TriggerTagName name in Transaction config. TriggerTagName ({trConfig.TriggerTagName}) Device ({trConfig.DeviceName}) Transaction ({trConfig.Name})");
+                        var ex = new Exception($"Invalid TriggerTagName name in Transaction config. TriggerTagName ({trConfig.TriggerTagName}) Device ({trConfig.SourceDeviceName}) Transaction ({trConfig.Name})");
                         ex.Data.Add("field", "Name");
                         throw ex;
                     }
@@ -71,9 +71,9 @@ namespace Otm.Server.Transaction
 
 
                     // verify the device name
-                    if (!devices.ContainsKey(trConfig.DeviceName) && devices[trConfig.DeviceName] == null)
+                    if (!devices.ContainsKey(trConfig.SourceDeviceName) && devices[trConfig.SourceDeviceName] == null)
                     {
-                        var ex = new Exception($"Invalid DeviceName name in Transaction config. DeviceName ({trConfig.DeviceName}) Transaction ({trConfig.Name})");
+                        var ex = new Exception($"Invalid DeviceName name in Transaction config. DeviceName ({trConfig.SourceDeviceName}) Transaction ({trConfig.Name})");
                         ex.Data.Add("field", "DeviceName");
                         throw ex;
                     }
@@ -82,7 +82,7 @@ namespace Otm.Server.Transaction
                     {
                         // verify each bind
                         var dpParam = dataPoints[trConfig.DataPointName].GetParamConfig(bind.DataPointParam);
-                        var dvTag = devices[trConfig.DeviceName].GetTagConfig(bind.DeviceTag);
+                        var dvTag = devices[trConfig.SourceDeviceName].GetTagConfig(bind.DeviceTag);
 
                         // verify the DataPointParam of bind
                         if (dpParam == null)
@@ -134,7 +134,7 @@ namespace Otm.Server.Transaction
                         }
                     }
 
-                    var transaction = new Transaction(trConfig, devices[trConfig.DeviceName], dataPoints[trConfig.DataPointName], logger);
+                    var transaction = new Transaction(trConfig, devices[trConfig.SourceDeviceName], dataPoints[trConfig.DataPointName], logger);
                     transactions[trConfig.Name] = transaction;
 
                     logger.LogInformation($"Transaction {trConfig.Name}: Created");

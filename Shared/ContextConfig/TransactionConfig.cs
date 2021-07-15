@@ -7,7 +7,8 @@ namespace Otm.Shared.ContextConfig
     {
         public string Name { get; set; }
         public string DataPointName { get; set; }
-        public string DeviceName { get; set; }
+        public string SourceDeviceName { get; set; }
+        public string TargetDeviceName { get; set; }
 
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public TriggerTypes TriggerType { get; set; }
