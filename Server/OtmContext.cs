@@ -42,7 +42,7 @@ namespace Otm.Server
             }
         }
 
-        public void Start()
+        public bool Start()
         {
             Logger.LogInformation($"OTM  {Config.Name} Context starting...");
 
@@ -56,44 +56,57 @@ namespace Otm.Server
                     }
                 }
 
-            // wait Devices start
-            Thread.Sleep(2000);
+                // wait Devices start
+                Thread.Sleep(2000);
 
-            if (Transactions != null)
-            {
-                foreach (var trans in Transactions.Values)
+                if (Transactions != null)
                 {
-                    BuildWorkerAndStart(trans.Name, trans.Start);
+                    foreach (var trans in Transactions.Values)
+                    {
+                        BuildWorkerAndStart(trans.Name, trans.Start);
+                    }
                 }
-            }
 
                 Logger.LogInformation($"OTM {Config.Name} Context started!");
+
+                return true;
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, $"OTM {Config.Name} Context starting error!");
+                return false;
             }
         }
 
-        public void Stop()
+        public bool Stop()
         {
-            Logger.LogInformation($"OTM {Config.Name} Context stoping...");
+            try
+            {
 
-            var workers = new List<BackgroundWorker>();
+                Logger.LogInformation($"OTM {Config.Name} Context stoping...");
 
-            workers.AddRange(Devices.Select(s => s.Value.Worker));
+                var workers = new List<BackgroundWorker>();
 
-            workers.AddRange(Transactions.Select(s => s.Value.Worker));
+                workers.AddRange(Devices.Select(s => s.Value.Worker));
 
-            foreach (var worker in workers)
-                worker?.CancelAsync(); // ? to avoid a complex mock setup
+                workers.AddRange(Transactions.Select(s => s.Value.Worker));
 
-            var busyWaitEvent = new ManualResetEvent(false);
+                foreach (var worker in workers)
+                    worker?.CancelAsync(); // ? to avoid a complex mock setup
 
-            while (workers.Any(w => (w?.IsBusy) ?? false))
-                busyWaitEvent.WaitOne(500); // aguarda 500ms
+                var busyWaitEvent = new ManualResetEvent(false);
 
-            Logger.LogInformation($"OTM {Config.Name} Context stoped!");
+                while (workers.Any(w => (w?.IsBusy) ?? false))
+                    busyWaitEvent.WaitOne(500); // aguarda 500ms
+
+                Logger.LogInformation($"OTM {Config.Name} Context stoped!");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, $"OTM {Config.Name} Context stoping error!");
+                return false;
+            }
         }
 
         private void BuildWorkerAndStart(string name, Action<BackgroundWorker> StartAction)
@@ -130,5 +143,6 @@ namespace Otm.Server
                 Logger.LogError(ex, $"Error on start of {name} ");
             }
         }
+
     }
 }

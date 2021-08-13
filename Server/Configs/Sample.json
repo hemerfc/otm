@@ -3,10 +3,11 @@
   "Enabled": true,
   "DataPoints": [
     {
+      "Id": "CD64F654-0A2A-44CD-3619-08D832556BD1",
       "Name": "sp_EnviarLeitura",
       "Driver": "mssql",
       "DebugMessages": false,
-      "Config": "Server=localhost; Database=QuickFlow_DHL; User ID=sa3;Password=sa3sa3;",
+      "Config": "Server=localhost; Database=PICKTOLIGHTBR_PROD_NOVO; User ID=sa;Password=sa2sa2;",
       "Params": [
         {
           "Name": "ptl_id",
@@ -23,10 +24,11 @@
       ]
     },
     {
+      "Id": "23FDCC9E-03C3-45BF-361A-08D832556BD1",
       "Name": "sp_PendingCommands",
       "Driver": "mssql",
       "DebugMessages": false,
-      "Config": "Server=localhost; Database=QuickFlow_DHL; User ID=sa3;Password=sa3sa3;",
+      "Config": "Server=localhost; Database=PICKTOLIGHTBR_PROD_NOVO; User ID=sa;Password=sa2sa2;",
       "Params": [
         {
           "Name": "p1",
@@ -41,13 +43,14 @@
           "Length": 4000
         }
       ]
-    }    
+    }
   ],
   "Devices": [
     {
-      "Name": "ptl01",
+      "Id": "90D73506-2ED5-4ED0-361F-08D832556BD1",
+      "Name": "ptl11",
       "Driver": "ptl",
-      "Config": "ip=192.168.10.45;port=4660;MasterDevice=39;HasReadGate=False;TestCardCode=i88888888",
+      "Config": "ip=192.168.1.13;port=4660;MasterDevice=40;HasReadGate=False;TestCardCode=i88888888",
       "Tags": [
         {
           "Name": "cmd_count",
@@ -71,47 +74,20 @@
           "TypeCode": "String"
         }
       ]
-    },
-    {
-      "Name": "Rabbit01",
-      "Driver": "RabbitMq",
-      "Config": "url=http://rabbitmq;port=15672",
-      "Tags": [
-        {
-          "Name": "exchangeType",
-          "Address": "topic_logs",
-          "Rate": 0,
-          "Mode": "ToOTM",
-          "TypeCode": "Int32"
-        },
-        {
-          "Name": "cmd_rcvd",
-          "Address": "cmd_rcvd",
-          "Rate": 0,
-          "Mode": "ToOTM",
-          "TypeCode": "String"
-        },
-        {
-          "Name": "cmd_send",
-          "Address": "cmd_send",
-          "Rate": 0,
-          "Mode": "FromOTM",
-          "TypeCode": "String"
-        }
-      ]
     }
   ],
   "Transactions": [
     {
-      "Name": "ptl01_recv",
+      "Id": "DED48657-857D-4EA3-3620-08D832556BD1",
+      "Name": "ptl11_recv",
       "DataPointName": "sp_EnviarLeitura",
-      "DeviceName": "ptl01",
+      "DeviceName": "ptl11",
       "TriggerType": "OnTagChange",
-      "TriggerSourceName": "cmd_count",
+      "TriggerTagName": "cmd_count",
       "Binds": [
         {
           "DataPointParam": "ptl_id",
-          "Value": "001"
+          "Value": "011"
         },
         {
           "DataPointParam": "mensagem",
@@ -120,45 +96,20 @@
       ]
     },
     {
-      "Name": "PendingCommands_cycle_p001",
+      "Id": "26D36ED8-A397-433E-3621-08D832556BD1",
+      "Name": "PendingCommands_cycle_p011",
       "DataPointName": "sp_PendingCommands",
-      "DeviceName": "ptl01",
+      "DeviceName": "ptl11",
       "TriggerType": "OnCycle",
       "TriggerTime": 500,
       "Binds": [
         {
           "DataPointParam": "p1",
-          "Value": "001"
+          "Value": "011"
         },
         {
           "DataPointParam": "p2",
           "DeviceTag": "cmd_send"
-        }
-      ]
-    },
-    {
-      "Name": "PendingCommands_rbb_ptl01",
-      "DataPointName": "sp_PendingCommands",
-      "SourceDeviceName": "Rabbit01",
-      "TargetDeviceName": "ptl01",
-      "TriggerType": "OnMessageReceived",
-      "TriggerSourceName": "exchangeType=topic_logs;type=topic;queryFilter=ptl_5_atendimento",
-      "Binds": [
-        {
-          "DataPointParam": "hostname",
-          "Value": "localhost"
-        },
-        {
-          "DataPointParam": "exchange",
-          "Value": "topic_logs"
-        },
-        {
-          "DataPointParam": "type",
-          "Value": "topic"
-        },
-        {
-          "DataPointParam": "filter",
-          "DeviceTag": "Rabbit01.ptl_5_atendimento"
         }
       ]
     }

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using System.Linq;
 using Otm.Server.ContextConfig;
 using Otm.Server.Services;
+using VueCliMiddleware;
 
 namespace Otm.Server
 {
@@ -17,21 +18,35 @@ namespace Otm.Server
         {
             Configuration = configuration;
             ConfigService = new ConfigService();
+            ContextService = new ContextService();
             StatusService = new StatusService();
+            DeviceService = new DeviceService();
+            TransactionService = new TransactionService();
         }
 
         public IConfiguration Configuration { get; }
+        public ContextService ContextService { get; }
         public ConfigService ConfigService { get; }
         public StatusService StatusService { get; }
+        public DeviceService DeviceService { get; }
+        public TransactionService TransactionService { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllersWithViews();
-            services.AddRazorPages();
+            //services.AddControllersWithViews();
+            //services.AddRazorPages();
+            services.AddControllers();
+            services.AddSpaStaticFiles(configuration =>
+            {
+                configuration.RootPath = "clientApp";
+            });
             services.AddSingleton<IConfigService>(ConfigService);
+            services.AddSingleton<IContextService>(ContextService);
             services.AddSingleton<IStatusService>(StatusService);
+            services.AddSingleton<IDeviceService>(DeviceService);
+            services.AddSingleton<ITransactionService>(TransactionService);
             services.AddHostedService<OtmWorkerService>();
         }
 
@@ -56,12 +71,31 @@ namespace Otm.Server
 
             app.UseRouting();
 
+
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapRazorPages();
                 endpoints.MapControllers();
-                endpoints.MapFallbackToFile("index.html");
             });
+
+            app.UseSpa(spa =>
+            {
+                if (env.IsDevelopment())
+                    spa.Options.SourcePath = "ClientApp/";
+                else
+                    spa.Options.SourcePath = "dist";
+
+                if (env.IsDevelopment())
+                {
+                    spa.UseVueCli(npmScript: "serve");
+                }
+            });
+
+            //app.UseEndpoints(endpoints =>
+            //{
+            //    endpoints.MapRazorPages();
+            //    endpoints.MapControllers();
+            //    endpoints.MapFallbackToFile("index.html");
+            //});
         }
     }
 }

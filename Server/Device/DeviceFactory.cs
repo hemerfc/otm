@@ -44,12 +44,6 @@ namespace Otm.Server.Device
                             devices.Add(dvConfig.Name, ptlDevice);
                             logger.LogError($"Device {dvConfig?.Name}: Created");
                             break;
-                        case "RabbitMq":
-                            var rabbitMqDevice = new RabbitMqDevice();
-                            rabbitMqDevice.Init(dvConfig, logger);
-                            devices.Add(dvConfig.Name, rabbitMqDevice);
-                            logger.LogError($"Device {dvConfig?.Name}: Created");
-                            break;
                         default:
                             try
                             {

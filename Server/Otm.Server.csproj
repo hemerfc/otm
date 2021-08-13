@@ -6,6 +6,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="clientapp\src\views\NovaPasta\**" />
+	  <Content Remove="clientapp\src\views\NovaPasta\**" />
+	  <EmbeddedResource Remove="clientapp\src\views\NovaPasta\**" />
+	  <None Remove="clientapp\src\views\NovaPasta\**" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Beffyman.AspNetCore.Server" Version="1.0.2" />
 		<PackageReference Include="FluentValidation.AspNetCore" Version="9.3.0" />
 		<PackageReference Include="Jint" Version="2.11.58" />
@@ -13,10 +20,9 @@
 		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="3.1.8" />
 		<PackageReference Include="NLog.Web.AspNetCore" Version="4.9.3" />
 		<PackageReference Include="Npgsql" Version="4.1.4" />
-		<PackageReference Include="RabbitMQ.Client" Version="6.2.1" />
-		<PackageReference Include="SqlTableDependency" Version="8.5.8" />
 		<PackageReference Include="System.Data.SqlClient" Version="4.8.1" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="5.0.0" />
+		<PackageReference Include="VueCliMiddleware" Version="5.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -25,6 +31,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<Folder Include="clientapp\src\views\NovaPasta1\" />
 		<Folder Include="Logs\" />
 	</ItemGroup>
 	<ItemGroup>

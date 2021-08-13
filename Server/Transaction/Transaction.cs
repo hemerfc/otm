@@ -20,8 +20,7 @@ namespace Otm.Server.Transaction
         public BackgroundWorker Worker { get; private set; }
 
         private TransactionConfig config;
-        private IDevice sourceDevice;
-        private IDevice targetDevice;
+        private IDevice device;
         private IDataPoint dataPoint;
 
         public BlockingCollection<Dictionary<string, object>> TriggerQueue { get; private set; }
@@ -29,18 +28,14 @@ namespace Otm.Server.Transaction
 
         private readonly ILogger logger;
 
-        private bool firstCall = true;
-
-        public Transaction(TransactionConfig trConfig, IDevice sourceDevice, IDevice targetDevice, IDataPoint dataPoint, ILogger logger)
+        public Transaction(TransactionConfig trConfig, IDevice device, IDataPoint dataPoint, ILogger logger)
         {
             this.logger = logger;
             this.config = trConfig;
-            this.sourceDevice = sourceDevice;
-            this.targetDevice = targetDevice;
+            this.device = device;
             this.dataPoint = dataPoint;
             this.TriggerQueue = new BlockingCollection<Dictionary<string, object>>(128);
             Stopwatch = new Stopwatch();
-            firstCall = true;
         }
 
         public void Start(BackgroundWorker worker)
@@ -52,7 +47,7 @@ namespace Otm.Server.Transaction
             {
                 // assina o delagator do datapoint, quando o valor da TriggerTagName for atualizado
                 // dispara o metodo OnTrigger, que coloca o gatilho na TriggerQueue
-                sourceDevice.OnTagChangeAdd(config.TriggerTagName, this.OnTrigger);
+                device.OnTagChangeAdd(config.TriggerTagName, this.OnTrigger);
             }
 
             while (true)
@@ -60,43 +55,24 @@ namespace Otm.Server.Transaction
 
                 try
                 {
-                    switch (config.TriggerType)
+                    if (config.TriggerType == TriggerTypes.OnTagChange)
                     {
-                        case TriggerTypes.OnTagChange:
-                            {
-                                Dictionary<string, object> inParams; // = GetInParams();
-                                                                     // wait a trigger or 100ms
-                                if (TriggerQueue.TryTake(out inParams, 100))
-                                    ExecuteTrigger(inParams);
-                            }
-                            break;
-                        case TriggerTypes.OnCycle:
-                            {
-                                var waitEvent = new ManualResetEvent(false);
-                                var inParams = GetInParams();
+                        Dictionary<string, object> inParams; // = GetInParams();
+                        // wait a trigger or 100ms
+                        if (TriggerQueue.TryTake(out inParams, 100))
+                            ExecuteTrigger(inParams);
+                    }
 
-                                waitEvent.WaitOne(config.TriggerTime); // aguarda XXXms
-                                if (sourceDevice.Ready)
-                                {
-                                    ExecuteTrigger(inParams);
-                                }
-                            }
-                            break;
-                        case TriggerTypes.OnMessageReceived:
-                            {
+                    if (config.TriggerType == TriggerTypes.OnCycle)
+                    {
+                        var waitEvent = new ManualResetEvent(false);
+                        var inParams = GetInParams();
 
-                                var inParams = GetInParams();
-
-                                if (sourceDevice.Ready)
-                                {
-                                    ExecuteTrigger(inParams);
-                                }
-
-                                firstCall = false;
-                            }
-                            break;
-                        default:
-                            break;
+                        waitEvent.WaitOne(config.TriggerTime); // aguarda XXXms
+                        if (device.Ready)
+                        {
+                            ExecuteTrigger(inParams);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -114,7 +90,7 @@ namespace Otm.Server.Transaction
 
         public void Stop()
         {
-            sourceDevice.OnTagChangeRemove(config.TriggerTagName, this.OnTrigger);
+            device.OnTagChangeRemove(config.TriggerTagName, this.OnTrigger);
         }
 
         public void OnTrigger(string tagName, Object value)
@@ -149,11 +125,11 @@ namespace Otm.Server.Transaction
 
                     if (!string.IsNullOrWhiteSpace(bind.DeviceTag))
                     {
-                        var tag = sourceDevice.GetTagConfig(bind.DeviceTag);
+                        var tag = device.GetTagConfig(bind.DeviceTag);
 
                         if (tag.Mode == Modes.FromOTM) // from OTM to device  
                         {
-                            sourceDevice.SetTagValue(tag.Name, outParams[dp.Name]);
+                            device.SetTagValue(tag.Name, outParams[dp.Name]);
                         }
                     }
                 }
@@ -196,11 +172,11 @@ namespace Otm.Server.Transaction
                 // if DeviceTag is set, get value from device
                 if (!string.IsNullOrWhiteSpace(bind.DeviceTag))
                 {
-                    var tag = sourceDevice.GetTagConfig(bind.DeviceTag);
+                    var tag = device.GetTagConfig(bind.DeviceTag);
 
                     if (tag.Mode == Modes.ToOTM) // from device to OTM  
                     {
-                        inParams[dp.Name] = sourceDevice.GetTagValue(tag.Name);
+                        inParams[dp.Name] = device.GetTagValue(tag.Name);
                     }
                 }
                 else // use the static value, provided
