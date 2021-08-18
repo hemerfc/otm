@@ -1,3 +1,3 @@
-[submodule "Server/ClientApp"]
-	path = Server/ClientApp
+[submodule "Server/Client"]
+	path = Server/Client
 	url = https://github.com/leandroSalamaia/OTM-FrontEnd.git
