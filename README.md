@@ -1,7 +1,7 @@
 # OTM - Open Transaction Manager
  
  ## Project setup
- rodar comando
+ Depois de baixar o projeto, rodar comando
 ```
 git submodule init
 ```
