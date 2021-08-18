@@ -8,7 +8,7 @@ git submodule init
 ```
 git submodule update
 ```
-acessar a pasta Server/ClientApp e rodar 
+acessar a pasta Server/Client e rodar 
 ```
 npm install
 ```
