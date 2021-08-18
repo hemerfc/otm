@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Otm.Server.ContextConfig;
+using Otm.Server.Device.S7;
 using Otm.Shared.ContextConfig;
 using System;
 using System.Collections.Generic;
@@ -61,6 +62,34 @@ namespace Otm.Server.Controllers
             {
                 DeviceService.DeleteDevice(name);
                 result.result = true;
+            }
+            catch (Exception e)
+            {
+                result.result = false;
+                result.message = e.Message;
+            }
+
+            return Ok(result);
+        }
+
+        // POST api/Device/TestConnectionS7
+        [HttpPost]
+        [Route("TestConnectionS7")]
+        public IActionResult TestConnectionS7([FromBody] DeviceInput input)
+        {
+            var result = new ResultApi();
+            try
+            {
+                var client = new S7Client() { PduSizeRequested = 960 };
+                client.ConnectTo(input.host, input.slot, input.rack);
+                if (client.Connected)
+                {
+                    client.Disconnect();
+                    result.result = true;
+                }
+                else {
+                    result.result = false;
+                }
             }
             catch (Exception e)
             {

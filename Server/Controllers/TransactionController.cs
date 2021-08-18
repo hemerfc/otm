@@ -72,5 +72,15 @@ namespace Otm.Server.Controllers
 
             return Ok(result);
         }
+
+        // GET api/GetData?name=
+        [HttpPost]
+        [Route("GetData")]
+        public IActionResult GetData([FromBody] TransactionInput input)
+        {
+            var configFiles = ConfigService.Get(input.ContextName);
+
+            return Ok(configFiles);
+        }
     }
 }
