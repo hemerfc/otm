@@ -6,10 +6,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Remove="clientapp\src\views\NovaPasta\**" />
-	  <Content Remove="clientapp\src\views\NovaPasta\**" />
-	  <EmbeddedResource Remove="clientapp\src\views\NovaPasta\**" />
-	  <None Remove="clientapp\src\views\NovaPasta\**" />
+	  <Compile Remove="clientapp\**" />
+	  <Content Remove="clientapp\**" />
+	  <EmbeddedResource Remove="clientapp\**" />
+	  <None Remove="clientapp\**" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -31,7 +31,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="clientapp\src\views\NovaPasta1\" />
 		<Folder Include="Logs\" />
 	</ItemGroup>
 	<ItemGroup>

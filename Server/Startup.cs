@@ -21,6 +21,7 @@ namespace Otm.Server
             ContextService = new ContextService();
             StatusService = new StatusService();
             DeviceService = new DeviceService();
+            LogsService = new LogsService();
             TransactionService = new TransactionService();
         }
 
@@ -29,6 +30,7 @@ namespace Otm.Server
         public ConfigService ConfigService { get; }
         public StatusService StatusService { get; }
         public DeviceService DeviceService { get; }
+        public LogsService LogsService { get; }
         public TransactionService TransactionService { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -40,13 +42,14 @@ namespace Otm.Server
             services.AddControllers();
             services.AddSpaStaticFiles(configuration =>
             {
-                configuration.RootPath = "clientApp";
+                configuration.RootPath = "client";
             });
             services.AddSingleton<IConfigService>(ConfigService);
             services.AddSingleton<IContextService>(ContextService);
             services.AddSingleton<IStatusService>(StatusService);
             services.AddSingleton<IDeviceService>(DeviceService);
             services.AddSingleton<ITransactionService>(TransactionService);
+            services.AddSingleton<ILogsService>(LogsService);
             services.AddHostedService<OtmWorkerService>();
         }
 
@@ -80,7 +83,7 @@ namespace Otm.Server
             app.UseSpa(spa =>
             {
                 if (env.IsDevelopment())
-                    spa.Options.SourcePath = "ClientApp/";
+                    spa.Options.SourcePath = "Client/";
                 else
                     spa.Options.SourcePath = "dist";
 
