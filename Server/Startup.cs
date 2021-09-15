@@ -42,7 +42,7 @@ namespace Otm.Server
             services.AddControllers();
             services.AddSpaStaticFiles(configuration =>
             {
-                configuration.RootPath = "client";
+                configuration.RootPath = "Client/dist";
             });
             services.AddSingleton<IConfigService>(ConfigService);
             services.AddSingleton<IContextService>(ContextService);
@@ -80,13 +80,15 @@ namespace Otm.Server
                 endpoints.MapControllers();
             });
 
+            app.UseSpaStaticFiles();
             app.UseSpa(spa =>
             {
-                if (env.IsDevelopment())
-                    spa.Options.SourcePath = "Client/";
-                else
-                    spa.Options.SourcePath = "dist";
+                //if (env.IsDevelopment())
+                //    spa.Options.SourcePath = "Client/";
+                //else
+                //    spa.Options.SourcePath = "dist";
 
+                spa.Options.SourcePath = "Client/";
                 if (env.IsDevelopment())
                 {
                     spa.UseVueCli(npmScript: "serve");
