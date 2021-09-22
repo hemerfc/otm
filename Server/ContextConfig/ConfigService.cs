@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -21,7 +23,8 @@ namespace Otm.Server.ContextConfig
                         {
                             Name = Path.GetFileNameWithoutExtension(f),
                             Path = f,
-                            ModifiedAt = System.IO.File.GetLastWriteTime(f)
+                            ModifiedAt = System.IO.File.GetLastWriteTime(f),
+                            Status = Get(Path.GetFileNameWithoutExtension(f)).Enabled
                         }).OrderBy(x => x.Name);
 
             return envFiles;
@@ -143,5 +146,88 @@ namespace Otm.Server.ContextConfig
             var configPath = Path.Combine(configFolder, fileName);
             File.Delete(configPath);
         }
+
+        public SqlConnection CreateConnection(string connection)
+        {
+            SqlConnection conn = new SqlConnection(connection);
+            return conn;
+        }
+
+        public void CreateDatapoint(DataPointConfig dataPoint)
+        {
+            var configFolder = GetConfigFolder();
+            var fileName = dataPoint.ContextName + ".json";
+            var configPath = Path.Combine(configFolder, fileName);
+
+            var configString = File.ReadAllText(configPath);
+            var config = JsonSerializer.Deserialize<OtmContextConfig>(configString);
+            var index = config.DataPoints.Where(e => e.Id == dataPoint.Id).ToList();
+
+            if (index.Count() > 0)
+            {
+                foreach (var dp in config.DataPoints) {
+                    if (dp.Id == dataPoint.Id) {
+                        dp.Name = dataPoint.Name;
+                        dp.Config = dataPoint.Config;
+                        dp.DebugMessages = dataPoint.DebugMessages;
+                        dp.Params = dataPoint.Params;
+                    }
+                }
+            }
+            else{
+                dataPoint.Id = Guid.NewGuid();
+                config.DataPoints.Add(dataPoint);
+            }
+
+            var configJson = JsonSerializer.Serialize<OtmContextConfig>(config);
+            File.WriteAllText(configPath, configJson);
+        }
+
+        public void DeleteDataPoint(DataPointInput input) {
+            var configFolder = GetConfigFolder();
+            var fileName = input.ContextName + ".json";
+            var configPath = Path.Combine(configFolder, fileName);
+
+            var configString = File.ReadAllText(configPath);
+            var config = JsonSerializer.Deserialize<OtmContextConfig>(configString);
+
+            var index = config.DataPoints.FindIndex(row => row.Id == input.Id);
+            config.DataPoints.RemoveAt(index);
+
+            var configJson = JsonSerializer.Serialize<OtmContextConfig>(config);
+            File.WriteAllText(configPath, configJson);
+        }
+
+        //public SqlDataReader executeProcedure(DataPointConfig dataPoint){
+        //    SqlConnection conn = new SqlConnection(dataPoint.Config);
+
+        //    var cmd = conn.CreateCommand();
+        //    cmd.CommandText = dataPoint.Name;
+        //    cmd.CommandType = CommandType.StoredProcedure;
+
+        //    foreach (var dp in dataPoint.Params)
+        //    {
+        //        if (dp.Direction == 0)
+        //        {
+        //            SqlParameter param = new SqlParameter();
+        //            param.ParameterName = dp.Name;
+        //            param.Size = (int)dp.Length;
+        //            param.Value = dp.Value;
+        //            cmd.Parameters.Add(param);
+        //        }
+        //        else {
+        //            SqlParameter param = new SqlParameter();
+        //            param.ParameterName = dp.Name;
+        //            param.Size = (int)dp.Length;
+        //            param.Direction = ParameterDirection.Output;
+        //            cmd.Parameters.Add(param);
+        //        }
+        //    }
+
+        //    conn.Open();
+
+        //    SqlDataReader reader = cmd.ExecuteReader();
+        //    return reader;
+        //}
     }
 }

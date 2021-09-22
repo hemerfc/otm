@@ -1,0 +1,12 @@
+version: '3.4'
+
+services:
+  otm.server:
+    image: ${DOCKER_REGISTRY-}otmserver
+    build:
+      context: .
+      dockerfile: Server/Dockerfile
+    ports:
+    - 5001:80
+    environment:
+     - ASPNETCORE_ENVIRONMENT=Production 

@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Otm.Shared.ContextConfig;
 using System.Collections.Generic;
+using NLog.Web;
 
 namespace Otm.Server.Controllers
 {
@@ -36,7 +37,6 @@ namespace Otm.Server.Controllers
         public IActionResult GetAll()
         {
             var configFiles = ConfigService.GetAll();
-
             return Ok(configFiles);
         }
 
@@ -101,7 +101,6 @@ namespace Otm.Server.Controllers
             ConfigService.Delete(id);
             return Ok();
         }
-
 
     }
 }

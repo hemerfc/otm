@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -24,5 +25,13 @@ namespace Otm.Server.ContextConfig
         void Update(string oldId, OtmContextConfig config);
         bool Exists(string id);
         void Delete(string id);
+
+        SqlConnection CreateConnection(string connection);
+
+        void CreateDatapoint(DataPointConfig dataPoint);
+
+        void DeleteDataPoint(DataPointInput name);
+
+        //SqlDataReader executeProcedure(DataPointConfig dataPoint);
     }
 }

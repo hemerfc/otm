@@ -16,5 +16,6 @@ namespace Otm.Shared.ContextConfig
 
         public Object Value { get; set; }
         public int? Length { get; set; }
+        public DirectionParams Direction { get; set; }
     }
 }

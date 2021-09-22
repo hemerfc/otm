@@ -44,12 +44,15 @@ namespace Otm.Server.Device
                             devices.Add(dvConfig.Name, ptlDevice);
                             logger.LogDebug($"Device {dvConfig?.Name}: Created");
                             break;
+<<<<<<< HEAD
                         case "RabbitMq":
                             var rabbitMqDevice = new RabbitMqDevice();
                             rabbitMqDevice.Init(dvConfig, logger);
                             devices.Add(dvConfig.Name, rabbitMqDevice);
                             logger.LogDebug($"Device {dvConfig?.Name}: Created");
                             break;
+=======
+>>>>>>> b9eb390e7415b6851e61969baecd0f404858b5ce
                         default:
                             try
                             {

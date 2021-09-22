@@ -12,5 +12,7 @@ namespace Otm.Shared.ContextConfig
 
         public DateTime ModifiedAt { get; init; }
 
+        public bool Status { get; init; }
+
     }
 }

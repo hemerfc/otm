@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 
 namespace Otm.Shared.ContextConfig
 {
     public class DataPointConfig
     {
+        public Guid Id { get; set; }
         public string Name { get; set; }
         public bool DebugMessages { get; set; } = false;
         public string Script { get; set; }
@@ -11,5 +13,6 @@ namespace Otm.Shared.ContextConfig
         public string Config { get; set; }
 
         public List<DataPointParamConfig> Params { get; set; }
+        public string ContextName { get; set; }
     }
 }
