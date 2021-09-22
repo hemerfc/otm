@@ -20,7 +20,8 @@ namespace Otm.Server.Transaction
         public BackgroundWorker Worker { get; private set; }
 
         private TransactionConfig config;
-        private IDevice device;
+        private IDevice sourceDevice;
+        private IDevice targetDevice;
         private IDataPoint dataPoint;
 
         public BlockingCollection<Dictionary<string, object>> TriggerQueue { get; private set; }
@@ -28,14 +29,18 @@ namespace Otm.Server.Transaction
 
         private readonly ILogger logger;
 
-        public Transaction(TransactionConfig trConfig, IDevice device, IDataPoint dataPoint, ILogger logger)
+        private bool firstCall = true;
+
+        public Transaction(TransactionConfig trConfig, IDevice sourceDevice, IDevice targetDevice, IDataPoint dataPoint, ILogger logger)
         {
             this.logger = logger;
             this.config = trConfig;
-            this.device = device;
+            this.sourceDevice = sourceDevice;
+            this.targetDevice = targetDevice;
             this.dataPoint = dataPoint;
             this.TriggerQueue = new BlockingCollection<Dictionary<string, object>>(128);
             Stopwatch = new Stopwatch();
+            firstCall = true;
         }
 
         public void Start(BackgroundWorker worker)
@@ -47,11 +52,7 @@ namespace Otm.Server.Transaction
             {
                 // assina o delagator do datapoint, quando o valor da TriggerSourceName for atualizado
                 // dispara o metodo OnTrigger, que coloca o gatilho na TriggerQueue
-<<<<<<< HEAD
-                sourceDevice.OnTagChangeAdd(config.TriggerSourceName, this.OnTrigger);
-=======
-                device.OnTagChangeAdd(config.TriggerTagName, this.OnTrigger);
->>>>>>> b9eb390e7415b6851e61969baecd0f404858b5ce
+                sourceDevice.OnTagChangeAdd(config.TriggerTagName, this.OnTrigger);
             }
 
             while (true)
@@ -59,24 +60,30 @@ namespace Otm.Server.Transaction
 
                 try
                 {
-                    if (config.TriggerType == TriggerTypes.OnTagChange)
+                    switch (config.TriggerType)
                     {
-                        Dictionary<string, object> inParams; // = GetInParams();
-                        // wait a trigger or 100ms
-                        if (TriggerQueue.TryTake(out inParams, 100))
-                            ExecuteTrigger(inParams);
-                    }
+                        case TriggerTypes.OnTagChange:
+                            {
+                                Dictionary<string, object> inParams; // = GetInParams();
+                                                                     // wait a trigger or 100ms
+                                if (TriggerQueue.TryTake(out inParams, 100))
+                                    ExecuteTrigger(inParams);
+                            }
+                            break;
+                        case TriggerTypes.OnCycle:
+                            {
+                                var waitEvent = new ManualResetEvent(false);
+                                var inParams = GetInParams();
 
-                    if (config.TriggerType == TriggerTypes.OnCycle)
-                    {
-                        var waitEvent = new ManualResetEvent(false);
-                        var inParams = GetInParams();
-
-                        waitEvent.WaitOne(config.TriggerTime); // aguarda XXXms
-                        if (device.Ready)
-                        {
-                            ExecuteTrigger(inParams);
-                        }
+                                waitEvent.WaitOne(config.TriggerTime); // aguarda XXXms
+                                if (sourceDevice.Ready)
+                                {
+                                    ExecuteTrigger(inParams);
+                                }
+                            }
+                            break;                        
+                        default:
+                            break;
                     }
                 }
                 catch (Exception ex)
@@ -94,11 +101,7 @@ namespace Otm.Server.Transaction
 
         public void Stop()
         {
-<<<<<<< HEAD
-            sourceDevice.OnTagChangeRemove(config.TriggerSourceName, this.OnTrigger);
-=======
-            device.OnTagChangeRemove(config.TriggerTagName, this.OnTrigger);
->>>>>>> b9eb390e7415b6851e61969baecd0f404858b5ce
+            sourceDevice.OnTagChangeRemove(config.TriggerTagName, this.OnTrigger);
         }
 
         public void OnTrigger(string tagName, Object value)
@@ -122,22 +125,21 @@ namespace Otm.Server.Transaction
                     str += $"({kvp.Key}:{kvp.Value})";
                 logger.LogInformation($"Transaction {config.Name} Input {str}");
 
-
                 Stopwatch.Restart();
 
                 var outParams = dataPoint.Execute(inParams);
 
-                foreach (var bind in config.Binds)
+                foreach (var bind in config.TargetBinds)
                 {
                     var dp = dataPoint.GetParamConfig(bind.DataPointParam);
 
                     if (!string.IsNullOrWhiteSpace(bind.DeviceTag))
                     {
-                        var tag = device.GetTagConfig(bind.DeviceTag);
+                        var tag = targetDevice.GetTagConfig(bind.DeviceTag);
 
                         if (tag.Mode == Modes.FromOTM) // from OTM to device  
                         {
-                            device.SetTagValue(tag.Name, outParams[dp.Name]);
+                            targetDevice.SetTagValue(tag.Name, outParams[dp.Name]);
                         }
                     }
                 }
@@ -173,18 +175,18 @@ namespace Otm.Server.Transaction
         {
             var inParams = new Dictionary<string, object>();
 
-            foreach (var bind in config.Binds)
+            foreach (var bind in config.SourceBinds)
             {
                 var dp = dataPoint.GetParamConfig(bind.DataPointParam);
 
                 // if DeviceTag is set, get value from device
                 if (!string.IsNullOrWhiteSpace(bind.DeviceTag))
                 {
-                    var tag = device.GetTagConfig(bind.DeviceTag);
+                    var tag = sourceDevice.GetTagConfig(bind.DeviceTag);
 
                     if (tag.Mode == Modes.ToOTM) // from device to OTM  
                     {
-                        inParams[dp.Name] = device.GetTagValue(tag.Name);
+                        inParams[dp.Name] = sourceDevice.GetTagValue(tag.Name);
                     }
                 }
                 else // use the static value, provided

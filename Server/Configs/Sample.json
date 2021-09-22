@@ -7,11 +7,7 @@
       "Name": "sp_EnviarLeitura",
       "Driver": "mssql",
       "DebugMessages": false,
-<<<<<<< HEAD
       "Config": "Server=localhost; Database=PICKTOLIGHTBR2; User ID=sa;Password=sa2sa2;",
-=======
-      "Config": "Server=localhost; Database=PICKTOLIGHTBR_PROD_NOVO; User ID=sa;Password=sa2sa2;",
->>>>>>> b9eb390e7415b6851e61969baecd0f404858b5ce
       "Params": [
         {
           "Name": "ptl_id",
@@ -32,11 +28,7 @@
       "Name": "sp_PendingCommands",
       "Driver": "mssql",
       "DebugMessages": false,
-<<<<<<< HEAD
       "Config": "Server=localhost; Database=PICKTOLIGHTBR2; User ID=sa;Password=sa2sa2;",
-=======
-      "Config": "Server=localhost; Database=PICKTOLIGHTBR_PROD_NOVO; User ID=sa;Password=sa2sa2;",
->>>>>>> b9eb390e7415b6851e61969baecd0f404858b5ce
       "Params": [
         {
           "Name": "p1",
@@ -58,11 +50,7 @@
       "Id": "90D73506-2ED5-4ED0-361F-08D832556BD1",
       "Name": "ptl11",
       "Driver": "ptl",
-<<<<<<< HEAD
       "Config": "ip=192.168.15.173;port=4660;MasterDevice=39;HasReadGate=False;TestCardCode=i88888888",
-=======
-      "Config": "ip=192.168.1.13;port=4660;MasterDevice=40;HasReadGate=False;TestCardCode=i88888888",
->>>>>>> b9eb390e7415b6851e61969baecd0f404858b5ce
       "Tags": [
         {
           "Name": "cmd_count",
@@ -86,7 +74,6 @@
           "TypeCode": "String"
         }
       ]
-<<<<<<< HEAD
     },
     {
       "Name": "Rabbit01",
@@ -94,15 +81,13 @@
       "Config": "hostname=localhost;port=5672;topic=pending_commands",
       "Tags": [
         {
-          "Name": "ptl5_id",
-          "Address": "pending_commands.ptl_5_atendimento.id",
+          "Name": "pending_commands.pending_commands.id",
+          "Address": "",
           "Rate": 0,
           "Mode": "ToOTM",
           "TypeCode": "Int32"
         }
       ]
-=======
->>>>>>> b9eb390e7415b6851e61969baecd0f404858b5ce
     }
   ],
   "Transactions": [
@@ -110,12 +95,8 @@
       "Id": "DED48657-857D-4EA3-3620-08D832556BD1",
       "Name": "ptl11_recv",
       "DataPointName": "sp_EnviarLeitura",
-<<<<<<< HEAD
       "SourceDeviceName": "ptl01",
       "TargetDeviceName": "ptl01",
-=======
-      "DeviceName": "ptl11",
->>>>>>> b9eb390e7415b6851e61969baecd0f404858b5ce
       "TriggerType": "OnTagChange",
       "TriggerTagName": "cmd_count",
       "Binds": [
@@ -128,28 +109,21 @@
           "DeviceTag": "cmd_rcvd"
         }
       ]
-    },    
+    },
     {
-<<<<<<< HEAD
       "Name": "PendingCommands_rbb_ptl01",
       "DataPointName": "sp_PendingCommands",
-      "SourceDeviceName": "plc1",
-      "TargetDeviceName": "plc2",
+      "SourceDeviceName": "Rabbit01",
+      "TargetDeviceName": "ptl11",
       "TriggerType": "onTagChange",
-      "TriggerSourceName": "exchangeType=pending_commands;type=topic;queryFilter=ptl_5_atendimento",
-=======
-      "Id": "26D36ED8-A397-433E-3621-08D832556BD1",
-      "Name": "PendingCommands_cycle_p011",
-      "DataPointName": "sp_PendingCommands",
-      "DeviceName": "ptl11",
-      "TriggerType": "OnCycle",
-      "TriggerTime": 500,
->>>>>>> b9eb390e7415b6851e61969baecd0f404858b5ce
-      "Binds": [
+      "TriggerTagName": "pending_commands.pending_commands.id",
+      "SourceBinds": [
         {
           "DataPointParam": "p1",
-          "Value": "011"
-        },
+          "Value": "001"
+        }
+      ],
+      "TargetBinds": [
         {
           "DataPointParam": "p2",
           "DeviceTag": "cmd_send"

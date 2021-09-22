@@ -226,19 +226,30 @@ namespace Otm.Server.Device.S7
         }
 
         #region Legacy
+
         public void OnTagChangeAdd(string tagName, Action<string, object> triggerAction)
         {
-            throw new NotImplementedException();
+            var tagConfig = GetTagConfig(tagName);
+
+            // can't use a output tag as trigger, output put tags are writed to PLC
+            if (tagConfig.Mode == Modes.FromOTM) // from OTM to device
+            {
+                throw new Exception("Error can't put a trigger on a input tag");
+            }
+            if (!tagsAction.ContainsKey(tagName))
+                tagsAction[tagName] = triggerAction;
+            else
+                tagsAction[tagName] += triggerAction;
         }
 
         public void OnTagChangeRemove(string tagName, Action<string, object> triggerAction)
         {
-            throw new NotImplementedException();
+            tagsAction[tagName] -= triggerAction;
         }
 
         public bool ContainsTag(string tagName)
         {
-            throw new NotImplementedException();
+            return Config.Tags.Any(x => x.Name == tagName);
         }
 
         public DeviceTagConfig GetTagConfig(string name)
@@ -248,12 +259,12 @@ namespace Otm.Server.Device.S7
 
         public object GetTagValue(string tagName)
         {
-            throw new NotImplementedException();
+            return tagValues[tagName];
         }
 
         public void SetTagValue(string tagName, object value)
         {
-
+            tagValues[tagName] = value;
         }
 
         #endregion Legacy

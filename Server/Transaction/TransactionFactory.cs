@@ -38,7 +38,7 @@ namespace Otm.Server.Transaction
                     }
 
                     // verify the trigger OnTagChange
-                    if (trConfig.TriggerType == TriggerTypes.OnTagChange && string.IsNullOrWhiteSpace(trConfig.TriggerSourceName))
+                    if (trConfig.TriggerType == TriggerTypes.OnTagChange && string.IsNullOrWhiteSpace(trConfig.TriggerTagName))
                     {
                         var ex = new Exception($"Invalid TriggerSourceName, can't be empty. TriggerType ({trConfig.TriggerType }) Transaction ({trConfig.Name})");
                         ex.Data.Add("field", "TriggerSourceName");
@@ -46,15 +46,9 @@ namespace Otm.Server.Transaction
                     }
 
                     // verify the trigger tag name
-<<<<<<< HEAD
-                    if (trConfig.TriggerType == TriggerTypes.OnTagChange && !devices[trConfig.SourceDeviceName].ContainsTag(trConfig.TriggerSourceName))
+                    if (trConfig.TriggerType == TriggerTypes.OnTagChange && !devices[trConfig.SourceDeviceName].ContainsTag(trConfig.TriggerTagName))
                     {
-                        var ex = new Exception($"Invalid TriggerSourceName name in Transaction config. TriggerSourceName ({trConfig.TriggerSourceName}) Device ({trConfig.SourceDeviceName}) Transaction ({trConfig.Name})");
-=======
-                    if (trConfig.TriggerType == TriggerTypes.OnTagChange && !devices[trConfig.DeviceName].ContainsTag(trConfig.TriggerTagName))
-                    {
-                        var ex = new Exception($"Invalid TriggerTagName name in Transaction config. TriggerTagName ({trConfig.TriggerTagName}) Device ({trConfig.DeviceName}) Transaction ({trConfig.Name})");
->>>>>>> b9eb390e7415b6851e61969baecd0f404858b5ce
+                        var ex = new Exception($"Invalid TriggerSourceName name in Transaction config. TriggerSourceName ({trConfig.TriggerTagName}) Device ({trConfig.SourceDeviceName}) Transaction ({trConfig.Name})");
                         ex.Data.Add("field", "Name");
                         throw ex;
                     }
@@ -68,9 +62,8 @@ namespace Otm.Server.Transaction
                     }
 
                     // verify the trigger type
-                    if    (trConfig.TriggerType != TriggerTypes.OnTagChange 
-                        && trConfig.TriggerType != TriggerTypes.OnCycle 
-                        && trConfig.TriggerType != TriggerTypes.OnMessageReceived)
+                    if (trConfig.TriggerType != TriggerTypes.OnTagChange
+                        && trConfig.TriggerType != TriggerTypes.OnCycle)
                     {
                         var ex = new Exception($"Invalid TriggerType. TriggerType ({trConfig.TriggerType }) Transaction ({trConfig.Name})");
                         ex.Data.Add("field", "TriggerType");
@@ -79,80 +72,86 @@ namespace Otm.Server.Transaction
 
 
                     // verify the device name
-                    if (!devices.ContainsKey(trConfig.DeviceName) && devices[trConfig.DeviceName] == null)
+                    if (!devices.ContainsKey(trConfig.SourceDeviceName) && devices[trConfig.SourceDeviceName] == null)
                     {
-                        var ex = new Exception($"Invalid DeviceName name in Transaction config. DeviceName ({trConfig.DeviceName}) Transaction ({trConfig.Name})");
+                        var ex = new Exception($"Invalid DeviceName name in Transaction config. DeviceName ({trConfig.SourceDeviceName}) Transaction ({trConfig.Name})");
                         ex.Data.Add("field", "DeviceName");
                         throw ex;
                     }
 
-                    foreach (var bind in trConfig.Binds)
-                    {
-                        // verify each bind
-                        var dpParam = dataPoints[trConfig.DataPointName].GetParamConfig(bind.DataPointParam);
-                        var dvTag = devices[trConfig.DeviceName].GetTagConfig(bind.DeviceTag);
+                    // verify each bind
+                    var datapoint = dataPoints[trConfig.DataPointName];
+                    var targetDevice = devices[trConfig.SourceDeviceName];
+                    var sourceDevice = devices[trConfig.SourceDeviceName];
 
-                        // verify the DataPointParam of bind
-                        if (dpParam == null)
-                        {
-                            var ex = new Exception($"Invalid DataPointParam name in Transaction config. DataPointParam ({bind.DataPointParam}) Transaction ({trConfig.Name})");
-                            ex.Data.Add("field", "Name");
-                            throw ex;
-                        }
+                    CheckBinds(trConfig.SourceBinds, datapoint, targetDevice, trConfig);
+                    CheckBinds(trConfig.TargetBinds, datapoint, sourceDevice, trConfig);
 
-                        // verify the DeviceTag of bind if not have static value
-                        if (dvTag == null && string.IsNullOrWhiteSpace(bind.Value))
-                        {
-                            var ex = new Exception($"Invalid DeviceTag name in Transaction config. DeviceTag ({bind.DeviceTag}) Transaction ({trConfig.Name})");
-                            ex.Data.Add("field", "Name");
-                            throw ex;
-                        }
-
-                        if ((dvTag == null && string.IsNullOrWhiteSpace(bind.Value)) )
-                        {
-                            var ex = new Exception($"DeviceTag or Value must me set in Transaction config. DataPointParam ({bind.DataPointParam}) Transaction ({trConfig.Name})");
-                            ex.Data.Add("field", "Name");
-                            throw ex;
-                        }
-
-                        if ((dvTag != null && !string.IsNullOrWhiteSpace(bind.Value)))
-                        {
-                            var ex = new Exception($"DeviceTag and Value can`t be set at same time in Transaction config. DataPointParam ({bind.DataPointParam}) Transaction ({trConfig.Name})");
-                            ex.Data.Add("field", "Name");
-                            throw ex;
-                        }
-
-                        if ((dvTag != null && string.IsNullOrWhiteSpace(bind.Value))) 
-                        {
-                            var compatModes = (dvTag.Mode == Modes.ToOTM && dpParam.Mode == Modes.FromOTM) ||
-                                            (dvTag.Mode == Modes.FromOTM && dpParam.Mode == Modes.ToOTM);
-                            if (!compatModes)
-                            {
-                                var ex = new Exception($"Invalid modes between DataPointParam and DeviceTag in Transaction config (valid is in => out or out => in). DataPointParam ({bind.DataPointParam}) DeviceTag ({bind.DeviceTag}) Transaction ({trConfig.Name})");
-                                ex.Data.Add("field", "Name");
-                                throw ex;
-                            }
-
-                            if (dvTag.TypeCode != dpParam.TypeCode)
-                            {
-                                var ex = new Exception($"Invalid data type between DataPointParam and DeviceTag in Transaction config. DataPointParam ({bind.DataPointParam}) DeviceTag ({bind.DeviceTag}) Transaction ({trConfig.Name})");
-                                ex.Data.Add("field", "Name");
-                                throw ex;
-                            }
-                        }
-                    }
-
-<<<<<<< HEAD
                     var transaction = new Transaction(trConfig, devices[trConfig.SourceDeviceName], devices[trConfig.TargetDeviceName], dataPoints[trConfig.DataPointName], logger);
-=======
-                    var transaction = new Transaction(trConfig, devices[trConfig.DeviceName], dataPoints[trConfig.DataPointName], logger);
->>>>>>> b9eb390e7415b6851e61969baecd0f404858b5ce
                     transactions[trConfig.Name] = transaction;
 
                     logger.LogInformation($"Transaction {trConfig.Name}: Created");
                 }
 
             return transactions;
+        }
+
+        private static void CheckBinds(List<TransactionBindConfig> binds, IDataPoint dataPoint, IDevice device, TransactionConfig trConfig)
+        {
+            foreach (var bind in binds)
+            {
+                var dpParam = dataPoint.GetParamConfig(bind.DataPointParam);
+                var dvTag = device.GetTagConfig(bind.DeviceTag);
+
+                // verify the DataPointParam of bind
+                if (dpParam == null)
+                {
+                    var ex = new Exception($"Invalid DataPointParam name in Transaction config. DataPointParam ({bind.DataPointParam}) Transaction ({trConfig.Name})");
+                    ex.Data.Add("field", "Name");
+                    throw ex;
+                }
+
+                // verify the DeviceTag of bind if not have static value
+                if (dvTag == null && string.IsNullOrWhiteSpace(bind.Value))
+                {
+                    var ex = new Exception($"Invalid DeviceTag name in Transaction config. DeviceTag ({bind.DeviceTag}) Transaction ({trConfig.Name})");
+                    ex.Data.Add("field", "Name");
+                    throw ex;
+                }
+
+                if ((dvTag == null && string.IsNullOrWhiteSpace(bind.Value)))
+                {
+                    var ex = new Exception($"DeviceTag or Value must me set in Transaction config. DataPointParam ({bind.DataPointParam}) Transaction ({trConfig.Name})");
+                    ex.Data.Add("field", "Name");
+                    throw ex;
+                }
+
+                if ((dvTag != null && !string.IsNullOrWhiteSpace(bind.Value)))
+                {
+                    var ex = new Exception($"DeviceTag and Value can`t be set at same time in Transaction config. DataPointParam ({bind.DataPointParam}) Transaction ({trConfig.Name})");
+                    ex.Data.Add("field", "Name");
+                    throw ex;
+                }
+
+                if ((dvTag != null && string.IsNullOrWhiteSpace(bind.Value)))
+                {
+                    var compatModes = (dvTag.Mode == Modes.ToOTM && dpParam.Mode == Modes.FromOTM) ||
+                                    (dvTag.Mode == Modes.FromOTM && dpParam.Mode == Modes.ToOTM);
+                    if (!compatModes)
+                    {
+                        var ex = new Exception($"Invalid modes between DataPointParam and DeviceTag in Transaction config (valid is in => out or out => in). DataPointParam ({bind.DataPointParam}) DeviceTag ({bind.DeviceTag}) Transaction ({trConfig.Name})");
+                        ex.Data.Add("field", "Name");
+                        throw ex;
+                    }
+
+                    if (dvTag.TypeCode != dpParam.TypeCode)
+                    {
+                        var ex = new Exception($"Invalid data type between DataPointParam and DeviceTag in Transaction config. DataPointParam ({bind.DataPointParam}) DeviceTag ({bind.DeviceTag}) Transaction ({trConfig.Name})");
+                        ex.Data.Add("field", "Name");
+                        throw ex;
+                    }
+                }
+            }
         }
     }
 }

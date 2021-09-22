@@ -143,7 +143,7 @@
       "DataPointName": "sp_PendingCommands",
       "SourceDeviceName": "Rabbit01",
       "TargetDeviceName": "ptl01",
-      "TriggerType": "OnMessageReceived",
+      "TriggerType": "OnTagChange",
       "TriggerSourceName": "exchangeType=pending_commands;type=topic;queryFilter=ptl_5_atendimento",
       "Binds": [
         

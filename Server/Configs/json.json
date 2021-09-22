@@ -1,6 +1,6 @@
 {
   "Name": "Drogal01",
-  "Enabled": true,
+  "Enabled": false,
   "DataPoints": [
     {
       "Name": "sp_estacao",
