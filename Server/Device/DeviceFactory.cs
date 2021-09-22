@@ -36,19 +36,19 @@ namespace Otm.Server.Device
                             var s7Device = new S7Device();
                             s7Device.Init(dvConfig, client, logger);
                             devices.Add(dvConfig.Name, s7Device);
-                            logger.LogError($"Device {dvConfig?.Name}: Created");
+                            logger.LogDebug($"Device {dvConfig?.Name}: Created");
                             break;
                         case "ptl":
                             var ptlDevice = new PtlDevice();
                             ptlDevice.Init(dvConfig, logger);
                             devices.Add(dvConfig.Name, ptlDevice);
-                            logger.LogError($"Device {dvConfig?.Name}: Created");
+                            logger.LogDebug($"Device {dvConfig?.Name}: Created");
                             break;
                         case "RabbitMq":
                             var rabbitMqDevice = new RabbitMqDevice();
                             rabbitMqDevice.Init(dvConfig, logger);
                             devices.Add(dvConfig.Name, rabbitMqDevice);
-                            logger.LogError($"Device {dvConfig?.Name}: Created");
+                            logger.LogDebug($"Device {dvConfig?.Name}: Created");
                             break;
                         default:
                             try

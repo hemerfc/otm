@@ -50,9 +50,9 @@ namespace Otm.Server.Transaction
 
             if (config.TriggerType == TriggerTypes.OnTagChange)
             {
-                // assina o delagator do datapoint, quando o valor da TriggerTagName for atualizado
+                // assina o delagator do datapoint, quando o valor da TriggerSourceName for atualizado
                 // dispara o metodo OnTrigger, que coloca o gatilho na TriggerQueue
-                sourceDevice.OnTagChangeAdd(config.TriggerTagName, this.OnTrigger);
+                sourceDevice.OnTagChangeAdd(config.TriggerSourceName, this.OnTrigger);
             }
 
             while (true)
@@ -114,7 +114,7 @@ namespace Otm.Server.Transaction
 
         public void Stop()
         {
-            sourceDevice.OnTagChangeRemove(config.TriggerTagName, this.OnTrigger);
+            sourceDevice.OnTagChangeRemove(config.TriggerSourceName, this.OnTrigger);
         }
 
         public void OnTrigger(string tagName, Object value)

@@ -12,7 +12,7 @@ namespace Otm.Shared.ContextConfig
 
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public TriggerTypes TriggerType { get; set; }
-        public string TriggerTagName { get; set; }
+        public string TriggerSourceName { get; set; }
         public int TriggerTime { get; set; }
         public List<TransactionBindConfig> Binds { get; set; }
     }
