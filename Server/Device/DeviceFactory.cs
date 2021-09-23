@@ -29,6 +29,8 @@ namespace Otm.Server.Device
                         throw ex;
                     }
 
+                    logger.LogDebug($"Device {dvConfig?.Name}: Intializing with driver '{dvConfig.Driver}'");
+
                     switch (dvConfig.Driver)
                     {
                         case "s7":

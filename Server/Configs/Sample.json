@@ -48,7 +48,7 @@
   "Devices": [
     {
       "Id": "90D73506-2ED5-4ED0-361F-08D832556BD1",
-      "Name": "ptl11",
+      "Name": "ptl01",
       "Driver": "ptl",
       "Config": "ip=192.168.15.173;port=4660;MasterDevice=39;HasReadGate=False;TestCardCode=i88888888",
       "Tags": [
@@ -93,13 +93,23 @@
   "Transactions": [
     {
       "Id": "DED48657-857D-4EA3-3620-08D832556BD1",
-      "Name": "ptl11_recv",
+      "Name": "ptl01_recv",
       "DataPointName": "sp_EnviarLeitura",
       "SourceDeviceName": "ptl01",
       "TargetDeviceName": "ptl01",
       "TriggerType": "OnTagChange",
       "TriggerTagName": "cmd_count",
-      "Binds": [
+      "SourceBinds": [
+        {
+          "DataPointParam": "ptl_id",
+          "Value": "011"
+        },
+        {
+          "DataPointParam": "mensagem",
+          "DeviceTag": "cmd_rcvd"
+        }
+      ],
+      "TargetBinds": [
         {
           "DataPointParam": "ptl_id",
           "Value": "011"
@@ -114,7 +124,7 @@
       "Name": "PendingCommands_rbb_ptl01",
       "DataPointName": "sp_PendingCommands",
       "SourceDeviceName": "Rabbit01",
-      "TargetDeviceName": "ptl11",
+      "TargetDeviceName": "ptl01",
       "TriggerType": "onTagChange",
       "TriggerTagName": "pending_commands.pending_commands.id",
       "SourceBinds": [

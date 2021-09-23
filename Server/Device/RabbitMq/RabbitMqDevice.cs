@@ -25,6 +25,7 @@ namespace Otm.Server.Device.S7
 {
     public class RabbitMqDevice : IDevice
     {
+
         public RabbitMqDevice()
         {
             tagValues = new ConcurrentDictionary<string, object>();
@@ -133,8 +134,8 @@ namespace Otm.Server.Device.S7
                 catch (Exception ex)
                 {
                     Ready = false;
-                    RabbitConnection.Dispose();
-                    Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
+                    //RabbitConnection.Dispose();
+                    Logger.LogError($"RabbitMqDevice|Start|Dev {Config.Name}: Update Loop Error {ex}");
                     //client.Disconnect();
                 }
             }
@@ -157,7 +158,7 @@ namespace Otm.Server.Device.S7
 
                 RabbitChannel.QueueBind(queue: queueName, exchange: topic, routingKey: "*");
 
-                Logger.LogError($"Dev {Config.Name}: Ready for messages.");
+                Logger.LogDebug($"RabbitMqDevice|ReceiveData|Dev {Config.Name}: Ready for messages.");
 
                 consumer = new EventingBasicConsumer(RabbitChannel);
 
@@ -184,20 +185,19 @@ namespace Otm.Server.Device.S7
             var message = Encoding.UTF8.GetString(body);
             var routingKey = ea.RoutingKey;
 
-           
+            Logger.LogDebug($"RabbitMqDevice|processMessage|routingKey: '{routingKey}'| message: '{message}'");
+
+
             //Desserialize RabbitMessage
             var rabbitMessage = JsonSerializer.Deserialize<RabbitMessage>(message);
 
             //Usa reflection para pegar os FieldInfos da RabbitMessage
-            Type fieldsType = typeof(RabbitMessage);
-            FieldInfo[] fields = fieldsType.GetFields();
-
-            foreach (var field in fields)
+            foreach (var field in typeof(RabbitMessage).GetProperties())
             {
                 //Monta o Tag Name de acordo com as informações, obtendo o valor via reglection
                 var tagName = $"{topic}.{ea.Exchange}.{field.Name}";
                 //Obtem o nome do campo via reflection
-                tagValues[tagName] = field.GetValue(rabbitMessage);
+                SetTagValue(tagName, field.GetValue(rabbitMessage));
 
                 //Se as tags possuem action
                 if (tagsAction.ContainsKey(tagName))
@@ -207,8 +207,6 @@ namespace Otm.Server.Device.S7
                 }
             }
 
-            // end for
-            Logger.LogDebug(" [x] Received '{0}':'{1}'", routingKey, message);
             valueFound = true;
 
             foreach (var tt in tagTriggers)
@@ -265,6 +263,7 @@ namespace Otm.Server.Device.S7
         public void SetTagValue(string tagName, object value)
         {
             tagValues[tagName] = value;
+            Logger.LogDebug($"RabbitMqDevice|SetTagValue|TagName: '{tagName}'|TagValues: '{value}'"); 
         }
 
         #endregion Legacy
