@@ -31,6 +31,9 @@ namespace Otm.Server.ContextConfig
                 var config = JsonSerializer.Deserialize<OtmContextConfig>(configString);
                 config.Name = Context.Name;
                 config.Enabled = Context.Enabled;
+                config.DataPoints = new List<DataPointConfig>();
+                config.Devices = new List<DeviceConfig>();
+                config.Transactions = new List<TransactionConfig>();
                 var configJson = JsonSerializer.Serialize<OtmContextConfig>(config);
                 File.WriteAllText(configPath, configJson);
             }
