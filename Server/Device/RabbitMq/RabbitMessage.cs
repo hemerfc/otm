@@ -8,6 +8,6 @@ namespace Otm.Server.Device.RabbitMq
     public class RabbitMessage
     {
         public Guid Id { get; set; }
-        public int Cod { get; set; }
+        public string Cod { get; set; }
     }
 }

@@ -78,10 +78,10 @@
     {
       "Name": "Rabbit01",
       "Driver": "RabbitMq",
-      "Config": "hostname=localhost;port=5672;topic=pending_commands",
+      "Config": "hostname=localhost;port=5672;topic=ptl",
       "Tags": [
         {
-          "Name": "pending_commands.pending_commands.id",
+          "Name": "ptl.ptl01.Id",
           "Address": "",
           "Rate": 0,
           "Mode": "ToOTM",
@@ -121,12 +121,13 @@
       ]
     },
     {
+      "Id": "EED48657-857D-4EA3-3620-08D832556BD2",
       "Name": "PendingCommands_rbb_ptl01",
       "DataPointName": "sp_PendingCommands",
       "SourceDeviceName": "Rabbit01",
       "TargetDeviceName": "ptl01",
-      "TriggerType": "onTagChange",
-      "TriggerTagName": "pending_commands.pending_commands.id",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "ptl.ptl01.Id",
       "SourceBinds": [
         {
           "DataPointParam": "p1",

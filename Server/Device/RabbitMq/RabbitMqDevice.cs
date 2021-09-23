@@ -63,6 +63,7 @@ namespace Otm.Server.Device.S7
         private string hostname;
         private string topic;
         private string port;
+        private string routingKey = "*";
 
         public DateTime LastErrorTime { get { return DateTime.Now; } }
 
@@ -71,7 +72,7 @@ namespace Otm.Server.Device.S7
         public IConnection RabbitConnection { get; private set; }
         public IModel RabbitChannel { get; private set; }
 
-        public object tagsActionLock;
+        public object tagsActionLock = new object();
 
         public void Init(DeviceConfig dvConfig, ILogger logger)
         {
@@ -82,15 +83,38 @@ namespace Otm.Server.Device.S7
 
         private void GetConfig(DeviceConfig dvConfig)
         {
-            var cparts = dvConfig.Config.Split(';');
-
-            this.hostname = (cparts.FirstOrDefault(x => x.Contains("hostname=")) ?? "").Replace("hostname=", "").Trim();
-            this.topic = (cparts.FirstOrDefault(x => x.Contains("topic=")) ?? "").Replace("topic=", "").Trim();
-            this.port = (cparts.FirstOrDefault(x => x.Contains("port=")) ?? "").Replace("port=", "").Trim();
-            //this.exchangeType = (cparts.FirstOrDefault(x => x.Contains("exchangeType=")) ?? "").Replace("exchangeType=", "").Trim();
-            //this.queryFilter = (cparts.FirstOrDefault(x => x.Contains("queryFilter=")) ?? "").Replace("queryFilter=", "").Trim();
+            GetDeviceParameter(dvConfig);
+            GetDeviceTags(dvConfig);
         }
 
+        private void GetDeviceParameter(DeviceConfig dvConfig)
+        {
+            try
+            {
+                var cparts = dvConfig.Config.Split(';');
+
+                this.hostname = (cparts.FirstOrDefault(x => x.Contains("hostname=")) ?? "").Replace("hostname=", "").Trim();
+                this.topic = (cparts.FirstOrDefault(x => x.Contains("topic=")) ?? "").Replace("topic=", "").Trim();
+                this.port = (cparts.FirstOrDefault(x => x.Contains("port=")) ?? "").Replace("port=", "").Trim();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"RabbitMqDevice|GetDeviceParameter|Device: {Config.Name}| {ex}");
+                throw;
+            }
+        }
+        private void GetDeviceTags(DeviceConfig dvConfig)
+        {
+            try
+            {
+                //routingKey = dvConfig.Tags.FirstOrDefault(x => x.Name == nameof(routingKey)).Name ?? "*";
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"RabbitMqDevice|GetDeviceTags|Device: {Config.Name}| {ex}");
+                throw;
+            }
+        }
 
         public void Start(BackgroundWorker worker)
         {
@@ -151,30 +175,22 @@ namespace Otm.Server.Device.S7
 
             RabbitChannel = RabbitConnection.CreateModel();
             
+            RabbitChannel.ExchangeDeclare(exchange: topic, type: "topic");
+            var queueName = RabbitChannel.QueueDeclare().QueueName;
 
+            RabbitChannel.QueueBind(queue: queueName, exchange: topic, routingKey: routingKey);
 
-                RabbitChannel.ExchangeDeclare(exchange: topic, type: "topic");
-                var queueName = RabbitChannel.QueueDeclare().QueueName;
+            Logger.LogDebug($"RabbitMqDevice|ReceiveData|Dev {Config.Name}: Ready for messages.");
 
-                RabbitChannel.QueueBind(queue: queueName, exchange: topic, routingKey: "*");
+            consumer = new EventingBasicConsumer(RabbitChannel);
 
-                Logger.LogDebug($"RabbitMqDevice|ReceiveData|Dev {Config.Name}: Ready for messages.");
+            consumer.Received += (object model, BasicDeliverEventArgs ea) => processMessage(model, ea, ref valueFound);
 
-                consumer = new EventingBasicConsumer(RabbitChannel);
+            RabbitChannel.BasicConsume(queue: queueName,
+                                    autoAck: true,
+                                    consumer: consumer);
 
-                consumer.Received += (object model, BasicDeliverEventArgs ea) => processMessage(model, ea, ref valueFound);
-
-                RabbitChannel.BasicConsume(queue: queueName,
-                                     autoAck: true,
-                                     consumer: consumer);
-
-               // Logger.LogInformation($"valueFound? Valor {(valueFound ? "Sim" : "Não")} encontrado");
-
-               // Console.WriteLine(" Press [enter] to exit.");
-
-                return valueFound;
-
-            
+            return valueFound;
         }
 
         private void processMessage(object model, BasicDeliverEventArgs ea, ref bool valueFound)
@@ -187,7 +203,6 @@ namespace Otm.Server.Device.S7
 
             Logger.LogDebug($"RabbitMqDevice|processMessage|routingKey: '{routingKey}'| message: '{message}'");
 
-
             //Desserialize RabbitMessage
             var rabbitMessage = JsonSerializer.Deserialize<RabbitMessage>(message);
 
@@ -195,7 +210,7 @@ namespace Otm.Server.Device.S7
             foreach (var field in typeof(RabbitMessage).GetProperties())
             {
                 //Monta o Tag Name de acordo com as informações, obtendo o valor via reglection
-                var tagName = $"{topic}.{ea.Exchange}.{field.Name}";
+                var tagName = $"{topic}.{ea.RoutingKey}.{field.Name}";
                 //Obtem o nome do campo via reflection
                 SetTagValue(tagName, field.GetValue(rabbitMessage));
 
