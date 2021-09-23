@@ -37,11 +37,13 @@ namespace Otm.Server.ContextConfig
                     {
                         de.Name = transaction.Name;
                         de.DataPointName = transaction.DataPointName;
-                        de.DeviceName = transaction.DeviceName;
+                        de.SourceDeviceName = transaction.SourceDeviceName;
+                        de.TargetDeviceName = transaction.TargetDeviceName;
                         de.TriggerTagName = transaction.TriggerTagName;
                         de.TriggerTime = transaction.TriggerTime;
                         de.TriggerType = transaction.TriggerType;
-                        de.Binds = transaction.Binds;
+                        de.SourceBinds = transaction.SourceBinds;
+                        de.TargetBinds = transaction.TargetBinds;
                     }
                 }
             }
