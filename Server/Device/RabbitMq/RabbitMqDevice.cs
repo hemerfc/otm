@@ -61,7 +61,7 @@ namespace Otm.Server.Device.S7
         public EventingBasicConsumer consumer { get; set; }
 
         private string hostname;
-        private string topic;
+        private string exchange;
         private string port;
         private string routingKey = "*";
 
@@ -94,7 +94,7 @@ namespace Otm.Server.Device.S7
                 var cparts = dvConfig.Config.Split(';');
 
                 this.hostname = (cparts.FirstOrDefault(x => x.Contains("hostname=")) ?? "").Replace("hostname=", "").Trim();
-                this.topic = (cparts.FirstOrDefault(x => x.Contains("topic=")) ?? "").Replace("topic=", "").Trim();
+                this.exchange = (cparts.FirstOrDefault(x => x.Contains("exchange=")) ?? "").Replace("exchange=", "").Trim();
                 this.port = (cparts.FirstOrDefault(x => x.Contains("port=")) ?? "").Replace("port=", "").Trim();
             }
             catch (Exception ex)
@@ -138,7 +138,7 @@ namespace Otm.Server.Device.S7
                                 lastConnectionTry = DateTime.Now;
                                 Connecting = true;
 
-                                ReceiveData();
+                                ConfigureConnection();
 
                                 Connecting = false;
                             }
@@ -166,7 +166,7 @@ namespace Otm.Server.Device.S7
         }
 
         
-        private bool ReceiveData()
+        private bool ConfigureConnection()
         {
             var valueFound = false;
 
@@ -175,10 +175,10 @@ namespace Otm.Server.Device.S7
 
             RabbitChannel = RabbitConnection.CreateModel();
             
-            RabbitChannel.ExchangeDeclare(exchange: topic, type: "topic");
+            RabbitChannel.ExchangeDeclare(exchange: exchange, type: "topic");
             var queueName = RabbitChannel.QueueDeclare().QueueName;
 
-            RabbitChannel.QueueBind(queue: queueName, exchange: topic, routingKey: routingKey);
+            RabbitChannel.QueueBind(queue: queueName, exchange: exchange, routingKey: routingKey);
 
             Logger.LogDebug($"RabbitMqDevice|ReceiveData|Dev {Config.Name}: Ready for messages.");
 
@@ -209,8 +209,8 @@ namespace Otm.Server.Device.S7
             //Usa reflection para pegar os FieldInfos da RabbitMessage
             foreach (var field in typeof(RabbitMessage).GetProperties())
             {
-                //Monta o Tag Name de acordo com as informações, obtendo o valor via reglection
-                var tagName = $"{topic}.{ea.RoutingKey}.{field.Name}";
+                //Monta o Tag Name de acordo com as informações, obtendo o valor via reflection
+                var tagName = $"{exchange}.{ea.RoutingKey}.{field.Name}";
                 //Obtem o nome do campo via reflection
                 SetTagValue(tagName, field.GetValue(rabbitMessage));
 

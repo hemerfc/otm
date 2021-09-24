@@ -50,7 +50,7 @@
       "Id": "90D73506-2ED5-4ED0-361F-08D832556BD1",
       "Name": "ptl01",
       "Driver": "ptl",
-      "Config": "ip=192.168.15.173;port=4660;MasterDevice=39;HasReadGate=False;TestCardCode=i88888888",
+      "Config": "ip=172.22.112.1;port=4660;MasterDevice=39;HasReadGate=False;TestCardCode=i88888888",
       "Tags": [
         {
           "Name": "cmd_count",
@@ -76,12 +76,12 @@
       ]
     },
     {
-      "Name": "Rabbit01",
+      "Name": "Rabbit_1",
       "Driver": "RabbitMq",
-      "Config": "hostname=localhost;port=5672;topic=ptl",
+      "Config": "hostname=localhost;port=5672;exchange=ptl",
       "Tags": [
         {
-          "Name": "ptl.ptl01.Id",
+          "Name": "ptl.ptl_1.Id",
           "Address": "",
           "Rate": 0,
           "Mode": "ToOTM",
@@ -124,10 +124,10 @@
       "Id": "EED48657-857D-4EA3-3620-08D832556BD2",
       "Name": "PendingCommands_rbb_ptl01",
       "DataPointName": "sp_PendingCommands",
-      "SourceDeviceName": "Rabbit01",
+      "SourceDeviceName": "Rabbit_1",
       "TargetDeviceName": "ptl01",
       "TriggerType": "OnTagChange",
-      "TriggerTagName": "ptl.ptl01.Id",
+      "TriggerTagName": "ptl.ptl_1.Id",
       "SourceBinds": [
         {
           "DataPointParam": "p1",
