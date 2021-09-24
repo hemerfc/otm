@@ -81,11 +81,11 @@ namespace Otm.Server.Transaction
 
                     // verify each bind
                     var datapoint = dataPoints[trConfig.DataPointName];
-                    var targetDevice = devices[trConfig.SourceDeviceName];
                     var sourceDevice = devices[trConfig.SourceDeviceName];
+                    var targetDevice = devices[trConfig.TargetDeviceName];
 
-                    CheckBinds(trConfig.SourceBinds, datapoint, targetDevice, trConfig);
-                    CheckBinds(trConfig.TargetBinds, datapoint, sourceDevice, trConfig);
+                    CheckBinds(trConfig.SourceBinds, datapoint, sourceDevice, trConfig);
+                    CheckBinds(trConfig.TargetBinds, datapoint, targetDevice, trConfig);
 
                     var transaction = new Transaction(trConfig, devices[trConfig.SourceDeviceName], devices[trConfig.TargetDeviceName], dataPoints[trConfig.DataPointName], logger);
                     transactions[trConfig.Name] = transaction;

@@ -7,10 +7,7 @@ namespace Otm.Server.Device.RabbitMq
 {
     public class RabbitMessage
     {
-        public Guid Id { get => id; set => id = value; }
-        public int Cod { get => cod; set => cod = value; }
-
-        public Guid id;
-        public int cod;
+        public Guid Id { get; set; }
+        public string Cod { get; set; }
     }
 }
