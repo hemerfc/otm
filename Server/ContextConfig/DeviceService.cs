@@ -29,26 +29,35 @@ namespace Otm.Server.ContextConfig
 
             var configString = File.ReadAllText(configPath);
             var config = JsonSerializer.Deserialize<OtmContextConfig>(configString);
-            var index = config.Devices.Where(e => e.Id == device.Id).ToList();
+            var index = config.Devices != null ? config.Devices.Where(e => e.Id == device.Id).ToList() : null;
 
-            if (index.Count() > 0)
+            if (index != null)
             {
-                foreach (var de in config.Devices)
+                if (index.Count() > 0)
                 {
-                    if (de.Id == device.Id)
+                    foreach (var de in config.Devices)
                     {
-                        de.Name = device.Name;
-                        de.Config = device.Config;
-                        de.Driver = device.Driver;
-                        de.Tags = device.Tags;
+                        if (de.Id == device.Id)
+                        {
+                            de.Name = device.Name;
+                            de.Config = device.Config;
+                            de.Driver = device.Driver;
+                            de.Tags = device.Tags;
+                        }
                     }
                 }
+                else
+                {
+                    device.Id = Guid.NewGuid();
+                    config.Devices.Add(device);
+                }
             }
-            else
-            {
+            else {
+                config.Devices = new List<DeviceConfig>();
                 device.Id = Guid.NewGuid();
                 config.Devices.Add(device);
             }
+
 
             var configJson = JsonSerializer.Serialize<OtmContextConfig>(config);
             File.WriteAllText(configPath, configJson);
