@@ -102,7 +102,7 @@
       "SourceBinds": [
         {
           "DataPointParam": "ptl_id",
-          "Value": "011"
+          "Value": "001"
         },
         {
           "DataPointParam": "mensagem",
@@ -112,7 +112,7 @@
       "TargetBinds": [
         {
           "DataPointParam": "ptl_id",
-          "Value": "011"
+          "Value": "001"
         },
         {
           "DataPointParam": "mensagem",

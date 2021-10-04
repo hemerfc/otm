@@ -41,9 +41,11 @@ namespace Otm.Server.Device.Ptl
         //readonly bool firstLoadWrite;
         private bool Connecting;
         private DateTime lastConnectionTry;
+        private static DateTime? LastLicenseTry;
         private string cmd_rcvd = "";
         private int cmd_count = 0;
         private const int RECONNECT_DELAY = 3000;
+        private const int RECONNECT_LICENSE_MIN = 60;
         public bool Ready { get; private set; }
         public DateTime LastSend { get; private set; }
 
@@ -268,10 +270,15 @@ namespace Otm.Server.Device.Ptl
             // backgroud worker
             Worker = worker;
 
-            while (true)
+            if (LastLicenseTry == null)
+                LastLicenseTry = DateTime.Now;
+
+            while (LastLicenseTry?.AddMinutes(RECONNECT_LICENSE_MIN) >= DateTime.Now)
             {
                 try
                 {
+                    
+
                     if (client.Connected)
                     {
                         bool received, sent;
