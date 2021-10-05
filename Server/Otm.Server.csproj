@@ -47,6 +47,10 @@
 		<None Include="Client**" Exclude="Clientnode_modules\**" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <None Remove="Client%2a%2a" />
+	</ItemGroup>
+
 	<Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('Clientnode_modules') ">
 		<!-- Ensure Node.js is installed -->
 		<Exec Command="node --version" ContinueOnError="true">
