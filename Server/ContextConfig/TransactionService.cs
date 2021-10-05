@@ -27,31 +27,40 @@ namespace Otm.Server.ContextConfig
 
             var configString = File.ReadAllText(configPath);
             var config = JsonSerializer.Deserialize<OtmContextConfig>(configString);
-            var index = config.Transactions.Where(e => e.Id == transaction.Id).ToList();
+            var index = config.Transactions != null ? config.Transactions.Where(e => e.Id == transaction.Id).ToList() : null;
 
-            if (index.Count() > 0)
+            if (index != null)
             {
-                foreach (var de in config.Transactions)
+                if (index.Count() > 0)
                 {
-                    if (de.Id == transaction.Id)
+                    foreach (var de in config.Transactions)
                     {
-                        de.Name = transaction.Name;
-                        de.DataPointName = transaction.DataPointName;
-                        de.SourceDeviceName = transaction.SourceDeviceName;
-                        de.TargetDeviceName = transaction.TargetDeviceName;
-                        de.TriggerTagName = transaction.TriggerTagName;
-                        de.TriggerTime = transaction.TriggerTime;
-                        de.TriggerType = transaction.TriggerType;
-                        de.SourceBinds = transaction.SourceBinds;
-                        de.TargetBinds = transaction.TargetBinds;
+                        if (de.Id == transaction.Id)
+                        {
+                            de.Name = transaction.Name;
+                            de.DataPointName = transaction.DataPointName;
+                            de.SourceDeviceName = transaction.SourceDeviceName;
+                            de.TargetDeviceName = transaction.TargetDeviceName;
+                            de.TriggerTagName = transaction.TriggerTagName;
+                            de.TriggerTime = transaction.TriggerTime;
+                            de.TriggerType = transaction.TriggerType;
+                            de.SourceBinds = transaction.SourceBinds;
+                            de.TargetBinds = transaction.TargetBinds;
+                        }
                     }
                 }
+                else
+                {
+                    transaction.Id = Guid.NewGuid();
+                    config.Transactions.Add(transaction);
+                }
             }
-            else
-            {
+            else {
+                config.Transactions = new List<TransactionConfig>();
                 transaction.Id = Guid.NewGuid();
                 config.Transactions.Add(transaction);
             }
+            
 
             var configJson = JsonSerializer.Serialize<OtmContextConfig>(config);
             File.WriteAllText(configPath, configJson);

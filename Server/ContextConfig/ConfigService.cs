@@ -161,23 +161,34 @@ namespace Otm.Server.ContextConfig
 
             var configString = File.ReadAllText(configPath);
             var config = JsonSerializer.Deserialize<OtmContextConfig>(configString);
-            var index = config.DataPoints.Where(e => e.Id == dataPoint.Id).ToList();
+            var index = config.DataPoints != null ? config.DataPoints.Where(e => e.Id == dataPoint.Id).ToList() : null;
 
-            if (index.Count() > 0)
-            {
-                foreach (var dp in config.DataPoints) {
-                    if (dp.Id == dataPoint.Id) {
-                        dp.Name = dataPoint.Name;
-                        dp.Config = dataPoint.Config;
-                        dp.DebugMessages = dataPoint.DebugMessages;
-                        dp.Params = dataPoint.Params;
+            if (index != null) {
+                if (index.Count() > 0)
+                {
+                    foreach (var dp in config.DataPoints)
+                    {
+                        if (dp.Id == dataPoint.Id)
+                        {
+                            dp.Name = dataPoint.Name;
+                            dp.Config = dataPoint.Config;
+                            dp.DebugMessages = dataPoint.DebugMessages;
+                            dp.Params = dataPoint.Params;
+                        }
                     }
                 }
+                else
+                {
+                    dataPoint.Id = Guid.NewGuid();
+                    config.DataPoints.Add(dataPoint);
+                }
             }
-            else{
+            else {
+                config.DataPoints = new List<DataPointConfig>();
                 dataPoint.Id = Guid.NewGuid();
                 config.DataPoints.Add(dataPoint);
             }
+            
 
             var configJson = JsonSerializer.Serialize<OtmContextConfig>(config);
             File.WriteAllText(configPath, configJson);
