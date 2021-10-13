@@ -59,6 +59,9 @@ namespace Otm.Plugins.Devices.RaiaMrcPTLv1
 
         public IReadOnlyDictionary<string, object> TagValues { get { return null; } }
 
+        public int LicenseRemainingHours { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public DateTime? LastUpdateDate { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
         public RaiaMrcPTLv1()
         {
             this.tagsAction = new Dictionary<string, Action<string, object>>();
@@ -399,5 +402,9 @@ namespace Otm.Plugins.Devices.RaiaMrcPTLv1
             return -1;
         }
 
+        public void GetLicenseRemainingHours()
+        {
+            LicenseRemainingHours = int.MaxValue;
+        }
     }
 }

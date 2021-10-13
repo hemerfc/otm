@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Diagnostics;
+using Otm.Server.Device.Licensing;
 
 namespace Otm.Server.Device.Ptl
 {
@@ -30,6 +31,7 @@ namespace Otm.Server.Device.Ptl
         private DeviceConfig Config;
         private ITcpClientAdapter client;
         private string ip;
+        private string licenseKey;
         private int port;
 
         private byte MasterDevice;
@@ -45,7 +47,9 @@ namespace Otm.Server.Device.Ptl
         private string cmd_rcvd = "";
         private int cmd_count = 0;
         private const int RECONNECT_DELAY = 3000;
-        private const int RECONNECT_LICENSE_MIN = 60;
+
+
+
         public bool Ready { get; private set; }
         public DateTime LastSend { get; private set; }
 
@@ -59,6 +63,11 @@ namespace Otm.Server.Device.Ptl
         public DateTime LastErrorTime { get { return DateTime.Now; } }
 
         public IReadOnlyDictionary<string, object> TagValues { get { return null; } }
+
+        #region License
+        public int LicenseRemainingHours { get; set; }
+        public DateTime? LastUpdateDate { get; set; }
+        #endregion
 
         public PtlDevice()
         {
@@ -87,6 +96,7 @@ namespace Otm.Server.Device.Ptl
             var cparts = dvConfig.Config.Split(';');
 
             this.ip = (cparts.FirstOrDefault(x => x.Contains("ip=")) ?? "").Replace("ip=", "").Trim();
+            this.licenseKey = (cparts.FirstOrDefault(x => x.Contains("key=")) ?? "").Replace("key=", "").Trim();
             var strRack = (cparts.FirstOrDefault(x => x.Contains("port=")) ?? "").Replace("port=", "").Trim();
 
             var hasReadGateParam = (cparts.FirstOrDefault(x => x.Contains("HasReadGate=")) ?? "").Replace("HasReadGate=", "").Trim();
@@ -270,14 +280,13 @@ namespace Otm.Server.Device.Ptl
             // backgroud worker
             Worker = worker;
 
-            if (LastLicenseTry == null)
-                LastLicenseTry = DateTime.Now;
+            GetLicenseRemainingHours();
 
-            while (LastLicenseTry?.AddMinutes(RECONNECT_LICENSE_MIN) >= DateTime.Now)
+            while (LicenseRemainingHours > 0)
             {
                 try
                 {
-                    
+
 
                     if (client.Connected)
                     {
@@ -327,6 +336,7 @@ namespace Otm.Server.Device.Ptl
                     Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
                 }
             }
+
         }
 
         private bool ReceiveData()
@@ -627,6 +637,49 @@ namespace Otm.Server.Device.Ptl
             {
                 Logger.LogError(ex, $"Dev {Config.Name}: Connection error.");
             }
+        }
+
+        public void GetLicenseRemainingHours()
+        {
+            /*Atualiza quando:
+             * - Na inicialização do serviço
+             * - Quando a data da última atualização tiver 3 dias de diferença da última. Implementei com Mod, caso for alterada a data do servidor para frente, também funciona
+             */
+
+            if (LastLicenseTry == null
+                || LastUpdateDate == null
+                || Math.Abs((LastUpdateDate.Value - DateTime.Now).TotalDays) >= 3
+                )
+            {
+                try
+                {
+                    Logger.LogInformation($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | Obtendo licenca...");
+
+                    string HostIdentifier = Environment.MachineName;
+                    //Temporariamente pegando o Ip, deve-se tentar pegar algo imutavel do device
+                    string DeviceIdentifier = this.ip; //MacAddress.getMacByIp(this.ip);
+                    //string DeviceIdentifier = MacAddress.getMacByIp("192.168.15.43");
+
+                    string LicenseKey = this.licenseKey;
+
+                    Logger.LogInformation($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | HostIdentifier: { HostIdentifier}");
+                    Logger.LogInformation($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | MacAddress: { DeviceIdentifier}");
+                    Logger.LogInformation($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | LicenseKey {LicenseKey}");
+                    
+                    LicenseRemainingHours = new Licensing.License(HostIdentifier, DeviceIdentifier, LicenseKey).GetRemainingHours();
+
+                    Logger.LogInformation($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | Licenca obtida, restante {LicenseRemainingHours} horas.");
+                    
+                    LastUpdateDate = DateTime.Now;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogInformation($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | Error:  {ex}");
+                }
+                LastLicenseTry = DateTime.Now;
+            }
+
+
         }
     }
 }

@@ -26,5 +26,12 @@ namespace Otm.Server.Device
 
         bool Ready { get; }
         BackgroundWorker Worker { get;  }
+
+        #region License
+        void GetLicenseRemainingHours();
+        int LicenseRemainingHours { get; set; }
+        DateTime? LastUpdateDate { get; set; }
+
+        #endregion
     }
 }

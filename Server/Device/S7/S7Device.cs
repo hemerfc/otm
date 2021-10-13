@@ -55,6 +55,9 @@ namespace Otm.Server.Device.S7
 
         public IReadOnlyDictionary<string, object> TagValues { get { return null; } }
 
+        public string UniqueDeviceId { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public int LicenseRemainingHours { get; set; }
+        public DateTime? LastUpdateDate { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public S7Device()
         {
@@ -488,6 +491,11 @@ namespace Otm.Server.Device.S7
         public bool ContainsTag(string tagName)
         {
             return Config.Tags.Any(x => x.Name == tagName);
+        }
+
+        public void GetLicenseRemainingHours()
+        {
+            LicenseRemainingHours = int.MaxValue;
         }
 
         private class DB

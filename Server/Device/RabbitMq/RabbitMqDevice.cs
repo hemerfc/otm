@@ -71,6 +71,9 @@ namespace Otm.Server.Device.S7
 
         public IConnection RabbitConnection { get; private set; }
         public IModel RabbitChannel { get; private set; }
+        public string UniqueDeviceId { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public DateTime? LastUpdateDate { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public int LicenseRemainingHours { get ; set ; }
 
         public object tagsActionLock = new object();
 
@@ -279,6 +282,11 @@ namespace Otm.Server.Device.S7
         {
             tagValues[tagName] = value;
             Logger.LogDebug($"RabbitMqDevice|SetTagValue|TagName: '{tagName}'|TagValues: '{value}'"); 
+        }
+
+        public void GetLicenseRemainingHours()
+        {
+            LicenseRemainingHours = int.MaxValue;
         }
 
         #endregion Legacy

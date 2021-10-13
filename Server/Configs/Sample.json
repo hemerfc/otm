@@ -58,36 +58,36 @@
         }
     ],
     "Devices": [
-        {
-            "Id": "90d73506-2ed5-4ed0-361f-08d832556bd1",
-            "Name": "ptl01",
-            "Driver": "ptl",
-            "Config": "ip=192.168.202.10;port=4660;MasterDevice=40;HasReadGate=False;TestCardCode=i88888888",
-            "Tags": [
-                {
-                    "Name": "cmd_count",
-                    "Address": "cmd_count",
-                    "Rate": 0,
-                    "Mode": "ToOTM",
-                    "TypeCode": "Int32"
-                },
-                {
-                    "Name": "cmd_rcvd",
-                    "Address": "cmd_rcvd",
-                    "Rate": 0,
-                    "Mode": "ToOTM",
-                    "TypeCode": "String"
-                },
-                {
-                    "Name": "cmd_send",
-                    "Address": "cmd_send",
-                    "Rate": 0,
-                    "Mode": "FromOTM",
-                    "TypeCode": "String"
-                }
-            ],
-            "ContextName": null
-        },
+      {
+        "Id": "90d73506-2ed5-4ed0-361f-08d832556bd1",
+        "Name": "ptl01",
+        "Driver": "ptl",
+        "Config": "ip=192.168.15.105;port=4660;MasterDevice=40;HasReadGate=False;TestCardCode=i88888888;key=sOCOTMK2Gbpf2XaX50sq5EznaNPLqgL1DpmqpWZ7b0c=",
+        "Tags": [
+          {
+            "Name": "cmd_count",
+            "Address": "cmd_count",
+            "Rate": 0,
+            "Mode": "ToOTM",
+            "TypeCode": "Int32"
+          },
+          {
+            "Name": "cmd_rcvd",
+            "Address": "cmd_rcvd",
+            "Rate": 0,
+            "Mode": "ToOTM",
+            "TypeCode": "String"
+          },
+          {
+            "Name": "cmd_send",
+            "Address": "cmd_send",
+            "Rate": 0,
+            "Mode": "FromOTM",
+            "TypeCode": "String"
+          }
+        ],
+        "ContextName": null
+      },
         {
             "Id": "90d73506-2ed5-4ed0-361f-08d832556bd7",
             "Name": "Rabbit_1",
@@ -142,86 +142,6 @@
             "ContextName": null
         },
         {
-<<<<<<< HEAD
-          "Name": "cmd_rcvd",
-          "Address": "cmd_rcvd",
-          "Rate": 0,
-          "Mode": "ToOTM",
-          "TypeCode": "String"
-        },
-        {
-          "Name": "cmd_send",
-          "Address": "cmd_send",
-          "Rate": 0,
-          "Mode": "FromOTM",
-          "TypeCode": "String"
-        }
-      ]
-    },
-    {
-      "Name": "Rabbit_1",
-      "Driver": "RabbitMq",
-      "Config": "hostname=localhost;port=5672;exchange=ptl",
-      "Tags": [
-        {
-          "Name": "ptl.ptl_1.Id",
-          "Address": "",
-          "Rate": 0,
-          "Mode": "ToOTM",
-          "TypeCode": "Int32"
-        }
-      ]
-    }
-  ],
-  "Transactions": [
-    {
-      "Id": "DED48657-857D-4EA3-3620-08D832556BD1",
-      "Name": "ptl01_recv",
-      "DataPointName": "sp_EnviarLeitura",
-      "SourceDeviceName": "ptl01",
-      "TargetDeviceName": "ptl01",
-      "TriggerType": "OnTagChange",
-      "TriggerTagName": "cmd_count",
-      "SourceBinds": [
-        {
-          "DataPointParam": "ptl_id",
-          "Value": "001"
-        },
-        {
-          "DataPointParam": "mensagem",
-          "DeviceTag": "cmd_rcvd"
-        }
-      ],
-      "TargetBinds": [
-        {
-          "DataPointParam": "ptl_id",
-          "Value": "001"
-        },
-        {
-          "DataPointParam": "mensagem",
-          "DeviceTag": "cmd_rcvd"
-        }
-      ]
-    },
-    {
-      "Id": "EED48657-857D-4EA3-3620-08D832556BD2",
-      "Name": "PendingCommands_rbb_ptl01",
-      "DataPointName": "sp_PendingCommands",
-      "SourceDeviceName": "Rabbit_1",
-      "TargetDeviceName": "ptl01",
-      "TriggerType": "OnTagChange",
-      "TriggerTagName": "ptl.ptl_1.Id",
-      "SourceBinds": [
-        {
-          "DataPointParam": "p1",
-          "Value": "001"
-        }
-      ],
-      "TargetBinds": [
-        {
-          "DataPointParam": "p2",
-          "DeviceTag": "cmd_send"
-=======
             "Id": "eed48657-857d-4ea3-3620-08d832556bd2",
             "Name": "PendingCommands_rbb_ptl01",
             "DataPointName": "sp_PendingCommands_NOVO",
@@ -245,7 +165,7 @@
                 }
             ],
             "ContextName": null
->>>>>>> 0813c2e6abf169056ba75045283c97828d1e94a6
         }
     ]
+
 }
