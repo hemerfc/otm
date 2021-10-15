@@ -641,11 +641,16 @@ namespace Otm.Server.Device.Ptl
 
         public void GetLicenseRemainingHours()
         {
+
+
             /*Atualiza quando:
              * - Na inicialização do serviço
              * - Quando a data da última atualização tiver 3 dias de diferença da última. Implementei com Mod, caso for alterada a data do servidor para frente, também funciona
              */
 
+            //Temporário até corrigir o container
+            LicenseRemainingHours = int.MaxValue;
+            /*
             if (LastLicenseTry == null
                 || LastUpdateDate == null
                 || Math.Abs((LastUpdateDate.Value - DateTime.Now).TotalDays) >= 3
@@ -678,7 +683,7 @@ namespace Otm.Server.Device.Ptl
                 }
                 LastLicenseTry = DateTime.Now;
             }
-
+            */
 
         }
     }
