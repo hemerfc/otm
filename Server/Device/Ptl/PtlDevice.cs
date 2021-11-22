@@ -403,7 +403,8 @@ namespace Otm.Server.Device.Ptl
                                 cmd_count++;
                                 //received = true;
 
-                                if (cmd_rcvd == testCardCode)
+                                //Se o valor lido for o mesmo do test card code, envia o comando pra testar o PTL
+                                if (cmdValue == testCardCode)
                                 {
                                     EnviarComandoTeste();
                                 }
