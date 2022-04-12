@@ -50,7 +50,11 @@ namespace Otm.Server
             services.AddSingleton<IDeviceService>(DeviceService);
             services.AddSingleton<ITransactionService>(TransactionService);
             services.AddSingleton<ILogsService>(LogsService);
-            services.AddHostedService<OtmWorkerService>();
+
+            services.AddSingleton<OtmWorkerService>();
+            services.AddHostedService(provider => provider.GetService<OtmWorkerService>());
+
+            //services.AddHostedService<OtmWorkerService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

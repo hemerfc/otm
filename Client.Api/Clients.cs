@@ -19,15 +19,19 @@ using Otm.Shared.ContextConfig;
 using Otm.Shared.Status;
 using Otm.Shared;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data.SqlClient;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 using System;
@@ -206,6 +210,16 @@ namespace Otm.Client.Api.Routes
 		}
 	}
 
+	public static class PickToLightClientRoutes
+	{
+		public static string Get()
+		{
+			var controller = "PickToLight";
+			string url = $@"api/{controller}/";
+			return url;
+		}
+	}
+
 	public static class StatusClientRoutes
 	{
 		public static string Get()
@@ -288,6 +302,7 @@ namespace Otm.Client.Api
 			services.AddScoped<IdeviceClient, deviceClient>();
 			services.AddScoped<ILogReaderClient, LogReaderClient>();
 			services.AddScoped<ILogsClient, LogsClient>();
+			services.AddScoped<IPickToLightClient, PickToLightClient>();
 			services.AddScoped<IStatusClient, StatusClient>();
 			services.AddScoped<ITransactionClient, TransactionClient>();
 			services.AddScoped<IWeatherForecastClient, WeatherForecastClient>();
@@ -366,6 +381,11 @@ namespace Otm.Client.Api
 			get;
 		}
 
+		IPickToLightClient PickToLight
+		{
+			get;
+		}
+
 		IStatusClient Status
 		{
 			get;
@@ -397,6 +417,8 @@ namespace Otm.Client.Api
 		public ILogReaderClient LogReader => lazy_LogReader.Value;
 		private readonly Lazy<ILogsClient> lazy_Logs;
 		public ILogsClient Logs => lazy_Logs.Value;
+		private readonly Lazy<IPickToLightClient> lazy_PickToLight;
+		public IPickToLightClient PickToLight => lazy_PickToLight.Value;
 		private readonly Lazy<IStatusClient> lazy_Status;
 		public IStatusClient Status => lazy_Status.Value;
 		private readonly Lazy<ITransactionClient> lazy_Transaction;
@@ -412,6 +434,7 @@ namespace Otm.Client.Api
 			this.lazy_device = new Lazy<IdeviceClient>(() => _provider.GetService<IdeviceClient>());
 			this.lazy_LogReader = new Lazy<ILogReaderClient>(() => _provider.GetService<ILogReaderClient>());
 			this.lazy_Logs = new Lazy<ILogsClient>(() => _provider.GetService<ILogsClient>());
+			this.lazy_PickToLight = new Lazy<IPickToLightClient>(() => _provider.GetService<IPickToLightClient>());
 			this.lazy_Status = new Lazy<IStatusClient>(() => _provider.GetService<IStatusClient>());
 			this.lazy_Transaction = new Lazy<ITransactionClient>(() => _provider.GetService<ITransactionClient>());
 			this.lazy_WeatherForecast = new Lazy<IWeatherForecastClient>(() => _provider.GetService<IWeatherForecastClient>());
@@ -5128,6 +5151,217 @@ namespace Otm.Client.Api
 		public async ValueTask<HttpResponseMessage> GetRawAsync(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 		{
 			var controller = "Logs";
+			string url = $@"api/{controller}/";
+			HttpResponseMessage response = null;
+			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = await Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false);
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return null;
+				}
+
+				await HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false);
+			}
+
+			return response;
+		}
+	}
+
+	public interface IPickToLightClient : IMyServiceClient
+	{
+		void Get(Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		HttpResponseMessage GetRaw(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		Task GetAsync(Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+		ValueTask<HttpResponseMessage> GetRawAsync(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default);
+	}
+
+	internal class PickToLightClient : IPickToLightClient
+	{
+		protected readonly IMyServiceClientWrapper Client;
+		protected readonly IHttpOverride HttpOverride;
+		protected readonly IHttpSerializer Serializer;
+		protected readonly IHttpRequestModifier Modifier;
+		public PickToLightClient(IMyServiceClientWrapper param_client, Func<IMyServiceClient, IHttpOverride> param_httpoverride, Func<IMyServiceClient, IHttpSerializer> param_serializer, Func<IMyServiceClient, IHttpRequestModifier> param_modifier)
+		{
+			Client = param_client;
+			HttpOverride = param_httpoverride(this);
+			Serializer = param_serializer(this);
+			Modifier = param_modifier(this);
+		}
+
+		public void Get(Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "PickToLight";
+			string url = $@"api/{controller}/";
+			HttpResponseMessage response = null;
+			response = HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return;
+				}
+
+				HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			}
+
+			if (ResponseCallback != null && ResponseCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+			{
+				throw new NotSupportedException("Async void action delegates for ResponseCallback are not supported.As they will run out of the scope of this call.");
+			}
+
+			if (ResponseCallback != null)
+			{
+				responseHandled = true;
+				ResponseCallback.Invoke(response);
+			}
+
+			if (!responseHandled)
+			{
+				throw new System.InvalidOperationException($"Response Status of {response.StatusCode} was not handled properly.");
+			}
+
+			return;
+		}
+
+		public HttpResponseMessage GetRaw(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "PickToLight";
+			string url = $@"api/{controller}/";
+			HttpResponseMessage response = null;
+			response = HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return null;
+				}
+
+				HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+			}
+
+			return response;
+		}
+
+		public async Task GetAsync(Action<HttpResponseMessage> ResponseCallback = null, Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "PickToLight";
+			string url = $@"api/{controller}/";
+			HttpResponseMessage response = null;
+			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
+			bool responseHandled = response != null;
+			if (response == null)
+			{
+				try
+				{
+					response = await Client.ClientWrapper.Request(url).WithRequestModifiers(Modifier).WithCookies(cookies).WithHeaders(headers).WithTimeout(timeout ?? Client.Timeout).AllowAnyHttpStatus().GetAsync(cancellationToken).ConfigureAwait(false);
+				}
+				catch (FlurlHttpException fhex)
+				{
+					if (ExceptionCallback != null && ExceptionCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+					{
+						throw new NotSupportedException("Async void action delegates for ExceptionCallback are not supported.As they will run out of the scope of this call.");
+					}
+
+					if (ExceptionCallback != null)
+					{
+						responseHandled = true;
+						ExceptionCallback?.Invoke(fhex);
+					}
+					else
+					{
+						throw fhex;
+					}
+
+					return;
+				}
+
+				await HttpOverride.OnNonOverridedResponseAsync(HttpMethod.Get, url, null, response, cancellationToken).ConfigureAwait(false);
+			}
+
+			if (ResponseCallback != null && ResponseCallback.Method.IsDefined(typeof(AsyncStateMachineAttribute), true))
+			{
+				throw new NotSupportedException("Async void action delegates for ResponseCallback are not supported.As they will run out of the scope of this call.");
+			}
+
+			if (ResponseCallback != null)
+			{
+				responseHandled = true;
+				ResponseCallback.Invoke(response);
+			}
+
+			if (!responseHandled)
+			{
+				throw new System.InvalidOperationException($"Response Status of {response.StatusCode} was not handled properly.");
+			}
+
+			return;
+		}
+
+		public async ValueTask<HttpResponseMessage> GetRawAsync(Action<FlurlHttpException> ExceptionCallback = null, IDictionary<String, Object> headers = null, IEnumerable<Cookie> cookies = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+		{
+			var controller = "PickToLight";
 			string url = $@"api/{controller}/";
 			HttpResponseMessage response = null;
 			response = await HttpOverride.GetResponseAsync(HttpMethod.Get, url, null, cancellationToken).ConfigureAwait(false);
