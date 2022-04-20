@@ -42,6 +42,7 @@ namespace Otm.Server.ContextConfig
                             de.Name = device.Name;
                             de.Config = device.Config;
                             de.Driver = device.Driver;
+                            de.TipoPtl = device.TipoPtl;
                             de.Tags = device.Tags;
                         }
                     }

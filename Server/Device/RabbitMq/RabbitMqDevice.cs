@@ -141,7 +141,18 @@ namespace Otm.Server.Device.S7
                                 lastConnectionTry = DateTime.Now;
                                 Connecting = true;
 
-                                ConfigureConnection();
+                                try
+                                {
+
+                                    ConfigureConnection();
+                                }
+                                catch (Exception ex)
+                                {
+                                    Ready = false;
+                                    //RabbitConnection.Dispose();
+                                    Logger.LogError($"RabbitMqDevice|Start|Dev {Config.Name}: ConfigureConnection Error {ex}");
+                                    //client.Disconnect();
+                                }
 
                                 Connecting = false;
                             }
@@ -174,6 +185,8 @@ namespace Otm.Server.Device.S7
             var valueFound = false;
 
             var factory = new ConnectionFactory() { HostName = hostname, Port = int.Parse(port) };
+            factory.UserName = "aguia";
+            factory.Password = "aguia2022";
             RabbitConnection = factory.CreateConnection();
 
             RabbitChannel = RabbitConnection.CreateModel();

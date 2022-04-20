@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Otm.Server.ContextConfig;
+using Otm.Server.Services;
 using Otm.Shared.ContextConfig;
 using System;
 using System.Collections.Generic;
@@ -20,12 +21,15 @@ namespace Otm.Server.Controllers
         public IConfigService ConfigService { get; }
         public IContextService ContextService { get; }
 
-        public ContextController(IConfigService configService, IContextService contextService, ILogger<ConfigController> logger)
+        public OtmWorkerService _otmWorker { get; }
+
+        public ContextController(IConfigService configService, IContextService contextService, ILogger<ConfigController> logger, OtmWorkerService otmWorker)
         {
             this.ConfigService = configService;
             this.ContextService = contextService;
             this.Logger = logger;
             _contexts = new Dictionary<string, OtmContext>();
+            _otmWorker = otmWorker;
         }
 
         // GET api/Context
@@ -99,18 +103,11 @@ namespace Otm.Server.Controllers
                 result.message = "Transaction não foi criada!";
             }
             else {
-                var otmService = new OtmContext(configFiles, Logger);
-                _contexts.Add(form.Name, otmService);
-
                 try
                 {
-                    foreach (var ctx in _contexts.Values)
-                    {
-                        ctx.Initialize();
-                        form.Enabled = ctx.Start();
-                        ContextService.CreateOrEditContext(form);
-                    }
-
+                    _otmWorker._otmContextManager.Contexts[form.Name].Start();
+                    form.Enabled = true;
+                    ContextService.CreateOrEditContext(form);
                     result.result = true;
                 }
                 catch (Exception e)
@@ -130,19 +127,12 @@ namespace Otm.Server.Controllers
         public IActionResult disableContext([FromBody] ContextInput form)
         {
             var result = new ResultApi();
-            var configFiles = ConfigService.Get(form.Name);
-            var otmService = new OtmContext(configFiles, Logger);
-            _contexts.Add(form.Name, otmService);
 
             try
             {
-                foreach (var ctx in _contexts.Values)
-                {
-                    ctx.Initialize();
-                    form.Enabled = ctx.Stop();
-                    ContextService.CreateOrEditContext(form);
-                }
-
+                _otmWorker._otmContextManager.Contexts[form.Name].Stop();
+                form.Enabled = false;
+                ContextService.CreateOrEditContext(form);
                 result.result = true;
             }
             catch (Exception e)

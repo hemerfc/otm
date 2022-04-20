@@ -16,7 +16,7 @@ namespace Otm.Server.Services
         private readonly ILogger<OtmWorkerService> _logger;
         private readonly IConfigService _configService;
         private readonly IStatusService _statusService;
-        private readonly OtmContextManager _otmContextManager;
+        public readonly OtmContextManager _otmContextManager;
 
         public OtmWorkerService(ILogger<OtmWorkerService> logger, IStatusService statusService, IConfigService configService)
         {

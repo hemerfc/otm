@@ -10,7 +10,11 @@ namespace Otm.Server.Device.Licensing
 {
     public class License
     {
+<<<<<<< HEAD
         private const string parameter_licenseserverurl = "https://www.softwarewms.com.br/api/V1/KeyValidate";
+=======
+        private const string parameter_licenseserverurl = "https://www.softwarewms.com.br/api/v1/LicenseValidate";
+>>>>>>> ae2439adc549d361fe5111b4f5405e003476c0b6
 
         private string HostIdentifier;
         private string DeviceIdentifier;

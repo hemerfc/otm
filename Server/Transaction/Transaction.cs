@@ -43,6 +43,8 @@ namespace Otm.Server.Transaction
             firstCall = true;
         }
 
+
+
         public void Start(BackgroundWorker worker)
         {
             // backgroud worker
