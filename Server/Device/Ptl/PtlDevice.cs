@@ -653,8 +653,8 @@ namespace Otm.Server.Device.Ptl
              */
 
             //Temporário até corrigir o container
-            LicenseRemainingHours = int.MaxValue;
-            /*
+            //LicenseRemainingHours = int.MaxValue;
+            
             if (LastLicenseTry == null
                 || LastUpdateDate == null
                 || Math.Abs((LastUpdateDate.Value - DateTime.Now).TotalDays) >= 3
@@ -686,8 +686,7 @@ namespace Otm.Server.Device.Ptl
                     Logger.LogInformation($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | Error:  {ex}");
                 }
                 LastLicenseTry = DateTime.Now;
-            }
-            */
+            }           
 
         }
     }
