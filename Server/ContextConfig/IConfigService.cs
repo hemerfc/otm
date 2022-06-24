@@ -14,6 +14,7 @@ namespace Otm.Server.ContextConfig
     public interface IConfigService
     {
         IEnumerable<ConfigFile> GetAll();
+        ConfigFile GetByName(string name);
 
         OtmContextConfig Get(string id);
 

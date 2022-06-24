@@ -41,21 +41,21 @@ namespace Otm.Server.Device
                             logger.LogDebug($"Device {dvConfig?.Name}: Created");
                             break;
                         case "ptl":
-                            //if (dvConfig.TipoPtl == "Atop")
-                            //{
-                            //    var ptlDevice = new AtopPtlDevice();
-                            //    ptlDevice.Init(dvConfig, logger);
-                            //    devices.Add(dvConfig.Name, ptlDevice);
-                            //}
-                            //else
-                            //{
-                            //    var ptlDevice = new SmartPickingPtlDevice();
-                            //    ptlDevice.Init(dvConfig, logger);
-                            //    devices.Add(dvConfig.Name, ptlDevice);
-                            //}
-                            var ptlDevice = new PtlDevice();
-                            ptlDevice.Init(dvConfig, logger);
-                            devices.Add(dvConfig.Name, ptlDevice);
+                            if (dvConfig.TipoPtl == "Atop")
+                            {
+                                var ptlDevice = new AtopPtlDevice();
+                                ptlDevice.Init(dvConfig, logger);
+                                devices.Add(dvConfig.Name, ptlDevice);
+                            }
+                            else
+                            {
+                                var ptlDevice = new SmartPickingPtlDevice();
+                                ptlDevice.Init(dvConfig, logger);
+                                devices.Add(dvConfig.Name, ptlDevice);
+                            }
+                            //var ptlDevice = new PtlDevice();
+                            //ptlDevice.Init(dvConfig, logger);
+                            //devices.Add(dvConfig.Name, ptlDevice);
                             logger.LogDebug($"Device {dvConfig?.Name}: Created");
                             break;
                         case "RabbitMq":

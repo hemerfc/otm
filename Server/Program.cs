@@ -9,7 +9,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
+using NLog.Targets.ElasticSearch;
 using Otm.Server.Plugin;
+using Microsoft.Extensions.DependencyInjection;
+using Otm.Server.Services;
 
 namespace Otm.Server
 {
@@ -17,7 +20,7 @@ namespace Otm.Server
     {
         public static void Main(string[] args)
         {
-            var logger = NLog.Web.NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
+            var logger = NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
             try
             {
                 logger.Debug("OTM Start");
@@ -48,7 +51,11 @@ namespace Otm.Server
                   logging.ClearProviders();
                   logging.SetMinimumLevel(LogLevel.Trace);
               })
-              .UseNLog();  // NLog: Setup NLog for Dependency injection
+              .UseNLog();
+             //.ConfigureServices((hostContext, services) =>
+             //{
+             //    services.AddHostedService<Worker>();
+             //});  // NLog: Setup NLog for Dependency injection
 
     }
 }

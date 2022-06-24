@@ -20,6 +20,8 @@ namespace Otm.Server.DataPoint
         public bool DebugMessages { get; set; }
         public string Driver { get; set; }
         public string Script { get; set; }
+        public string CronExpression { get; }
+
 
         public MsSqlDataPoint(DataPointConfig config, ILogger logger)
         {
@@ -28,6 +30,7 @@ namespace Otm.Server.DataPoint
             this.DebugMessages = config.DebugMessages;
             this.Driver = config.Driver;
             this.Script = config.Script;
+            this.CronExpression = config.CronExpression;
         }
 
         public DataPointParamConfig GetParamConfig(string name)
@@ -44,44 +47,65 @@ namespace Otm.Server.DataPoint
                 if(this.DebugMessages)
                     conn.InfoMessage += connection_InfoMessage;
 
+                String cmdString;
+                bool StoredProcedure = true;
+
+                if (!string.IsNullOrWhiteSpace(this.Script))
+                {
+                    cmdString = this.Script;
+                    StoredProcedure = false;
+                }
+                else
+                {
+                    cmdString = Config.Name;
+                }
+
 #pragma warning disable CA2100 // Review SQL queries for security vulnerabilities
-                using (var command = new SqlCommand(Config.Name, conn))
+                using (var command = new SqlCommand(cmdString, conn))
 #pragma warning restore CA2100 // Review SQL queries for security vulnerabilities
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-
-                    foreach (var param in Config.Params)
+                    if (StoredProcedure)
                     {
-                        if (param.Mode == Modes.ToOTM)
-                        {
-                            Type type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), param.TypeCode));
-                            var dbType = MsSqlHelper.GetDbType(type);
-                            var sqlParam = command.Parameters.Add(param.Name, dbType);
-                            sqlParam.Direction = ParameterDirection.Output;
+                        command.CommandType = CommandType.StoredProcedure;
+                    }
 
-                            if (param.TypeCode == TypeCode.String)
-                                sqlParam.Size = param.Length ?? 0;
-                        }
-                        else if (param.Mode == Modes.FromOTM)
+                    if (Config.Params != null) { 
+                        foreach (var param in Config.Params)
                         {
-                            var sqlParam = command.Parameters.AddWithValue(param.Name, input[param.Name]);
-                            sqlParam.Direction = ParameterDirection.Input;
-                        }
-                        else if (param.Mode == Modes.Static)
-                        {
-                            var sqlParam = command.Parameters.AddWithValue(param.Name, param.Value);
-                            sqlParam.Direction = ParameterDirection.Input;
-                        }
+                            if (param.Mode == Modes.ToOTM)
+                            {
+                                Type type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), param.TypeCode));
+                                var dbType = MsSqlHelper.GetDbType(type);
+                                var sqlParam = command.Parameters.Add(param.Name, dbType);
+                                sqlParam.Direction = ParameterDirection.Output;
+
+                                if (param.TypeCode == TypeCode.String)
+                                    sqlParam.Size = param.Length ?? 0;
+                            }
+                            else if (param.Mode == Modes.FromOTM)
+                            {
+                                var sqlParam = command.Parameters.AddWithValue(param.Name, input[param.Name]);
+                                sqlParam.Direction = ParameterDirection.Input;
+                            }
+                            else if (param.Mode == Modes.Static)
+                            {
+                                var sqlParam = command.Parameters.AddWithValue(param.Name, param.Value);
+                                sqlParam.Direction = ParameterDirection.Input;
+                            }
+                        }                   
                     }
 
                     
 
                     command.ExecuteNonQuery();
 
-                    foreach (var param in Config.Params)
+                    if (Config.Params != null)
                     {
-                        if (param.Mode == Modes.ToOTM)
-                            output[param.Name] = command.Parameters[param.Name].Value;
+                        foreach (var param in Config.Params)
+                        {
+                            if (param.Mode == Modes.ToOTM)
+                                output[param.Name] = command.Parameters[param.Name].Value;
+                        }
                     }
 
 

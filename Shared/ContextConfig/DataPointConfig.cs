@@ -11,8 +11,10 @@ namespace Otm.Shared.ContextConfig
         public string Script { get; set; }
         public string Driver { get; set; }
         public string Config { get; set; }
-
+        public string CronExpression { get; set; }
+        public string Tipo { get; set; }
         public List<DataPointParamConfig> Params { get; set; }
         public string ContextName { get; set; }
+        public string tipoTempo { get; set; }
     }
 }

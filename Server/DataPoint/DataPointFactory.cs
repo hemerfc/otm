@@ -33,22 +33,24 @@ namespace Otm.Server.DataPoint
                 throw ex;
             }
 
-            if (dpConfig.Params == null || dpConfig.Params.Count <= 0)
-            {
-                var ex = new Exception($"DataPoint must have at least one parameter. DataPoint:{dpConfig.Name}");
-                ex.Data.Add("field", "Params");
-                throw ex;
-            }
-
-            foreach (var param in dpConfig.Params)
-            {
-                // se é do tipo string precisa ter o comprimento
-                if (param.TypeCode == TypeCode.String && (param.Length ?? 0) == 0)
+            if (dpConfig.Tipo == "dataPoint") { 
+                if (dpConfig.Params == null || dpConfig.Params.Count <= 0)
                 {
-                    var ex = new Exception($"DataPoint Param of type String must have Lenght. DataPoint:{dpConfig.Name} Param:{param.Name}");
-                    ex.Data.Add("field", "Length");
+                    var ex = new Exception($"DataPoint must have at least one parameter. DataPoint:{dpConfig.Name}");
+                    ex.Data.Add("field", "Params");
                     throw ex;
                 }
+
+                foreach (var param in dpConfig.Params)
+                {
+                    // se é do tipo string precisa ter o comprimento
+                    if (param.TypeCode == TypeCode.String && (param.Length ?? 0) == 0)
+                    {
+                        var ex = new Exception($"DataPoint Param of type String must have Lenght. DataPoint:{dpConfig.Name} Param:{param.Name}");
+                        ex.Data.Add("field", "Length");
+                        throw ex;
+                    }
+                }            
             }
 
             //var staticParam = dpConfig.Params.Where(x => x.Mode == Modes.Static);

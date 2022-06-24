@@ -9,6 +9,7 @@ namespace Otm.Shared.ContextConfig
     public class ContextInput
     {
         public string Name { get; set; }
+        public string Mode { get; set; }
         public bool Enabled { get; set; }
     }
 }

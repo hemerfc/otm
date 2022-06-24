@@ -29,12 +29,14 @@ namespace Otm.Server.Transaction
                         throw ex;
                     }
 
-                    // verify the datapoint name
-                    if (!dataPoints.ContainsKey(trConfig.DataPointName) && dataPoints[trConfig.DataPointName] == null)
-                    {
-                        var ex = new Exception($"Invalid DataPointName name in Transaction config. DataPointName ({trConfig.DataPointName}) Transaction ({trConfig.Name})");
-                        ex.Data.Add("field", "DataPointName");
-                        throw ex;
+                    if (trConfig.TriggerType != TriggerTypes.OnScheduler) {
+                        // verify the datapoint name
+                        if (!dataPoints.ContainsKey(trConfig.DataPointName) && dataPoints[trConfig.DataPointName] == null)
+                        {
+                            var ex = new Exception($"Invalid DataPointName name in Transaction config. DataPointName ({trConfig.DataPointName}) Transaction ({trConfig.Name})");
+                            ex.Data.Add("field", "DataPointName");
+                            throw ex;
+                        }
                     }
 
                     // verify the trigger OnTagChange
@@ -62,32 +64,45 @@ namespace Otm.Server.Transaction
                     }
 
                     // verify the trigger type
-                    if (trConfig.TriggerType != TriggerTypes.OnTagChange
-                        && trConfig.TriggerType != TriggerTypes.OnCycle)
+                    if (trConfig.TriggerType != TriggerTypes.OnTagChange && trConfig.TriggerType != TriggerTypes.OnCycle && trConfig.TriggerType != TriggerTypes.OnScheduler)
                     {
                         var ex = new Exception($"Invalid TriggerType. TriggerType ({trConfig.TriggerType }) Transaction ({trConfig.Name})");
                         ex.Data.Add("field", "TriggerType");
                         throw ex;
                     }
 
-
-                    // verify the device name
-                    if (!devices.ContainsKey(trConfig.SourceDeviceName) && devices[trConfig.SourceDeviceName] == null)
+                    if (trConfig.TriggerType != TriggerTypes.OnScheduler)
                     {
-                        var ex = new Exception($"Invalid DeviceName name in Transaction config. DeviceName ({trConfig.SourceDeviceName}) Transaction ({trConfig.Name})");
-                        ex.Data.Add("field", "DeviceName");
-                        throw ex;
+                        // verify the device name
+                        if (!devices.ContainsKey(trConfig.SourceDeviceName) && devices[trConfig.SourceDeviceName] == null)
+                        {
+                            var ex = new Exception($"Invalid DeviceName name in Transaction config. DeviceName ({trConfig.SourceDeviceName}) Transaction ({trConfig.Name})");
+                            ex.Data.Add("field", "DeviceName");
+                            throw ex;
+                        }
                     }
 
-                    // verify each bind
-                    var datapoint = dataPoints[trConfig.DataPointName];
-                    var sourceDevice = devices[trConfig.SourceDeviceName];
-                    var targetDevice = devices[trConfig.TargetDeviceName];
+                    if (trConfig.TriggerType != TriggerTypes.OnScheduler)
+                    {
+                        // verify each bind
+                        var datapoint = dataPoints[trConfig.DataPointName];
+                        var sourceDevice = devices[trConfig.SourceDeviceName];
+                        var targetDevice = devices[trConfig.TargetDeviceName];
 
-                    CheckBinds(trConfig.SourceBinds, datapoint, sourceDevice, trConfig);
-                    CheckBinds(trConfig.TargetBinds, datapoint, targetDevice, trConfig);
 
-                    var transaction = new Transaction(trConfig, devices[trConfig.SourceDeviceName], devices[trConfig.TargetDeviceName], dataPoints[trConfig.DataPointName], logger);
+                        CheckBinds(trConfig.SourceBinds, datapoint, sourceDevice, trConfig);
+                        CheckBinds(trConfig.TargetBinds, datapoint, targetDevice, trConfig);
+                        
+                    }
+
+                    var transaction = new Transaction(
+                        trConfig,
+                        devices.Count != 0 ? devices[trConfig.SourceDeviceName] : null,
+                        devices.Count != 0 ? devices[trConfig.TargetDeviceName] : null,
+                        dataPoints.Count != 0 ? dataPoints[trConfig.DataPointName] : null,
+                        logger);
+
+
                     transactions[trConfig.Name] = transaction;
 
                     logger.LogInformation($"Transaction {trConfig.Name}: Created");

@@ -5,6 +5,8 @@ using System.ComponentModel;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
+using Cronos;
 using Microsoft.Extensions.Logging;
 using Otm.Server.ContextConfig;
 using Otm.Server.DataPoint;
@@ -23,6 +25,7 @@ namespace Otm.Server.Transaction
         private IDevice sourceDevice;
         private IDevice targetDevice;
         private IDataPoint dataPoint;
+        private DateTime? nextScheduleDateTime;
 
         public BlockingCollection<Dictionary<string, object>> TriggerQueue { get; private set; }
         public Stopwatch Stopwatch;
@@ -83,7 +86,27 @@ namespace Otm.Server.Transaction
                                     ExecuteTrigger(inParams);
                                 }
                             }
-                            break;                        
+                            break;
+                        case TriggerTypes.OnScheduler:
+                            {
+                                if (!nextScheduleDateTime.HasValue)
+                                {
+                                    nextScheduleDateTime = GetNextScheduleDateTime(dataPoint.CronExpression);
+                                    logger.LogInformation($"Next Schedule DateTime for {this.config.Name} is {nextScheduleDateTime}");
+                                }
+                                else if (nextScheduleDateTime <= DateTimeOffset.UtcNow.UtcDateTime)
+                                {
+                                    nextScheduleDateTime = GetNextScheduleDateTime(dataPoint.CronExpression);
+                                    logger.LogInformation($"Next Schedule DateTime for {this.config.Name} is {nextScheduleDateTime}");
+
+                                    var inParams = GetInParams();
+                                    ExecuteTrigger(inParams);
+                                }
+
+                                var waitEvent = new ManualResetEvent(false);
+                                waitEvent.WaitOne(1000);
+                            }
+                            break;
                         default:
                             break;
                     }
@@ -131,19 +154,21 @@ namespace Otm.Server.Transaction
 
                 var outParams = dataPoint.Execute(inParams);
 
-                foreach (var bind in config.TargetBinds)
-                {
-                    var dp = dataPoint.GetParamConfig(bind.DataPointParam);
-
-                    if (!string.IsNullOrWhiteSpace(bind.DeviceTag))
+                if (config.TargetBinds is not null) { 
+                    foreach (var bind in config.TargetBinds)
                     {
-                        var tag = targetDevice.GetTagConfig(bind.DeviceTag);
+                        var dp = dataPoint.GetParamConfig(bind.DataPointParam);
 
-                        if (tag.Mode == Modes.FromOTM) // from OTM to device  
+                        if (!string.IsNullOrWhiteSpace(bind.DeviceTag))
                         {
-                            targetDevice.SetTagValue(tag.Name, outParams[dp.Name]);
+                            var tag = targetDevice.GetTagConfig(bind.DeviceTag);
+
+                            if (tag.Mode == Modes.FromOTM) // from OTM to device  
+                            {
+                                targetDevice.SetTagValue(tag.Name, outParams[dp.Name]);
+                            }
                         }
-                    }
+                    }                
                 }
 
                 var time = Stopwatch.ElapsedMilliseconds;
@@ -177,35 +202,58 @@ namespace Otm.Server.Transaction
         {
             var inParams = new Dictionary<string, object>();
 
-            foreach (var bind in config.SourceBinds)
-            {
-                var dp = dataPoint.GetParamConfig(bind.DataPointParam);
-
-                // if DeviceTag is set, get value from device
-                if (!string.IsNullOrWhiteSpace(bind.DeviceTag))
+            if (config.SourceBinds != null) { 
+                foreach (var bind in config.SourceBinds)
                 {
-                    var tag = sourceDevice.GetTagConfig(bind.DeviceTag);
+                    var dp = dataPoint.GetParamConfig(bind.DataPointParam);
 
-                    if (tag.Mode == Modes.ToOTM) // from device to OTM  
+                    // if DeviceTag is set, get value from device
+                    if (!string.IsNullOrWhiteSpace(bind.DeviceTag))
                     {
-                        inParams[dp.Name] = sourceDevice.GetTagValue(tag.Name);
+                        var tag = sourceDevice.GetTagConfig(bind.DeviceTag);
+
+                        if (tag.Mode == Modes.ToOTM) // from device to OTM  
+                        {
+                            inParams[dp.Name] = sourceDevice.GetTagValue(tag.Name);
+                        }
                     }
-                }
-                else // use the static value, provided
-                {
-                    /// TODO: only int and string for now...
-                    if (dp.TypeCode == TypeCode.Int32)
-                        inParams[dp.Name] = Int32.Parse(bind.Value);
-                    else if (dp.TypeCode == TypeCode.Byte)
-                        inParams[dp.Name] = (byte)Int32.Parse(bind.Value);
-                    else if (dp.TypeCode == TypeCode.String)
-                        inParams[dp.Name] = bind.Value;
-                    else
-                        throw new Exception($"Transaction {this.config.Name}: Fixed value only accept int or string!");
+                    else // use the static value, provided
+                    {
+                        /// TODO: only int and string for now...
+                        if (dp.TypeCode == TypeCode.Int32)
+                            inParams[dp.Name] = Int32.Parse(bind.Value);
+                        else if (dp.TypeCode == TypeCode.Byte)
+                            inParams[dp.Name] = (byte)Int32.Parse(bind.Value);
+                        else if (dp.TypeCode == TypeCode.String)
+                            inParams[dp.Name] = bind.Value;
+                        else
+                            throw new Exception($"Transaction {this.config.Name}: Fixed value only accept int or string!");
+                    }
                 }
             }
 
             return inParams;
         }
+
+        private DateTime GetNextScheduleDateTime(string cronExpression)
+        {
+            var parsedExp = CronExpression.Parse(cronExpression);
+            var currentUtcTime = DateTimeOffset.UtcNow.UtcDateTime;
+            var occurenceTime = parsedExp.GetNextOccurrence(currentUtcTime).Value;
+
+            return occurenceTime;
+            // var delay = occurenceTime.GetValueOrDefault() - currentUtcTime;
+            // return delay;
+        }
+
+        //private TimeSpan WaitForNextSchedule(string cronExpression)
+        //{
+        //    var parsedExp = CronExpression.Parse(cronExpression);
+        //    var currentUtcTime = DateTimeOffset.UtcNow.UtcDateTime;
+        //    var occurenceTime = parsedExp.GetNextOccurrence(currentUtcTime);
+
+        //    var delay = occurenceTime.GetValueOrDefault() - currentUtcTime;
+        //    return delay;
+        //}
     }
 }

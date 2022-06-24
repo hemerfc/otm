@@ -3,6 +3,7 @@ namespace Otm.Shared.ContextConfig
     public enum TriggerTypes
     {
         OnTagChange,
-        OnCycle
+        OnCycle,
+        OnScheduler
     }
 }

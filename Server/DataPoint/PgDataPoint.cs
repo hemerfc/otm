@@ -16,6 +16,8 @@ namespace Otm.Server.DataPoint
         public bool DebugMessages { get; set; }
         public string Driver { get;  set; }
         public string Script { get; set; }
+        public string CronExpression { get; }
+
 
         //private static readonly ILogger Logger = LoggerFactory.GetCurrentClassLogger();
 

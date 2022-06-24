@@ -94,7 +94,8 @@ namespace Otm.Server.Controllers
                 result.result = false;
                 result.message = "Data point não foi criado!";
             }
-            else if(configFiles.Devices == null){
+            else if(configFiles.Devices == null && configFiles.Mode != "ScheluderDataPoint")
+            {
                 result.result = false;
                 result.message = "Device não foi criado!";
             }
@@ -105,7 +106,15 @@ namespace Otm.Server.Controllers
             else {
                 try
                 {
-                    _otmWorker._otmContextManager.Contexts[form.Name].Start();
+                    if (_otmWorker._otmContextManager.ContextExist(configFiles.Name))
+                    {
+                        _otmWorker._otmContextManager.Contexts[form.Name].Start();
+                    }
+                    else {
+                        _otmWorker._otmContextManager.AddNewContext(configFiles.Name, this.Logger);
+                        _otmWorker._otmContextManager.InitializeNewContext(configFiles.Name);
+                    }
+                                      
                     form.Enabled = true;
                     ContextService.CreateOrEditContext(form);
                     result.result = true;

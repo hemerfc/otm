@@ -43,6 +43,25 @@ namespace Otm.Server
             }
         }
 
+        public void AddNewContext(string name, ILogger logger) {
+            var config = ConfigService.Get(name);
+            var configFile = ConfigService.GetByName(name);
+            var configName = System.IO.Path.GetFileNameWithoutExtension(configFile.Path);
+            var otmService = new OtmContext(config, logger);
+            _contexts.Add(configName, otmService);
+        }
+
+        public void InitializeNewContext(string name) {
+            var ctx = _contexts.Values.Where(x => x.Config.Name == name);
+            ctx.First().Initialize();
+            ctx.First().Start();
+        }
+
+        public bool ContextExist(string name) {
+            var ctx = _contexts.Values.Where(x => x.Config.Name == name);
+            return ctx.Count() > 0 ? true : false;
+        }
+
         public void StartAll()
         {
             foreach (var ctx in _contexts.Values)

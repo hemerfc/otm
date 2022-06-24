@@ -24,10 +24,29 @@ namespace Otm.Server.ContextConfig
                             Name = Path.GetFileNameWithoutExtension(f),
                             Path = f,
                             ModifiedAt = System.IO.File.GetLastWriteTime(f),
-                            Status = Get(Path.GetFileNameWithoutExtension(f)).Enabled
+                            Status = Get(Path.GetFileNameWithoutExtension(f)).Enabled,
+                            Mode = Get(Path.GetFileNameWithoutExtension(f)).Mode
                         }).OrderBy(x => x.Name);
 
             return envFiles;
+        }
+
+        public ConfigFile GetByName(string name)
+        {
+            var configFolder = GetConfigFolder();
+            var files = Directory.GetFiles(configFolder, "*.json");
+
+            var envFiles = files.Select(f =>
+                        new ConfigFile
+                        {
+                            Name = Path.GetFileNameWithoutExtension(f),
+                            Path = f,
+                            ModifiedAt = System.IO.File.GetLastWriteTime(f),
+                            Status = Get(Path.GetFileNameWithoutExtension(f)).Enabled,
+                            Mode = Get(Path.GetFileNameWithoutExtension(f)).Mode
+                        }).Where(x => x.Name == name);
+
+            return envFiles.First();
         }
 
         public string GetConfigFolder()

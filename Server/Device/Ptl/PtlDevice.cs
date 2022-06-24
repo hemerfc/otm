@@ -9,6 +9,7 @@ using System.Net;
 using System.Text;
 using System.Diagnostics;
 using Otm.Server.Device.Licensing;
+using Newtonsoft.Json;
 
 namespace Otm.Server.Device.Ptl
 {
@@ -185,6 +186,8 @@ namespace Otm.Server.Device.Ptl
                                                                     displayValue: pententeInfos[2],
                                                                     masterMessage: (E_PTLMasterMessage)int.Parse(pententeInfos[3]))
                                                                     ).ToList();
+
+                Logger.LogInformation($"SetTagValue(): PickTolight visualization: '{Config.Name}'. value: '{value}'");
 
                 //Monta a lista do que é novo                                
                 var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Select(x => x.Id).Contains(i.Id));

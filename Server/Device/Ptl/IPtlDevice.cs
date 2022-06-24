@@ -175,6 +175,8 @@ namespace Otm.Server.Device.Ptl
                 // recebeu do datapoint 
                 // criar os comandos pro PTL
 
+                Logger.LogInformation($"SetTagValue(): PickTolight visualization: '{Config.Name}'. value: '{value}'");
+
                 var ListaPendentes = (from rawPendente in ((string)value).Split(';').ToList()
                                       let pententeInfos = rawPendente.Split('|').ToList()
                                       select new PtlBaseClass(id: Guid.Parse(pententeInfos[4]),

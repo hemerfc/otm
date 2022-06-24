@@ -7,6 +7,7 @@ namespace Otm.Shared.ContextConfig
     public record ConfigFile
     {
         public string Name { get; init; }
+        public string Mode { get; init; }
 
         public string Path { get; init; }
 

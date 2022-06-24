@@ -19,6 +19,8 @@ namespace Otm.Server.DataPoint
         public bool DebugMessages { get; set; }
         public string Driver { get; }
         public string Script { get; }
+        public string CronExpression { get; }
+
 
         public ScriptDataPoint(DataPointConfig config)
         {
