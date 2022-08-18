@@ -38,7 +38,7 @@ namespace Otm.Server
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, $"OTM {Config.Name} Context Initialization error!");
+                Logger.LogError($"OTM {Config.Name} Context Initialization erros Error: {ex}");
             }
         }
 

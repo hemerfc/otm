@@ -1,0 +1,117 @@
+{
+  "Enabled": true,
+  "Name": "FileSample",
+  "DataPoints": [
+    {
+      "Id": "cd64f654-0a2a-44cd-3619-08d832556bd1",
+      "Name": "sp_otm_file",
+      "DebugMessages": false,
+      "Script": null,
+      "Driver": "mssql",
+      "Config": "Server=localhost//MSSQLSERVER2; Database=PICKTOLIGHTBR; User ID=otm;Password=otm;",
+      "Params": [
+        {
+          "Name": "input",
+          "TypeCode": "String",
+          "Mode": "FromOTM",
+          "Value": null,
+          "Length": 1025,
+          "Direction": 1
+        },
+        {
+          "Name": "output",
+          "TypeCode": "String",
+          "Mode": "ToOTM",
+          "Value": null,
+          "Length": 1024,
+          "Direction": 1
+        }
+      ],
+      "ContextName": null
+    }
+  ],
+  "Devices": [
+    {
+      "Id": "90d73506-2ed5-4ed0-361f-08d832556bd1",
+      "Name": "filewatcher01",
+      "Driver": "File",
+      "Config": "inputPath=C:\\temp\\files\\input;outputPath=C:\\temp\\files\\output;resultPath=C:\\temp\\files\\result;inputFilter=*.txt",
+      "Tags": [
+        {
+          "Name": "input_name",
+          "Address": "",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "input_content",
+          "Address": "",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "output_name",
+          "Address": "",
+          "Rate": 0,
+          "Mode": "FromOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "result_name",
+          "Address": "",
+          "Rate": 0,
+          "Mode": "FromOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "result_content",
+          "Address": "",
+          "Rate": 0,
+          "Mode": "FromOTM",
+          "TypeCode": "String"
+        }
+      ],
+      "ContextName": null
+    }    
+  ],
+  "Transactions": [
+    {
+      "Id": "ded48657-857d-4ea3-3620-08d832556bd1",
+      "Name": "new_file_recv",
+      "DataPointName": "sp_otm_file",
+      "SourceDeviceName": "filewatcher01",
+      "TargetDeviceName": "filewatcher01",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "input_name",
+      "TriggerTime": 0,
+      "SourceBinds": [
+        {
+          "DataPointParam": "input_name",
+          "DeviceTag": "input_name"
+        },
+        {
+          "DataPointParam": "input_content",
+          "DeviceTag": "input_content"
+        }
+      ],
+      "TargetBinds": [
+        {
+          "DataPointParam": "output_name",
+          "DeviceTag": "output_name"
+        },
+        {
+          "DataPointParam": "result_name",
+          "DeviceTag": "result_name"
+        },
+        {
+          "DataPointParam": "result_content",
+          "DeviceTag": "result_content"
+        }
+      ],
+      "ContextName": null
+    }
+  ]
+
+}

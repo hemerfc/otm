@@ -64,6 +64,12 @@ namespace Otm.Server.Device
                             devices.Add(dvConfig.Name, rabbitMqDevice);
                             logger.LogDebug($"Device {dvConfig?.Name}: Created");
                             break;
+                        case "File":
+                            var fileDevice = new FileDevice();
+                            fileDevice.Init(dvConfig, logger);
+                            devices.Add(dvConfig.Name, fileDevice);
+                            logger.LogDebug($"Device {dvConfig?.Name}: Created");
+                            break;
                         default:
                             try
                             {
