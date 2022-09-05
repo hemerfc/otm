@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Otm.Shared.ContextConfig;
 using System.Collections.Concurrent;
 using Otm.Shared.Status;
+using NLog;
 
 namespace Otm.Server.Device.S7
 {
@@ -40,7 +41,7 @@ namespace Otm.Server.Device.S7
         private int rack;
         private int slot;
         private DateTime? connError = null;
-        private ILogger Logger;
+        private Logger Logger;
         private bool firstLoadRead;
         private bool firstLoadWrite;
 
@@ -70,13 +71,13 @@ namespace Otm.Server.Device.S7
             tagsActionLock = new object();
         }
 
-        public void Init(DeviceConfig dvConfig, IS7Client client, ILogger logger)
+        public void Init(DeviceConfig dvConfig, IS7Client client, Logger logger)
         {
             this.client = client;
             Init(dvConfig, logger);
         }
 
-        public void Init(DeviceConfig dvConfig, ILogger logger)
+        public void Init(DeviceConfig dvConfig, Logger logger)
         {
             this.Logger = logger;
             this.Config = dvConfig;
@@ -142,7 +143,7 @@ namespace Otm.Server.Device.S7
 
                 if (!vg1 || !vg2 || !vg3 || !vg4 || !vg5)
                 {
-                    Logger.LogError($"Dev {dvConfig.Name}: Tag parse error Tag:{t}");
+                    Logger.Error($"Dev {dvConfig.Name}: Tag parse error Tag:{t}");
                 }
                 else
                 {
@@ -174,7 +175,7 @@ namespace Otm.Server.Device.S7
                             it.Lenght = 1;
                             break;
                         default:
-                            Logger.LogError($"Dev {dvConfig.Name}: Tag parse error Tag {t.Name} {t.Address}");
+                            Logger.Error($"Dev {dvConfig.Name}: Tag parse error Tag {t.Name} {t.Address}");
                             break;
                     }
 
@@ -279,7 +280,7 @@ namespace Otm.Server.Device.S7
                 catch (Exception ex)
                 {
                     Ready = false;
-                    Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
+                    Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
                     client.Disconnect();
                 }
             }
@@ -457,14 +458,14 @@ namespace Otm.Server.Device.S7
                     var err = client.ErrorText(res);
                     connError = DateTime.Now;
 
-                    Logger.LogError($"Dev {Config.Name}: Connection error. {err}");
+                    Logger.Error($"Dev {Config.Name}: Connection error. {err}");
                 }
             }
             else
             {
                 connError = null;
 
-                Logger.LogError($"Dev {Config.Name}: Connected.");
+                Logger.Error($"Dev {Config.Name}: Connected.");
             }
         }
 

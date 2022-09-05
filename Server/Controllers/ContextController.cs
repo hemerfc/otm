@@ -111,8 +111,8 @@ namespace Otm.Server.Controllers
                         _otmWorker._otmContextManager.Contexts[form.Name].Start();
                     }
                     else {
-                        _otmWorker._otmContextManager.AddNewContext(configFiles.Name, this.Logger);
-                        _otmWorker._otmContextManager.InitializeNewContext(configFiles.Name);
+                        //_otmWorker._otmContextManager.AddNewContext(configFiles.Name, this.Logger);
+                        //_otmWorker._otmContextManager.InitializeNewContext(configFiles.Name);
                     }
                                       
                     form.Enabled = true;

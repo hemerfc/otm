@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using NLog;
 using Otm.Server.ContextConfig;
 using Otm.Server.DataPoint;
 using Otm.Server.Device;
@@ -21,7 +22,7 @@ namespace Otm.Server
 
         private readonly IStatusService StatusService;
 
-        public OtmContextManager(IConfigService configService, IStatusService statusService, ILogger logger)
+        public OtmContextManager(IConfigService configService, IStatusService statusService)
         {
             ConfigService = configService;
             StatusService = statusService;
@@ -37,13 +38,15 @@ namespace Otm.Server
                 var config = ConfigService.Get(configFile.Name);
                 //var ColectorService = new ColectorService(config.Name);
 
-                var otmService = new OtmContext(config, logger);
+                var Newlogger = LogManager.GetLogger(config.LogName);
+
+                var otmService = new OtmContext(config, Newlogger);
                 var configName = System.IO.Path.GetFileNameWithoutExtension(configFile.Path);
                 _contexts.Add(configName, otmService);
             }
         }
 
-        public void AddNewContext(string name, ILogger logger) {
+        public void AddNewContext(string name, Logger logger) {
             var config = ConfigService.Get(name);
             var configFile = ConfigService.GetByName(name);
             var configName = System.IO.Path.GetFileNameWithoutExtension(configFile.Path);

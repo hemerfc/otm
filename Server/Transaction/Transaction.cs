@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cronos;
 using Microsoft.Extensions.Logging;
+using NLog;
 using Otm.Server.ContextConfig;
 using Otm.Server.DataPoint;
 using Otm.Server.Device;
@@ -30,11 +31,11 @@ namespace Otm.Server.Transaction
         public BlockingCollection<Dictionary<string, object>> TriggerQueue { get; private set; }
         public Stopwatch Stopwatch;
 
-        private readonly ILogger logger;
+        private readonly Logger logger;
 
         private bool firstCall = true;
 
-        public Transaction(TransactionConfig trConfig, IDevice sourceDevice, IDevice targetDevice, IDataPoint dataPoint, ILogger logger)
+        public Transaction(TransactionConfig trConfig, IDevice sourceDevice, IDevice targetDevice, IDataPoint dataPoint, Logger logger)
         {
             this.logger = logger;
             this.config = trConfig;
@@ -92,12 +93,12 @@ namespace Otm.Server.Transaction
                                 if (!nextScheduleDateTime.HasValue)
                                 {
                                     nextScheduleDateTime = GetNextScheduleDateTime(dataPoint.CronExpression);
-                                    logger.LogInformation($"Next Schedule DateTime for {this.config.Name} is {nextScheduleDateTime}");
+                                    logger.Info($"Next Schedule DateTime for {this.config.Name} is {nextScheduleDateTime}");
                                 }
                                 else if (nextScheduleDateTime <= DateTimeOffset.UtcNow.UtcDateTime)
                                 {
                                     nextScheduleDateTime = GetNextScheduleDateTime(dataPoint.CronExpression);
-                                    logger.LogInformation($"Next Schedule DateTime for {this.config.Name} is {nextScheduleDateTime}");
+                                    logger.Info($"Next Schedule DateTime for {this.config.Name} is {nextScheduleDateTime}");
 
                                     var inParams = GetInParams();
                                     ExecuteTrigger(inParams);
@@ -113,7 +114,7 @@ namespace Otm.Server.Transaction
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, $"Error starting the Transaction {this.config.Name}");
+                    logger.Error(ex, $"Error starting the Transaction {this.config.Name}");
                 }
 
                 if (Worker.CancellationPending)
@@ -148,7 +149,7 @@ namespace Otm.Server.Transaction
                 String str = "";
                 foreach (KeyValuePair<string, object> kvp in inParams)
                     str += $"({kvp.Key}:{kvp.Value})";
-                logger.LogInformation($"Transaction {config.Name} Input {str}");
+                logger.Info($"Transaction {config.Name} Input {str}");
 
                 Stopwatch.Restart();
 
@@ -176,25 +177,25 @@ namespace Otm.Server.Transaction
                 str = "";
                 foreach (KeyValuePair<string, object> kvp in outParams)
                     str += $"({kvp.Key}:{kvp.Value})";
-                logger.LogInformation($"Transaction {config.Name} ({time}ms) Output {str}");
+                logger.Info($"Transaction {config.Name} ({time}ms) Output {str}");
             }
             catch (SqlException ex) when (ex.Number == 1205)
             {
                 if (retries <= 5)
                 {
-                    logger.LogError(ex, $"Retry no. {retries} of Transaction {this.config.Name}");
+                    logger.Error(ex, $"Retry no. {retries} of Transaction {this.config.Name}");
 
                     Thread.Sleep(200);
                     ExecuteTrigger(inParams, ++retries);
                 }
                 else
                 {
-                    logger.LogError(ex, $"Retry exceeded Transaction {this.config.Name}");
+                    logger.Error(ex, $"Retry exceeded Transaction {this.config.Name}");
                 }
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, $"Error in ExecuteTrigger of Transaction {this.config.Name}");
+                logger.Error(ex, $"Error in ExecuteTrigger of Transaction {this.config.Name}");
             }
         }
 

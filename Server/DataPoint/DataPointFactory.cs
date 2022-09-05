@@ -4,12 +4,13 @@ using System.Collections.Generic;
 using Otm.Server.ContextConfig;
 using Microsoft.Extensions.Logging;
 using Otm.Shared.ContextConfig;
+using NLog;
 
 namespace Otm.Server.DataPoint
 {
     public static class DataPointFactory
     {
-        public static IDictionary<string, IDataPoint> CreateDataPoints(IEnumerable<DataPointConfig> dataPointsConfig, ILogger logger)
+        public static IDictionary<string, IDataPoint> CreateDataPoints(IEnumerable<DataPointConfig> dataPointsConfig, Logger logger)
         {
             var datapoints = new Dictionary<string, IDataPoint>();
 
@@ -23,7 +24,7 @@ namespace Otm.Server.DataPoint
             return datapoints;
         }
 
-        private static IDataPoint CreateDataPoint(DataPointConfig dpConfig, ILogger logger)
+        private static IDataPoint CreateDataPoint(DataPointConfig dpConfig, Logger logger)
         {
             // todo datapoint deve ter um nome
             if (string.IsNullOrWhiteSpace(dpConfig.Name))
@@ -57,20 +58,20 @@ namespace Otm.Server.DataPoint
 
             IDataPoint datapoint;
 
-            logger.LogInformation($"DataPoint {dpConfig.Name}: Creating");
+            logger.Info($"DataPoint {dpConfig.Name}: Creating");
             switch (dpConfig.Driver)
             {
                 case "pg":
                     datapoint = new PgDataPoint(dpConfig);
-                    logger.LogInformation($"DataPoint {dpConfig.Name}: Created");
+                    logger.Info($"DataPoint {dpConfig.Name}: Created");
                     break;
                 case "mssql":
                     datapoint = new MsSqlDataPoint(dpConfig, logger);
-                    logger.LogInformation($"DataPoint {dpConfig.Name}: Created");
+                    logger.Info($"DataPoint {dpConfig.Name}: Created");
                     break;
                 case "script":
                     datapoint = new ScriptDataPoint(dpConfig);
-                    logger.LogInformation($"DataPoint {dpConfig.Name}: Created");
+                    logger.Info($"DataPoint {dpConfig.Name}: Created");
                     break;
                 default:
                     var ex = new Exception("Invalid DataPointDriver in config. Driver:" + dpConfig.Driver);

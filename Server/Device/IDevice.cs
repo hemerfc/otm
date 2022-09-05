@@ -2,6 +2,7 @@
 using System;
 using System.ComponentModel;
 using Microsoft.Extensions.Logging;
+using NLog;
 using Otm.Server.ContextConfig;
 using Otm.Shared.ContextConfig;
 using Otm.Shared.Status;
@@ -10,7 +11,7 @@ namespace Otm.Server.Device
 {
     public interface IDevice : IDeviceStatus
     { 
-        void Init(DeviceConfig dvConfig,  ILogger logger);
+        void Init(DeviceConfig dvConfig, Logger logger);
     
         void OnTagChangeAdd(string tagName, Action<string, object> triggerAction);
 

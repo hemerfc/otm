@@ -8,13 +8,14 @@ using System.IO;
 using Otm.Server.Device;
 using McMaster.NETCore.Plugins;
 using Microsoft.Extensions.Logging;
+using NLog;
 
 namespace Otm.Server.Plugin
 {
     class PluginLoadContext
     {
 
-        public static IDevice LoadAndCreateDevicePlugin(string pluginPath, ILogger logger)
+        public static IDevice LoadAndCreateDevicePlugin(string pluginPath, Logger logger)
         {
             var loader = PluginLoader.CreateFromAssemblyFile(pluginPath, sharedTypes: new[] { typeof(IDevice) });
 
@@ -34,7 +35,7 @@ namespace Otm.Server.Plugin
             return null;
         }
 
-        public static IEnumerable<(string FileName, string Name)> GetDevicePlugins(ILogger logger)
+        public static IEnumerable<(string FileName, string Name)> GetDevicePlugins(Logger logger)
         {
             //var deviceColector = colectorService.CreateDeviceColector(dvConfig.Name);
             var pluginsPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);

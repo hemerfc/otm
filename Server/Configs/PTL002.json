@@ -1,0 +1,172 @@
+{
+  "Enabled": false,
+  "Name": "PTL002",
+  "LogName": "Logger2",
+  "DataPoints": [
+    {
+      "Id": "cd64f654-0a2a-44cd-3619-08d832556bd1",
+      "Name": "sp_EnviarLeitura_NOVO",
+      "DebugMessages": false,
+      "Script": null,
+      "Driver": "mssql",
+      "Config": "Server=Server=192.168.2.50; Database=PICKTOLIGHT-BOUTIQUE; User ID=sa;Password=1234;",
+      "Params": [
+        {
+          "Name": "ptl_id",
+          "TypeCode": "String",
+          "Mode": "FromOTM",
+          "Value": null,
+          "Length": 3,
+          "Direction": 1
+        },
+        {
+          "Name": "mensagem",
+          "TypeCode": "String",
+          "Mode": "FromOTM",
+          "Value": null,
+          "Length": 100,
+          "Direction": 1
+        }
+      ],
+      "ContextName": null
+    },
+    {
+      "Id": "23fdcc9e-03c3-45bf-361a-08d832556bd1",
+      "Name": "sp_PendingCommands_NOVO",
+      "DebugMessages": false,
+      "Script": null,
+      "Driver": "mssql",
+      "Config": "Server=Server=192.168.2.50; Database=PICKTOLIGHT-BOUTIQUE; User ID=sa;Password=1234;",
+      "Params": [
+        {
+          "Name": "p1",
+          "TypeCode": "String",
+          "Mode": "FromOTM",
+          "Value": null,
+          "Length": 10,
+          "Direction": 1
+        },
+        {
+          "Name": "p2",
+          "TypeCode": "String",
+          "Mode": "ToOTM",
+          "Value": null,
+          "Length": 4000,
+          "Direction": 1
+        }
+      ],
+      "ContextName": null
+    }
+  ],
+  "Devices": [
+    {
+      "Id": "94FA7734-9AA3-4E70-B8A9-847739B0AD6F",
+      "Name": "ptl02",
+      "Driver": "ptl",
+      "TipoPtl": "Atop",
+      "Config": "ip=10.241.212.70;port=4660;MasterDevice=001;HasReadGate=true;TestCardCode=i88888888;",
+      "Tags": [
+        {
+          "Name": "cmd_count",
+          "Address": "cmd_count",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "Int32"
+        },
+        {
+          "Name": "cmd_rcvd",
+          "Address": "cmd_rcvd",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "cmd_send",
+          "Address": "cmd_send",
+          "Rate": 0,
+          "Mode": "FromOTM",
+          "TypeCode": "String"
+        }
+      ],
+      "ContextName": null
+    },
+    {
+      "Id": "DA5B2C24-345D-4F57-B3BA-BE6770B3FEEC",
+      "Name": "Rabbit_2",
+      "Driver": "RabbitMq",
+      "Config": "hostname=localhost;port=5672;exchange=ptl",
+      "Tags": [
+        {
+          "Name": "ptl.ptl_2.Id",
+          "Address": "",
+          "Rate": 0,
+          "Mode": "ToOTM",
+          "TypeCode": "Int32"
+        }
+      ],
+      "ContextName": null
+    }
+  ],
+  "Transactions": [
+    {
+      "Id": "DB7D9CF6-78FA-4721-AFAB-949528D0AD22",
+      "Name": "ptl02_recv",
+      "DataPointName": "sp_EnviarLeitura_NOVO",
+      "SourceDeviceName": "ptl02",
+      "TargetDeviceName": "ptl02",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "cmd_count",
+      "TriggerTime": 0,
+      "SourceBinds": [
+        {
+          "DataPointParam": "ptl_id",
+          "DeviceTag": null,
+          "Value": "002"
+        },
+        {
+          "DataPointParam": "mensagem",
+          "DeviceTag": "cmd_rcvd",
+          "Value": null
+        }
+      ],
+      "TargetBinds": [
+        {
+          "DataPointParam": "ptl_id",
+          "DeviceTag": null,
+          "Value": "002"
+        },
+        {
+          "DataPointParam": "mensagem",
+          "DeviceTag": "cmd_rcvd",
+          "Value": null
+        }
+      ],
+      "ContextName": null
+    },
+    {
+      "Id": "EC479C8D-DEB4-444C-9B0C-50DEE891FF52",
+      "Name": "PendingCommands_rbb_ptl02",
+      "DataPointName": "sp_PendingCommands_NOVO",
+      "SourceDeviceName": "Rabbit_2",
+      "TargetDeviceName": "ptl02",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "ptl.ptl_2.Id",
+      "TriggerTime": 0,
+      "SourceBinds": [
+        {
+          "DataPointParam": "p1",
+          "DeviceTag": null,
+          "Value": "002"
+        }
+      ],
+      "TargetBinds": [
+        {
+          "DataPointParam": "p2",
+          "DeviceTag": "cmd_send",
+          "Value": null
+        }
+      ],
+      "ContextName": null
+    }
+  ]
+}

@@ -20,6 +20,7 @@ using RabbitMQ.Client.Events;
 using System.Text;
 using Otm.Server.Device.RabbitMq;
 using System.Reflection;
+using NLog;
 
 namespace Otm.Server.Device.S7
 {
@@ -42,7 +43,7 @@ namespace Otm.Server.Device.S7
         public Stopwatch Stopwatch { get; }
 
         private DateTime? connError = null;
-        private ILogger Logger;
+        private Logger Logger;
 
         public bool Ready { get; private set; }
 
@@ -77,7 +78,7 @@ namespace Otm.Server.Device.S7
 
         public object tagsActionLock = new object();
 
-        public void Init(DeviceConfig dvConfig, ILogger logger)
+        public void Init(DeviceConfig dvConfig, Logger logger)
         {
             this.Logger = logger;
             this.Config = dvConfig;
@@ -102,7 +103,7 @@ namespace Otm.Server.Device.S7
             }
             catch (Exception ex)
             {
-                Logger.LogError($"RabbitMqDevice|GetDeviceParameter|Device: {Config.Name}| {ex}");
+                Logger.Error($"RabbitMqDevice|GetDeviceParameter|Device: {Config.Name}| {ex}");
                 throw;
             }
         }
@@ -114,7 +115,7 @@ namespace Otm.Server.Device.S7
             }
             catch (Exception ex)
             {
-                Logger.LogError($"RabbitMqDevice|GetDeviceTags|Device: {Config.Name}| {ex}");
+                Logger.Error($"RabbitMqDevice|GetDeviceTags|Device: {Config.Name}| {ex}");
                 throw;
             }
         }
@@ -150,7 +151,7 @@ namespace Otm.Server.Device.S7
                                 {
                                     Ready = false;
                                     //RabbitConnection.Dispose();
-                                    Logger.LogError($"RabbitMqDevice|Start|Dev {Config.Name}: ConfigureConnection Error {ex}");
+                                    Logger.Error($"RabbitMqDevice|Start|Dev {Config.Name}: ConfigureConnection Error {ex}");
                                     //client.Disconnect();
                                 }
 
@@ -173,7 +174,7 @@ namespace Otm.Server.Device.S7
                 {
                     Ready = false;
                     //RabbitConnection.Dispose();
-                    Logger.LogError($"RabbitMqDevice|Start|Dev {Config.Name}: Update Loop Error {ex}");
+                    Logger.Error($"RabbitMqDevice|Start|Dev {Config.Name}: Update Loop Error {ex}");
                     //client.Disconnect();
                 }
             }
@@ -196,7 +197,7 @@ namespace Otm.Server.Device.S7
 
             RabbitChannel.QueueBind(queue: queueName, exchange: exchange, routingKey: routingKey);
 
-            Logger.LogDebug($"RabbitMqDevice|ReceiveData|Dev {Config.Name}: Ready for messages.");
+            Logger.Debug($"RabbitMqDevice|ReceiveData|Dev {Config.Name}: Ready for messages.");
 
             consumer = new EventingBasicConsumer(RabbitChannel);
 
@@ -217,7 +218,7 @@ namespace Otm.Server.Device.S7
             var message = Encoding.UTF8.GetString(body);
             var routingKey = ea.RoutingKey;
 
-            Logger.LogDebug($"RabbitMqDevice|processMessage|routingKey: '{routingKey}'| message: '{message}'");
+            Logger.Debug($"RabbitMqDevice|processMessage|routingKey: '{routingKey}'| message: '{message}'");
 
             //Desserialize RabbitMessage
             var rabbitMessage = JsonSerializer.Deserialize<RabbitMessage>(message);
@@ -294,7 +295,7 @@ namespace Otm.Server.Device.S7
         public void SetTagValue(string tagName, object value)
         {
             tagValues[tagName] = value;
-            Logger.LogDebug($"RabbitMqDevice|SetTagValue|TagName: '{tagName}'|TagValues: '{value}'"); 
+            Logger.Debug($"RabbitMqDevice|SetTagValue|TagName: '{tagName}'|TagValues: '{value}'"); 
         }
 
         public void GetLicenseRemainingHours()

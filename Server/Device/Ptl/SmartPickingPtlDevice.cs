@@ -67,7 +67,7 @@ namespace Otm.Server.Device.Ptl
             if (recv != null && recv.Length > 0)
             {
                 message = ASCIIEncoding.ASCII.GetString(recv);
-                Logger.LogInformation($"ReceiveData(): Hardware:SmartPiking Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{message}'\t ByteArray: '{string.Join(", ", recv)}'");
+                Logger.Info($"ReceiveData(): Hardware:SmartPiking Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{message}'\t ByteArray: '{string.Join(", ", recv)}'");
                 
                 
                 if (recv.Length == 12) { 

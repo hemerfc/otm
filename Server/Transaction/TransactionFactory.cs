@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using NLog;
 using Otm.Server.ContextConfig;
 using Otm.Server.DataPoint;
 using Otm.Server.Device;
@@ -14,7 +15,7 @@ namespace Otm.Server.Transaction
             IEnumerable<TransactionConfig> transactionsConfig,
             IDictionary<string, IDataPoint> dataPoints,
             IDictionary<string, IDevice> devices,
-            ILogger logger)
+            Logger logger)
         {
             var transactions = new Dictionary<string, ITransaction>();
 
@@ -105,7 +106,7 @@ namespace Otm.Server.Transaction
 
                     transactions[trConfig.Name] = transaction;
 
-                    logger.LogInformation($"Transaction {trConfig.Name}: Created");
+                    logger.Info($"Transaction {trConfig.Name}: Created");
                 }
 
             return transactions;

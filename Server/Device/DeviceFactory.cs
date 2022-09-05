@@ -10,12 +10,13 @@ using Otm.Server.Device.Ptl;
 using System.IO;
 using System.Reflection;
 using Otm.Server.Plugin;
+using NLog;
 
 namespace Otm.Server.Device
 {
     public static class DeviceFactory
     {
-        public static IDictionary<string, IDevice> CreateDevices(List<DeviceConfig> devicesConfig, ILogger logger)
+        public static IDictionary<string, IDevice> CreateDevices(List<DeviceConfig> devicesConfig, Logger logger)
         {
             var devices = new Dictionary<string, IDevice>();
 
@@ -29,7 +30,7 @@ namespace Otm.Server.Device
                         throw ex;
                     }
 
-                    logger.LogDebug($"Device {dvConfig?.Name}: Intializing with driver '{dvConfig.Driver}'");
+                    logger.Debug($"Device {dvConfig?.Name}: Intializing with driver '{dvConfig.Driver}'");
 
                     switch (dvConfig.Driver)
                     {
@@ -38,31 +39,40 @@ namespace Otm.Server.Device
                             var s7Device = new S7Device();
                             s7Device.Init(dvConfig, client, logger);
                             devices.Add(dvConfig.Name, s7Device);
-                            logger.LogDebug($"Device {dvConfig?.Name}: Created");
+                            logger.Debug($"Device {dvConfig?.Name}: Created");
                             break;
                         case "ptl":
-                            if (dvConfig.TipoPtl == "Atop")
-                            {
-                                var ptlDevice = new AtopPtlDevice();
-                                ptlDevice.Init(dvConfig, logger);
-                                devices.Add(dvConfig.Name, ptlDevice);
-                            }
-                            else
-                            {
-                                var ptlDevice = new SmartPickingPtlDevice();
-                                ptlDevice.Init(dvConfig, logger);
-                                devices.Add(dvConfig.Name, ptlDevice);
-                            }
+                            var ptlDevice = new AtopPtlDevice();
+                            ptlDevice.Init(dvConfig, logger);
+                            devices.Add(dvConfig.Name, ptlDevice);
+                            //if (dvConfig.TipoPtl == "Atop")
+                            //{
+                            //    var ptlDevice = new AtopPtlDevice();
+                            //    ptlDevice.Init(dvConfig, logger);
+                            //    devices.Add(dvConfig.Name, ptlDevice);
+                            //}
+                            //else
+                            //{
+                            //    var ptlDevice = new SmartPickingPtlDevice();
+                            //    ptlDevice.Init(dvConfig, logger);
+                            //    devices.Add(dvConfig.Name, ptlDevice);
+                            //}
                             //var ptlDevice = new PtlDevice();
                             //ptlDevice.Init(dvConfig, logger);
                             //devices.Add(dvConfig.Name, ptlDevice);
-                            logger.LogDebug($"Device {dvConfig?.Name}: Created");
+                            logger.Debug($"Device {dvConfig?.Name}: Created");
                             break;
                         case "RabbitMq":
                             var rabbitMqDevice = new RabbitMqDevice();
                             rabbitMqDevice.Init(dvConfig, logger);
                             devices.Add(dvConfig.Name, rabbitMqDevice);
-                            logger.LogDebug($"Device {dvConfig?.Name}: Created");
+                            logger.Debug($"Device {dvConfig?.Name}: Created");
+                            break;
+                        case "File":
+                            var fileDevice = new FileDevice();
+                            fileDevice.Init(dvConfig, logger);
+                            devices.Add(dvConfig.Name, fileDevice);
+                            logger.Debug($"Device {dvConfig?.Name}: Created");
                             break;
                         default:
                             try

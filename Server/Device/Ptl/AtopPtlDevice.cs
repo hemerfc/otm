@@ -89,7 +89,7 @@ namespace Otm.Server.Device.Ptl
 
             if (recv != null && recv.Length > 0)
             {
-                Logger.LogInformation($"ReceiveData(): Hardware: Atop Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
+                Logger.Info($"ReceiveData(): Hardware: Atop Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
                 var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
                 receiveBuffer.CopyTo(tempBuffer, 0);
                 recv.CopyTo(tempBuffer, receiveBuffer.Length);
@@ -164,7 +164,7 @@ namespace Otm.Server.Device.Ptl
 
                                 EnviarBipLeituraMestre(MasterDevice);
                                 readGateOpen = false;
-                                Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. readGate fechado após leitura.");
+                                Logger.Info($"ReceiveData(): Device: '{Config.Name}'. readGate fechado após leitura.");
 
                             }
                             //Se o ReadGate estava aberto a leitura foi processada, se estava fechado ignorada...
@@ -187,11 +187,11 @@ namespace Otm.Server.Device.Ptl
                             var subNode = cmdAT[7];
                             var cmdValue = Encoding.ASCII.GetString(cmdAT.Skip(8).Take(6).ToArray());
 
-                            Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. CmdAT: '{cmdAT}' subCmd:{subCmd} subNode:{subNode} cmdValue:{cmdValue}");
+                            Logger.Info($"ReceiveData(): Device: '{Config.Name}'. CmdAT: '{cmdAT}' subCmd:{subCmd} subNode:{subNode} cmdValue:{cmdValue}");
 
                             if (subCmd == 252)
                             {
-                                Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. subCmd: 252 IGNORADO");
+                                Logger.Info($"ReceiveData(): Device: '{Config.Name}'. subCmd: 252 IGNORADO");
                             }
                             else
                             {
@@ -238,7 +238,7 @@ namespace Otm.Server.Device.Ptl
                             var subNode = cmdAT[7];
                             var cmdValue = Encoding.ASCII.GetString(cmdAT.Skip(8).Take(6).ToArray());
 
-                            Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. CmdAT: '{cmdAT}' subCmd:{subCmd} subNode:{subNode} cmdValue:{cmdValue}");
+                            Logger.Info($"ReceiveData(): Device: '{Config.Name}'. CmdAT: '{cmdAT}' subCmd:{subCmd} subNode:{subNode} cmdValue:{cmdValue}");
 
 
                             var sendCMD = $"{Config.Name}|AT|{subNode:000}|{cmdValue}";

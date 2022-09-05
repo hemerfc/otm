@@ -8,29 +8,28 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using System.Threading;
 using Otm.Server.ContextConfig;
+using NLog;
 
 namespace Otm.Server.Services
 {
     public class OtmWorkerService : BackgroundService
     {
-        private readonly ILogger<OtmWorkerService> _logger;
         private readonly IConfigService _configService;
         private readonly IStatusService _statusService;
         public readonly OtmContextManager _otmContextManager;
 
-        public OtmWorkerService(ILogger<OtmWorkerService> logger, IStatusService statusService, IConfigService configService)
+        public OtmWorkerService(IStatusService statusService, IConfigService configService)
         {
-            _logger = logger;
 
             _statusService = statusService;
             _configService = configService;
 
-            _otmContextManager = new OtmContextManager(_configService, _statusService, logger);
+            _otmContextManager = new OtmContextManager(_configService, _statusService);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("System START!");
+            //_logger.Info("System START!");
 
             _otmContextManager.StartAll();
 
@@ -40,7 +39,7 @@ namespace Otm.Server.Services
                 await Task.Delay(1000, stoppingToken);
             }
 
-            _logger.LogInformation("System STOP!");
+            //_logger.Info("System STOP!");
 
             _otmContextManager.StopAll();
         }

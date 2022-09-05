@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using NLog;
 using Otm.Server.ContextConfig;
 using Otm.Server.DataPoint;
 using Otm.Server.Device;
@@ -18,34 +19,44 @@ namespace Otm.Server
         public IDictionary<string, IDataPoint> DataPoints { get; private set; }
         public IDictionary<string, IDevice> Devices { get; private set; }
         public IDictionary<string, ITransaction> Transactions { get; private set; }
-        private readonly ILogger Logger;
+        //private readonly ILogger Logger;
+        private readonly Logger Logger;
 
-        public OtmContext(OtmContextConfig config, ILogger logger)
+
+        public OtmContext(OtmContextConfig config, Logger logger)
         {
             Config = config;
             Logger = logger;
         }
 
+        //private readonly ILogger _logger;
+        //private readonly ILogger _emailOnFatalError;
+
+        //public TestService(ILoggerFactory loggerFactory)
+        //{
+        //    _logger = loggerFactory.CreateLogger(GetType().ToString());
+        //    _emailOnFatalError = loggerFactory.CreateLogger("emailOnFatalError");
+        //}
+
         public void Initialize()
         {
-            Logger.LogInformation($"OTM {Config.Name} Context Initializing ...");
+            Logger.Info($"OTM {Config.Name} Context Initializing ...");
             try
             {
                 DataPoints = DataPointFactory.CreateDataPoints(Config.DataPoints, Logger);
                 Devices = DeviceFactory.CreateDevices(Config.Devices, Logger);
                 Transactions = TransactionFactory.CreateTransactions(Config.Transactions, DataPoints, Devices, Logger);
-                Logger.LogInformation($"OTM {Config.Name} Context Initialized!");
+                Logger.Info($"OTM {Config.Name} Context Initialized!");
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, $"OTM {Config.Name} Context Initialization error!");
+                Logger.Error(ex, $"OTM {Config.Name} Context Initialization error!");
             }
         }
 
         public bool Start()
         {
-            Logger.LogInformation($"OTM  {Config.Name} Context starting...");
-
+            Logger.Info($"OTM  {Config.Name} Context starting...");
             try
             {
                 if (Devices != null)
@@ -67,13 +78,13 @@ namespace Otm.Server
                     }
                 }
 
-                Logger.LogInformation($"OTM {Config.Name} Context started!");
+                Logger.Info($"OTM {Config.Name} Context started!");
 
                 return true;
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, $"OTM {Config.Name} Context starting error!");
+                Logger.Error(ex, $"OTM {Config.Name} Context starting error!");
                 return false;
             }
         }
@@ -83,7 +94,7 @@ namespace Otm.Server
             try
             {
 
-                Logger.LogInformation($"OTM {Config.Name} Context stoping...");
+                Logger.Info($"OTM {Config.Name} Context stoping...");
 
                 var workers = new List<BackgroundWorker>();
 
@@ -99,12 +110,12 @@ namespace Otm.Server
                 while (workers.Any(w => (w?.IsBusy) ?? false))
                     busyWaitEvent.WaitOne(500); // aguarda 500ms
 
-                Logger.LogInformation($"OTM {Config.Name} Context stoped!");
+                Logger.Info($"OTM {Config.Name} Context stoped!");
                 return true;
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, $"OTM {Config.Name} Context stoping error!");
+                Logger.Error(ex, $"OTM {Config.Name} Context stoping error!");
                 return false;
             }
         }
@@ -122,25 +133,25 @@ namespace Otm.Server
                 {
                     try
                     {
-                        Logger.LogInformation($"Object {name}: Started");
+                        Logger.Info($"Object {name}: Started");
 
                         StartAction(worker);
                         
-                        Logger.LogInformation($"Error on start of {name} ");
+                        Logger.Info($"Error on start of {name} ");
                     }
                     catch (Exception ex)
                     {
-                        Logger.LogError(ex, $"Error on start of {name} ");
+                        Logger.Error(ex, $"Error on start of {name} ");
                     }
                 };
 
-                worker.RunWorkerCompleted += (object o, RunWorkerCompletedEventArgs args) => Logger.LogInformation($"Object {name} Stoped");
+                worker.RunWorkerCompleted += (object o, RunWorkerCompletedEventArgs args) => Logger.Info($"Object {name} Stoped");
 
                 worker.RunWorkerAsync();
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, $"Error on start of {name} ");
+                Logger.Error(ex, $"Error on start of {name} ");
             }
         }
 

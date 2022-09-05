@@ -32,6 +32,7 @@ namespace Otm.Server.ContextConfig
                 config.Name = Context.Name;
                 config.Mode = Context.Mode;
                 config.Enabled = Context.Enabled;
+                config.LogName = Context.Logger;
                 //config.DataPoints = new List<DataPointConfig>();
                 //config.Devices = new List<DeviceConfig>();
                 //config.Transactions = new List<TransactionConfig>();
@@ -43,6 +44,7 @@ namespace Otm.Server.ContextConfig
                 config.Name = Context.Name;
                 config.Mode = Context.Mode;
                 config.Enabled = Context.Enabled;
+                config.LogName = Context.Logger;
                 var configJson = JsonSerializer.Serialize<OtmContextConfig>(config);
                 File.WriteAllText(configPath, configJson);
             }

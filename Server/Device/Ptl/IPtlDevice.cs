@@ -9,6 +9,7 @@ using System.Net;
 using System.Text;
 using System.Diagnostics;
 using Otm.Server.Device.Licensing;
+using NLog;
 
 namespace Otm.Server.Device.Ptl
 {
@@ -25,7 +26,7 @@ namespace Otm.Server.Device.Ptl
         public readonly Dictionary<string, Action<string, object>> tagsAction;
         public readonly object lockSendDataQueue = new object();
         public Queue<byte[]> sendDataQueue;
-        public ILogger Logger;
+        public Logger Logger;
         public DeviceConfig Config;
         public ITcpClientAdapter client;
         public string ip;
@@ -74,13 +75,13 @@ namespace Otm.Server.Device.Ptl
             tagsActionLock = new object();
         }
 
-        public void Init(DeviceConfig dvConfig, ITcpClientAdapter client, ILogger logger)
+        public void Init(DeviceConfig dvConfig, ITcpClientAdapter client, Logger logger)
         {
             this.client = client;
             Init(dvConfig, logger);
         }
 
-        public void Init(DeviceConfig dvConfig, ILogger logger)
+        public void Init(DeviceConfig dvConfig, Logger logger)
         {
             this.Logger = logger;
             this.Config = dvConfig;
@@ -167,7 +168,7 @@ namespace Otm.Server.Device.Ptl
         public void SetTagValue(string tagName, object value)
         {
             if (tagName != "cmd_send")
-                Logger.LogError($"Dev {Config.Name}: O tag name '{tagName}', não é valido!");
+                Logger.Error($"Dev {Config.Name}: O tag name '{tagName}', não é valido!");
             else if (value is string @string)
             {
                 if (string.IsNullOrWhiteSpace((string)value))
@@ -175,7 +176,7 @@ namespace Otm.Server.Device.Ptl
                 // recebeu do datapoint 
                 // criar os comandos pro PTL
 
-                Logger.LogInformation($"SetTagValue(): PickTolight visualization: '{Config.Name}'. value: '{value}'");
+                Logger.Info($"SetTagValue(): PickTolight visualization: '{Config.Name}'. value: '{value}'");
 
                 var ListaPendentes = (from rawPendente in ((string)value).Split(';').ToList()
                                       let pententeInfos = rawPendente.Split('|').ToList()
@@ -267,7 +268,7 @@ namespace Otm.Server.Device.Ptl
                 catch (Exception ex)
                 {
                     Ready = false;
-                    Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
+                    Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
                 }
             }
 
@@ -281,12 +282,12 @@ namespace Otm.Server.Device.Ptl
 
         public void EnviarBipLeituraMestre(byte MasterDevice)
         {
-            Logger.LogInformation($"ReceiveData(): Device: '{Config.Name}'. enviando BIP para o display mestre {MasterDevice}.");
+            Logger.Info($"ReceiveData(): Device: '{Config.Name}'. enviando BIP para o display mestre {MasterDevice}.");
         }
 
         public void EnviarComandoTeste()
         {
-            Logger.LogInformation($"EnviarComandoTeste(): Device: '{Config.Name}'. enviando Comando teste para o controlador.");
+            Logger.Info($"EnviarComandoTeste(): Device: '{Config.Name}'. enviando Comando teste para o controlador.");
         }
 
 
@@ -319,7 +320,7 @@ namespace Otm.Server.Device.Ptl
 
                     st.Stop();
 
-                    Logger.LogDebug($"SendData(): Device: {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
+                    Logger.Debug($"SendData(): Device: {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
 
                     this.LastSend = DateTime.Now;
                 }
@@ -344,16 +345,16 @@ namespace Otm.Server.Device.Ptl
 
                 if (client.Connected)
                 {
-                    Logger.LogDebug($"Dev {Config.Name}: Connected.");
+                    Logger.Debug($"Dev {Config.Name}: Connected.");
                 }
                 else
                 {
-                    Logger.LogError($"Dev {Config.Name}: Connection error.");
+                    Logger.Error($"Dev {Config.Name}: Connection error.");
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, $"Dev {Config.Name}: Connection error.");
+                Logger.Error(ex, $"Dev {Config.Name}: Connection error.");
             }
         }
 
@@ -376,7 +377,7 @@ namespace Otm.Server.Device.Ptl
             {
                 try
                 {
-                    Logger.LogInformation($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | Obtendo licenca...");
+                    Logger.Info($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | Obtendo licenca...");
 
                     string HostIdentifier = Environment.MachineName;
                     //Temporariamente pegando o Ip, deve-se tentar pegar algo imutavel do device
@@ -385,19 +386,19 @@ namespace Otm.Server.Device.Ptl
 
                     string LicenseKey = this.licenseKey;
 
-                    Logger.LogInformation($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | HostIdentifier: { HostIdentifier}");
-                    Logger.LogInformation($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | MacAddress: { DeviceIdentifier}");
-                    Logger.LogInformation($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | LicenseKey {LicenseKey}");
+                    Logger.Info($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | HostIdentifier: { HostIdentifier}");
+                    Logger.Info($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | MacAddress: { DeviceIdentifier}");
+                    Logger.Info($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | LicenseKey {LicenseKey}");
                     
                     LicenseRemainingHours = new Licensing.License(HostIdentifier, DeviceIdentifier, LicenseKey).GetRemainingHours();
 
-                    Logger.LogInformation($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | Licenca obtida, restante {LicenseRemainingHours} horas.");
+                    Logger.Info($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | Licenca obtida, restante {LicenseRemainingHours} horas.");
                     
                     LastUpdateDate = DateTime.Now;
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogInformation($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | Error:  {ex}");
+                    Logger.Info($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | Error:  {ex}");
                 }
                 LastLicenseTry = DateTime.Now;
             }            

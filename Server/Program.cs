@@ -13,6 +13,7 @@ using NLog.Targets.ElasticSearch;
 using Otm.Server.Plugin;
 using Microsoft.Extensions.DependencyInjection;
 using Otm.Server.Services;
+using NLog;
 
 namespace Otm.Server
 {
@@ -49,7 +50,7 @@ namespace Otm.Server
               .ConfigureLogging(logging =>
               {
                   logging.ClearProviders();
-                  logging.SetMinimumLevel(LogLevel.Trace);
+                  logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
               })
               .UseNLog();
              //.ConfigureServices((hostContext, services) =>

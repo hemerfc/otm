@@ -7,6 +7,7 @@ using Otm.Server.ContextConfig;
 using System.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Otm.Shared.ContextConfig;
+using NLog;
 
 namespace Otm.Server.DataPoint
 {
@@ -15,7 +16,7 @@ namespace Otm.Server.DataPoint
         public string Name { get { return Config.Name; } }
         private DataPointConfig Config { get; set; }
 
-        private readonly ILogger logger;
+        private readonly Logger logger;
 
         public bool DebugMessages { get; set; }
         public string Driver { get; set; }
@@ -23,7 +24,7 @@ namespace Otm.Server.DataPoint
         public string CronExpression { get; }
 
 
-        public MsSqlDataPoint(DataPointConfig config, ILogger logger)
+        public MsSqlDataPoint(DataPointConfig config, Logger logger)
         {
             Config = config;
             this.logger = logger;
@@ -119,7 +120,7 @@ namespace Otm.Server.DataPoint
         {
             // this gets the print statements (maybe the error statements?)
             var outputFromStoredProcedure = e.Message;
-            logger.LogInformation($"ProcOutput: {outputFromStoredProcedure}");
+            logger.Info($"ProcOutput: {outputFromStoredProcedure}");
         }
 
         private SqlConnection CreateConnection()

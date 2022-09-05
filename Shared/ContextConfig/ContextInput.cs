@@ -11,5 +11,6 @@ namespace Otm.Shared.ContextConfig
         public string Name { get; set; }
         public string Mode { get; set; }
         public bool Enabled { get; set; }
+        public string Logger { get; set; }
     }
 }
