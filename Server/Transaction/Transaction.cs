@@ -72,7 +72,7 @@ namespace Otm.Server.Transaction
                             {
                                 Dictionary<string, object> inParams; // = GetInParams();
                                                                      // wait a trigger or 100ms
-                                if (TriggerQueue.TryTake(out inParams, 100))
+                                if (TriggerQueue.TryTake(out inParams, 75))
                                     ExecuteTrigger(inParams);
                             }
                             break;

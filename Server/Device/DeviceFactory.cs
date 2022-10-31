@@ -11,6 +11,7 @@ using System.IO;
 using System.Reflection;
 using Otm.Server.Plugin;
 using NLog;
+using Otm.Server.Device.TcpServer;
 
 namespace Otm.Server.Device
 {
@@ -72,6 +73,12 @@ namespace Otm.Server.Device
                             var fileDevice = new FileDevice();
                             fileDevice.Init(dvConfig, logger);
                             devices.Add(dvConfig.Name, fileDevice);
+                            logger.Debug($"Device {dvConfig?.Name}: Created");
+                            break;
+                        case "TCP_Server":
+                            var TCPServerDevice = new TCPClientDevice();
+                            TCPServerDevice.Init(dvConfig, logger);
+                            devices.Add(dvConfig.Name, TCPServerDevice);
                             logger.Debug($"Device {dvConfig?.Name}: Created");
                             break;
                         default:

@@ -92,6 +92,7 @@ namespace Otm.Server.Transaction
 
 
                         CheckBinds(trConfig.SourceBinds, datapoint, sourceDevice, trConfig);
+                        if(trConfig.TargetBinds is not null)
                         CheckBinds(trConfig.TargetBinds, datapoint, targetDevice, trConfig);
                         
                     }
