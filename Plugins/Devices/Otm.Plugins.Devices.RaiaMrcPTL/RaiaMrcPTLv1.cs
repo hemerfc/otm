@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using NLog;
 using Otm.Server.Device;
 using Otm.Server.Device.Ptl;
 using Otm.Shared.ContextConfig;
@@ -168,7 +168,7 @@ namespace Otm.Plugins.Devices.RaiaMrcPTLv1
                 // se ainda nao tem uma Msg com esta Id na fila
                 if (!sendDataQueue.Any(x => x.Id == msg_id))
                 {
-                    Logger.LogInformation($"Dev {Config.Name}: O Id '{msg_id}', {msg_to_send} adicionada na fila!");
+                    Logger.Info($"Dev {Config.Name}: O Id '{msg_id}', {msg_to_send} adicionada na fila!");
                     sendDataQueue.Enqueue((msg_id, msg_to_send));
 
                     msg_id = null;
@@ -180,26 +180,21 @@ namespace Otm.Plugins.Devices.RaiaMrcPTLv1
                     msg_id = null;
                     msg_to_send = null;
 
-                    Logger.LogError($"Dev {Config.Name}: O Id '{msg_id}', ainda esta na fila!");
+                    Logger.Info($"Dev {Config.Name}: O Id '{msg_id}', ainda esta na fila!");
                     return;
                 }
-
             }
-
-            // nao devia chagar aki!...
-            Logger.LogError($"Dev {Config.Name}: O tag name '{tagName}', não é valido!");
         }
 
         private bool ReceiveData()
         {
-            var received = false;
             return false;
 
-            var recv = client.GetData();
+            /*var recv = client.GetData();
             if (recv != null && recv.Length > 0)
             {
                 // adiciona os dados recebidos ao buffer dos dados ja existens
-                Logger.LogInformation($"Dev {Config.Name}: Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
+                Logger.Info($"Dev {Config.Name}: Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
                 var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
                 receiveBuffer.CopyTo(tempBuffer, 0);
                 recv.CopyTo(tempBuffer, receiveBuffer.Length);
@@ -216,7 +211,7 @@ namespace Otm.Plugins.Devices.RaiaMrcPTLv1
                 byte[] CONFIRM_MSG = new byte[] { 88, 88, 46 }; // XX. 
                 var confirmPos = SearchBytes(strRcvd, CONFIRM_MSG);
 
-                Logger.LogInformation($"Dev {Config.Name}: confirmPos {confirmPos} ByteArray: '{string.Join(", ", strRcvd)}'");
+                Logger.Info($"Dev {Config.Name}: confirmPos {confirmPos} ByteArray: '{string.Join(", ", strRcvd)}'");
 
                 if (confirmPos >= 0) {
                     // incrementa o contador de msg recebida
@@ -244,7 +239,7 @@ namespace Otm.Plugins.Devices.RaiaMrcPTLv1
                 }
             }
 
-            return received;
+            return received;*/
         }
 
         public void Stop()
@@ -305,7 +300,7 @@ namespace Otm.Plugins.Devices.RaiaMrcPTLv1
                 catch (Exception ex)
                 {
                     Ready = false;
-                    Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
+                    Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
                 }
             }
         }
@@ -346,7 +341,7 @@ namespace Otm.Plugins.Devices.RaiaMrcPTLv1
 
                     st.Stop();
 
-                    Logger.LogInformation($"Dev {Config.Name}: Enviado Id {it.Id} Msg {buffer.Length} bytes em {st.ElapsedMilliseconds} ms.");
+                    Logger.Info($"Dev {Config.Name}: Enviado Id {it.Id} Msg {buffer.Length} bytes em {st.ElapsedMilliseconds} ms.");
 
                     this.LastSend = DateTime.Now;
                 }
@@ -373,16 +368,16 @@ namespace Otm.Plugins.Devices.RaiaMrcPTLv1
 
                 if (client.Connected)
                 {
-                    Logger.LogDebug($"Dev {Config.Name}: Connected.");
+                    Logger.Debug($"Dev {Config.Name}: Connected.");
                 }
                 else
                 {
-                    Logger.LogError($"Dev {Config.Name}: Connection error.");
+                    Logger.Error($"Dev {Config.Name}: Connection error.");
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, $"Dev {Config.Name}: Connection error.");
+                Logger.Error(ex, $"Dev {Config.Name}: Connection error.");
             }
         }
 

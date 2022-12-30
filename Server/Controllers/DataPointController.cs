@@ -84,7 +84,7 @@ namespace Otm.Server.Controllers
                     configFiles.Close();
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
             }
 
@@ -126,7 +126,7 @@ namespace Otm.Server.Controllers
                     configFiles.Close();
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
             }
 

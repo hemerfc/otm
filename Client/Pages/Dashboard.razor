@@ -18,7 +18,9 @@
 @code {
     private IEnumerable<string> Messages = new List<string>();
 
+#pragma warning disable CS1998 // O método assíncrono não possui operadores 'await' e será executado de forma síncrona
     protected override async Task OnInitializedAsync()
+#pragma warning restore CS1998 // O método assíncrono não possui operadores 'await' e será executado de forma síncrona
     {
         //Messages = (await LogClient.GetAsync());
         Logger.LogInformation("Received {0} messages", Messages.Count());

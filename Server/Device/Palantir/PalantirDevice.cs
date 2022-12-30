@@ -14,12 +14,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Otm.Server.Device.TcpServer
+namespace Otm.Server.Device.Palantir
 {
-    public class TCPClientDevice : IDevice
+    public class PalantirDevice : IDevice
     {
 
-        public TCPClientDevice()
+        public PalantirDevice()
         {
             tagValues = new ConcurrentDictionary<string, object>();
             tagsAction = new ConcurrentDictionary<string, Action<string, object>>();

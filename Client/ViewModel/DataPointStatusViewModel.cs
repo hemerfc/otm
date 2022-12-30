@@ -7,8 +7,6 @@ namespace Otm.Client.ViewModel
     {
         private string name;
         private bool debugMessages;
-        private bool connected;
-        private DateTime lastErrorTime;
         private string script;
         private string driver;
 

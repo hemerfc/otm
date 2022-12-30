@@ -5,7 +5,6 @@ using System.Data;
 using System.Linq;
 using Otm.Server.ContextConfig;
 using System.Data.SqlClient;
-using Microsoft.Extensions.Logging;
 using Otm.Shared.ContextConfig;
 using NLog;
 
@@ -16,7 +15,7 @@ namespace Otm.Server.DataPoint
         public string Name { get { return Config.Name; } }
         private DataPointConfig Config { get; set; }
 
-        private readonly Logger logger;
+        private readonly ILogger logger;
 
         public bool DebugMessages { get; set; }
         public string Driver { get; set; }
@@ -24,7 +23,7 @@ namespace Otm.Server.DataPoint
         public string CronExpression { get; }
 
 
-        public MsSqlDataPoint(DataPointConfig config, Logger logger)
+        public MsSqlDataPoint(DataPointConfig config, ILogger logger)
         {
             Config = config;
             this.logger = logger;

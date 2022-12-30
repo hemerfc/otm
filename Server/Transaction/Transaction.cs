@@ -33,8 +33,6 @@ namespace Otm.Server.Transaction
 
         private readonly Logger logger;
 
-        private bool firstCall = true;
-
         public Transaction(TransactionConfig trConfig, IDevice sourceDevice, IDevice targetDevice, IDataPoint dataPoint, Logger logger)
         {
             this.logger = logger;
@@ -44,10 +42,7 @@ namespace Otm.Server.Transaction
             this.dataPoint = dataPoint;
             this.TriggerQueue = new BlockingCollection<Dictionary<string, object>>(128);
             Stopwatch = new Stopwatch();
-            firstCall = true;
         }
-
-
 
         public void Start(BackgroundWorker worker)
         {

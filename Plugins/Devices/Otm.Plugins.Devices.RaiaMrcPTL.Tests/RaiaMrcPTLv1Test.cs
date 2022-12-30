@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Logging;
 using Moq;
+using NLog;
 using Otm.Server.Device.Ptl;
 using Otm.Shared.ContextConfig;
 using System;

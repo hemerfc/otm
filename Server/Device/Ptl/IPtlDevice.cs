@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.ComponentModel;
-using Microsoft.Extensions.Logging;
 using Otm.Shared.ContextConfig;
 using System.Threading;
 using System.Collections.Generic;
@@ -26,7 +25,7 @@ namespace Otm.Server.Device.Ptl
         public readonly Dictionary<string, Action<string, object>> tagsAction;
         public readonly object lockSendDataQueue = new object();
         public Queue<byte[]> sendDataQueue;
-        public Logger Logger;
+        public ILogger Logger;
         public DeviceConfig Config;
         public ITcpClientAdapter client;
         public string ip;
@@ -75,13 +74,13 @@ namespace Otm.Server.Device.Ptl
             tagsActionLock = new object();
         }
 
-        public void Init(DeviceConfig dvConfig, ITcpClientAdapter client, Logger logger)
+        public void Init(DeviceConfig dvConfig, ITcpClientAdapter client, ILogger logger)
         {
             this.client = client;
             Init(dvConfig, logger);
         }
 
-        public void Init(DeviceConfig dvConfig, Logger logger)
+        public void Init(DeviceConfig dvConfig, ILogger logger)
         {
             this.Logger = logger;
             this.Config = dvConfig;

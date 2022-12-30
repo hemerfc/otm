@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Diagnostics;
-using Microsoft.Extensions.Logging;
 using Otm.Shared.ContextConfig;
 using System.Collections.Concurrent;
 using RabbitMQ.Client;
@@ -33,8 +32,7 @@ namespace Otm.Server.Device.S7
 
         public Stopwatch Stopwatch { get; }
 
-        private DateTime? connError = null;
-        private Logger Logger;
+        private ILogger Logger;
 
         public bool Ready { get; private set; }
 
@@ -75,7 +73,7 @@ namespace Otm.Server.Device.S7
 
         public object tagsActionLock = new object();
 
-        public void Init(DeviceConfig dvConfig, Logger logger)
+        public void Init(DeviceConfig dvConfig, ILogger logger)
         {
             this.Logger = logger;
             this.Config = dvConfig;
@@ -278,14 +276,16 @@ namespace Otm.Server.Device.S7
         private void OnError(object sender, ErrorEventArgs e) =>
             PrintException(e.GetException());
 
-        private void PrintException(Exception? ex)
+        private void PrintException(Exception ex)
         {
             if (ex != null)
             {
                 Logger.Error($"FileDevice ({Config.Name})|PrintException|Message: {ex.Message}");
                 Logger.Error($"FileDevice ({Config.Name})|PrintException|Stacktrace:");
                 Logger.Error($"FileDevice ({Config.Name})|PrintException|{(ex.StackTrace)}");
-                PrintException(ex.InnerException);
+
+                if (ex.InnerException != null)
+                    PrintException(ex.InnerException);
             }
         }
 

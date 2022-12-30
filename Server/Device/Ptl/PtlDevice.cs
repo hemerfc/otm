@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.ComponentModel;
-using Microsoft.Extensions.Logging;
 using Otm.Shared.ContextConfig;
 using System.Threading;
 using System.Collections.Generic;
@@ -29,11 +28,10 @@ namespace Otm.Server.Device.Ptl
         private readonly Dictionary<string, Action<string, object>> tagsAction;
         private readonly object lockSendDataQueue = new object();
         private Queue<byte[]> sendDataQueue;
-        private Logger Logger;
+        private ILogger Logger;
         private DeviceConfig Config;
         private ITcpClientAdapter client;
         private string ip;
-        private string licenseKey;
         private int port;
 
         private byte MasterDevice;
@@ -45,7 +43,6 @@ namespace Otm.Server.Device.Ptl
         //readonly bool firstLoadWrite;
         private bool Connecting;
         private DateTime lastConnectionTry;
-        private static DateTime? LastLicenseTry;
         private string cmd_rcvd = "";
         private int cmd_count = 0;
         private const int RECONNECT_DELAY = 3000;
@@ -66,11 +63,6 @@ namespace Otm.Server.Device.Ptl
 
         public IReadOnlyDictionary<string, object> TagValues { get { return null; } }
 
-        #region License
-        public int LicenseRemainingHours { get; set; }
-        public DateTime? LastUpdateDate { get; set; }
-        #endregion
-
         public PtlDevice()
         {
             this.tagsAction = new Dictionary<string, Action<string, object>>();
@@ -78,13 +70,15 @@ namespace Otm.Server.Device.Ptl
             tagsActionLock = new object();
         }
 
-        public void Init(DeviceConfig dvConfig, ITcpClientAdapter client, Logger logger)
+        public void Init(DeviceConfig dvConfig, ITcpClientAdapter client, ILogger logger)
         {
             this.client = client;
-            Init(dvConfig, logger);
+            this.Logger = logger;
+            this.Config = dvConfig;
+            GetConfig(dvConfig);
         }
 
-        public void Init(DeviceConfig dvConfig, Logger logger)
+        public void Init(DeviceConfig dvConfig, ILogger logger)
         {
             this.Logger = logger;
             this.Config = dvConfig;
@@ -98,7 +92,6 @@ namespace Otm.Server.Device.Ptl
             var cparts = dvConfig.Config.Split(';');
 
             this.ip = (cparts.FirstOrDefault(x => x.Contains("ip=")) ?? "").Replace("ip=", "").Trim();
-            this.licenseKey = (cparts.FirstOrDefault(x => x.Contains("key=")) ?? "").Replace("key=", "").Trim();
             var strRack = (cparts.FirstOrDefault(x => x.Contains("port=")) ?? "").Replace("port=", "").Trim();
 
             var hasReadGateParam = (cparts.FirstOrDefault(x => x.Contains("HasReadGate=")) ?? "").Replace("HasReadGate=", "").Trim();
@@ -284,14 +277,12 @@ namespace Otm.Server.Device.Ptl
             // backgroud worker
             Worker = worker;
 
-            GetLicenseRemainingHours();
+            //GetLicenseRemainingHours();
 
-            while (LicenseRemainingHours > 0)
-            {
+            //while (LicenseRemainingHours > 0)
+            //{
                 try
                 {
-
-
                     if (client.Connected)
                     {
                         bool received, sent;
@@ -325,7 +316,7 @@ namespace Otm.Server.Device.Ptl
                     // wait 50ms
                     /// TODO: wait time must be equals the minimum update rate of tags
                     var waitEvent = new ManualResetEvent(false);
-                    waitEvent.WaitOne(150);
+                    waitEvent.WaitOne(50);
 
                     if (Worker.CancellationPending)
                     {
@@ -339,8 +330,7 @@ namespace Otm.Server.Device.Ptl
                     Ready = false;
                     Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
                 }
-            }
-
+            //}
         }
 
         private bool ReceiveData()
@@ -644,51 +634,5 @@ namespace Otm.Server.Device.Ptl
             }
         }
 
-        public void GetLicenseRemainingHours()
-        {
-
-
-            /*Atualiza quando:
-             * - Na inicialização do serviço
-             * - Quando a data da última atualização tiver 3 dias de diferença da última. Implementei com Mod, caso for alterada a data do servidor para frente, também funciona
-             */
-
-            //Temporário até corrigir o container
-            //LicenseRemainingHours = int.MaxValue;
-            
-            if (LastLicenseTry == null
-                || LastUpdateDate == null
-                || Math.Abs((LastUpdateDate.Value - DateTime.Now).TotalDays) >= 3
-                )
-            {
-                try
-                {
-                    Logger.Info($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | Obtendo licenca...");
-
-                    string HostIdentifier = Environment.MachineName;
-                    //Temporariamente pegando o Ip, deve-se tentar pegar algo imutavel do device
-                    string DeviceIdentifier = this.ip; //MacAddress.getMacByIp(this.ip);
-                    //string DeviceIdentifier = MacAddress.getMacByIp("192.168.15.43");
-
-                    string LicenseKey = this.licenseKey;
-
-                    Logger.Info($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | HostIdentifier: { HostIdentifier}");
-                    Logger.Info($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | MacAddress: { DeviceIdentifier}");
-                    Logger.Info($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | LicenseKey {LicenseKey}");
-                    
-                    LicenseRemainingHours = new Licensing.License(HostIdentifier, DeviceIdentifier, LicenseKey).GetRemainingHours();
-
-                    Logger.Info($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | Licenca obtida, restante {LicenseRemainingHours} horas.");
-                    
-                    LastUpdateDate = DateTime.Now;
-                }
-                catch (Exception ex)
-                {
-                    Logger.Info($"PtlDevice | {Config.Name} | GetLicenseRemainingDays | Error:  {ex}");
-                }
-                LastLicenseTry = DateTime.Now;
-            }           
-
-        }
     }
 }

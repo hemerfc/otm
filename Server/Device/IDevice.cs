@@ -1,7 +1,6 @@
 
 using System;
 using System.ComponentModel;
-using Microsoft.Extensions.Logging;
 using NLog;
 using Otm.Server.ContextConfig;
 using Otm.Shared.ContextConfig;
@@ -11,7 +10,7 @@ namespace Otm.Server.Device
 {
     public interface IDevice : IDeviceStatus
     { 
-        void Init(DeviceConfig dvConfig, Logger logger);
+        void Init(DeviceConfig dvConfig, ILogger logger);
     
         void OnTagChangeAdd(string tagName, Action<string, object> triggerAction);
 
@@ -29,9 +28,9 @@ namespace Otm.Server.Device
         BackgroundWorker Worker { get;  }
 
         #region License
-        void GetLicenseRemainingHours();
-        int LicenseRemainingHours { get; set; }
-        DateTime? LastUpdateDate { get; set; }
+        //void GetLicenseRemainingHours();
+        //int LicenseRemainingHours { get; set; }
+        //DateTime? LastUpdateDate { get; set; }
 
         #endregion
     }

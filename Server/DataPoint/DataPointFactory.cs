@@ -1,8 +1,6 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
-using Otm.Server.ContextConfig;
-using Microsoft.Extensions.Logging;
 using Otm.Shared.ContextConfig;
 using NLog;
 
@@ -10,7 +8,7 @@ namespace Otm.Server.DataPoint
 {
     public static class DataPointFactory
     {
-        public static IDictionary<string, IDataPoint> CreateDataPoints(IEnumerable<DataPointConfig> dataPointsConfig, Logger logger)
+        public static IDictionary<string, IDataPoint> CreateDataPoints(IEnumerable<DataPointConfig> dataPointsConfig, ILogger logger)
         {
             var datapoints = new Dictionary<string, IDataPoint>();
 
@@ -24,7 +22,7 @@ namespace Otm.Server.DataPoint
             return datapoints;
         }
 
-        private static IDataPoint CreateDataPoint(DataPointConfig dpConfig, Logger logger)
+        private static IDataPoint CreateDataPoint(DataPointConfig dpConfig, ILogger logger)
         {
             // todo datapoint deve ter um nome
             if (string.IsNullOrWhiteSpace(dpConfig.Name))
@@ -34,7 +32,7 @@ namespace Otm.Server.DataPoint
                 throw ex;
             }
 
-            if (dpConfig.Tipo == "dataPoint") { 
+            //if (dpConfig.Tipo == "dataPoint") { 
                 if (dpConfig.Params == null || dpConfig.Params.Count <= 0)
                 {
                     var ex = new Exception($"DataPoint must have at least one parameter. DataPoint:{dpConfig.Name}");
@@ -52,7 +50,7 @@ namespace Otm.Server.DataPoint
                         throw ex;
                     }
                 }            
-            }
+            //}
 
             //var staticParam = dpConfig.Params.Where(x => x.Mode == Modes.Static);
 

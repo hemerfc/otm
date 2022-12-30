@@ -26,8 +26,8 @@ namespace Otm.Server.Device.Ptl
 
         public byte[] GetData()
         {
-            try
-            {
+            //try
+            //{
                 if (_client.Available > 0)
                 {
                     var buffer = new byte[_client.Available];
@@ -35,10 +35,10 @@ namespace Otm.Server.Device.Ptl
                     return buffer;
                 }
                 return null;
-            }
-            catch (Exception ex) {
-                throw ex;
-            }
+            //}
+            //catch (Exception ex) {
+            //    throw ex;
+            //}
         }
 
         public int SendData(byte[] buffer)

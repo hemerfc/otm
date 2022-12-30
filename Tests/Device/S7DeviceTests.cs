@@ -4,7 +4,7 @@ using Xunit;
 using Moq;
 using Otm.Server.Device.S7;
 using Otm.Shared.ContextConfig;
-using Microsoft.Extensions.Logging;
+using NLog;
 
 namespace Otm.Test.Device
 {

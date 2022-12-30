@@ -19,7 +19,7 @@ namespace Otm.Server.Controllers
         {
             //Uses a remote endpoint to establish a socket connection.
             UdpClient udpClient = new UdpClient();
-            IPAddress ipAddress = Dns.Resolve("127.0.0.1").AddressList[0]; ;
+            IPAddress ipAddress = Dns.GetHostEntry("127.0.0.1").AddressList[0]; ;
             IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, 11004);
             try
             {
