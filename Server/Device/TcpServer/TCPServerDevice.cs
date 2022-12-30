@@ -1,4 +1,5 @@
-﻿using NLog;
+﻿using Microsoft.AspNetCore.Http;
+using NLog;
 using Otm.Shared.ContextConfig;
 using System;
 using System.Collections.Concurrent;
@@ -16,10 +17,10 @@ using System.Threading.Tasks;
 
 namespace Otm.Server.Device.TcpServer
 {
-    public class TCPClientDevice : IDevice
+    public class TCPServerDevice : IDevice
     {
 
-        public TCPClientDevice()
+        public TCPServerDevice()
         {
             tagValues = new ConcurrentDictionary<string, object>();
             tagsAction = new ConcurrentDictionary<string, Action<string, object>>();
@@ -29,7 +30,7 @@ namespace Otm.Server.Device.TcpServer
         private DeviceConfig Config;
         private string IPServer;
         private string PortServer;
-        private TcpClient client;
+        private Socket client;
 
         private byte[] STX_LC = new byte[] { 0x02 };
         private byte[] ETX_LC = new byte[] { 0x03 };
@@ -118,16 +119,32 @@ namespace Otm.Server.Device.TcpServer
         {
             try
             {
-                if (client.Available > 0)
-                {
-                    var buffer = new byte[client.Available];
-                    if (buffer.Length > 0)
-                    {
+                // Send message.
+                var message = "Hi friends 👋!<|EOM|>";
+                var messageBytes = Encoding.UTF8.GetBytes(message);
+                _ = client.Send(messageBytes, SocketFlags.None);
+                Console.WriteLine($"Socket client sent message: \"{message}\"");
 
-                        client.Client.Receive(buffer);
-                        Received(buffer);
-                    }
+                // Receive ack.
+                var buffer = new byte[1_024];
+                Received(buffer);
+
+
+
+
+                var received = client.Receive(buffer, SocketFlags.None);
+                var response = Encoding.UTF8.GetString(buffer, 0, received);
+
+                if (response == "<|ACK|>")
+                {
+                    Console.WriteLine(
+                        $"Socket client received acknowledgment: \"{response}\"");
                 }
+                // Sample output:
+                //     Socket client sent message: "Hi friends 👋!<|EOM|>"
+                //     Socket client received acknowledgment: "<|ACK|>"
+
+
             }
             catch (Exception ex)
             {
@@ -231,16 +248,13 @@ namespace Otm.Server.Device.TcpServer
             return -1;
         }
 
-
-
-
         public async void SendData()
         {
             try
             {
                 //byte[] buffer = System.Text.Encoding.ASCII.GetBytes("true");
                 byte[] buffer = System.Text.Encoding.ASCII.GetBytes($"{0x02}{0x63}{0x03}");
-                client.Client.Send(new byte[] { 0x02, 0x63, 0x03 });
+                client.Send(new byte[] { 0x02, 0x63, 0x03 });
                 Thread.Sleep(1000);
             }
             catch (Exception e)
@@ -254,9 +268,11 @@ namespace Otm.Server.Device.TcpServer
         {
             try
             {
-                client = new TcpClient();
-                client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
-                client.Connect(IPAddress.Parse(ip), port);
+                IPAddress ipAddress = IPAddress.Parse(ip);
+                IPEndPoint ipEndPoint = new(ipAddress, port);
+
+                client.Connect(ipEndPoint);
+
                 if (client.Connected)
                 {
                     Logger.Debug($"TCPServerDevice|Connect|client Connected in Ip:'{IPServer}' and port:'{port}'");
@@ -273,6 +289,7 @@ namespace Otm.Server.Device.TcpServer
         public void Start(BackgroundWorker worker)
         {
             Int32 port = Int32.Parse(PortServer);
+            CreateServer(IPServer, port);
             Connect(IPServer, port);
             while (true)
             {
@@ -291,8 +308,27 @@ namespace Otm.Server.Device.TcpServer
                 }
                 catch (Exception e)
                 {
-                    Logger.Error($"TCPServerDevice|start sendData|error: '{e.Message}'");
+                    Logger.Error($"TCPServerDevice|Start|error: '{e.Message}'");
                 }
+            }
+        }
+
+        private void CreateServer(string ip, int port)
+        {
+            try
+            {
+                IPAddress ipAddress = IPAddress.Parse(ip);
+
+                IPEndPoint ipEndPoint = new(ipAddress, port);
+
+                client = new(
+                        ipEndPoint.AddressFamily,
+                        SocketType.Stream,
+                        ProtocolType.Tcp);
+            }
+            catch (Exception ex )
+            {
+                Logger.Error($"TCPServerDevice|CreateServer|error: '{ex.Message}'");
             }
         }
 

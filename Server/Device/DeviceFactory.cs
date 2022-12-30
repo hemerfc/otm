@@ -12,6 +12,7 @@ using System.Reflection;
 using Otm.Server.Plugin;
 using NLog;
 using Otm.Server.Device.TcpServer;
+using Otm.Server.Device.Palantir;
 
 namespace Otm.Server.Device
 {
@@ -75,10 +76,16 @@ namespace Otm.Server.Device
                             devices.Add(dvConfig.Name, fileDevice);
                             logger.Debug($"Device {dvConfig?.Name}: Created");
                             break;
-                        case "TCP_Server":
+                        case "TCP_Client":
                             var TCPServerDevice = new TCPClientDevice();
                             TCPServerDevice.Init(dvConfig, logger);
                             devices.Add(dvConfig.Name, TCPServerDevice);
+                            logger.Debug($"Device {dvConfig?.Name}: Created");
+                            break;
+                        case "PalantirClient":
+                            var palantirDevice = new PalantirDevice();
+                            palantirDevice.Init(dvConfig, logger);
+                            devices.Add(dvConfig.Name, palantirDevice);
                             logger.Debug($"Device {dvConfig?.Name}: Created");
                             break;
                         default:

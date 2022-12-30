@@ -1,4 +1,5 @@
 ﻿using NLog;
+using Otm.Server.Device.Palantir.Models;
 using Otm.Shared.ContextConfig;
 using System;
 using System.Collections.Concurrent;
@@ -9,17 +10,19 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
+using System.Security;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Otm.Server.Device.TcpServer
+namespace Otm.Server.Device.Palantir
 {
-    public class TCPClientDevice : IDevice
+    public class PalantirDevice : IDevice
     {
 
-        public TCPClientDevice()
+        public PalantirDevice()
         {
             tagValues = new ConcurrentDictionary<string, object>();
             tagsAction = new ConcurrentDictionary<string, Action<string, object>>();
@@ -30,9 +33,11 @@ namespace Otm.Server.Device.TcpServer
         private string IPServer;
         private string PortServer;
         private TcpClient client;
+        private bool ReconnectRequest = false;
 
-        private byte[] STX_LC = new byte[] { 0x02 };
-        private byte[] ETX_LC = new byte[] { 0x03 };
+
+        private byte[] STX_LC = new byte[] { MessageConstants.STX };
+        private byte[] ETX_LC = new byte[] { MessageConstants.ETX };
         byte[] receiveBuffer = new byte[0];
         private bool readGateOpen;
         private bool hasReadGate;
@@ -83,8 +88,8 @@ namespace Otm.Server.Device.TcpServer
 
         public void Init(DeviceConfig dvConfig, Logger logger)
         {
-            this.Logger = logger;
-            this.Config = dvConfig;
+            Logger = logger;
+            Config = dvConfig;
             GetConfig(dvConfig);
         }
 
@@ -111,7 +116,7 @@ namespace Otm.Server.Device.TcpServer
         public void SetTagValue(string tagName, object value)
         {
             tagValues[tagName] = value;
-            Logger.Debug($"TCPServerDevice|SetTagValue|TagName: '{tagName}'|TagValues: '{value}'");
+            Logger.Debug($"PalantirDevice|SetTagValue|TagName: '{tagName}'|TagValues: '{value}'");
         }
 
         public void GetData()
@@ -131,7 +136,7 @@ namespace Otm.Server.Device.TcpServer
             }
             catch (Exception ex)
             {
-                Logger.Error($"TCPServerDevice|GetData|error new message:'{ex.Message}'");
+                Logger.Error($"PalantirDevice|GetData|error new message:'{ex.Message}'");
             }
         }
 
@@ -157,7 +162,7 @@ namespace Otm.Server.Device.TcpServer
                 var etxLcPos = SearchBytes(strRcvd, ETX_LC);
 
 
-                var posicoesRelevantesEncontradas = new List<int>() { stxLcPos}
+                var posicoesRelevantesEncontradas = new List<int>() { stxLcPos }
                                                             .Where(x => x >= 0)
                                                             .OrderBy(x => x)
                                                             .ToList();
@@ -184,8 +189,8 @@ namespace Otm.Server.Device.TcpServer
                                 var cmdLC = Encoding.ASCII.GetString(strRcvd[(stxLcPos + STX_LC.Length)..etxLcPos]);
 
                                 var tagTriggers = new List<(Action<string, object> func, string tagName, object tagValue)>();
-                                
-                                Logger.Debug($"TCPServerDevice|Received|new message:'{cmdLC}'");
+
+                                Logger.Debug($"PalantirDevice|Received|new message:'{cmdLC}'");
 
                                 SetTagValue("data_message", cmdLC);
 
@@ -233,22 +238,93 @@ namespace Otm.Server.Device.TcpServer
 
 
 
-
-        public async void SendData()
+        public async void PrepareSendData()
         {
             try
             {
                 //byte[] buffer = System.Text.Encoding.ASCII.GetBytes("true");
-                byte[] buffer = System.Text.Encoding.ASCII.GetBytes($"{0x02}{0x63}{0x03}");
-                client.Client.Send(new byte[] { 0x02, 0x63, 0x03 });
-                Thread.Sleep(1000);
+                byte[] buffer = Encoding.ASCII.GetBytes($"{0x02}{0x63}{0x03}");
+                SendData(buffer);
             }
             catch (Exception e)
             {
-                Logger.Error($"TCPServerDevice|SendData|error: '{e.Message}");
+                Logger.Error($"PalantirDevice|SendData|error: '{e.Message}");
             }
 
         }
+
+        public bool SendData(byte[] message)
+        {
+            try
+            {
+                client.Client.Send(message);
+                //Thread.Sleep(1000);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"PalantirDevice|SendData|error: '{e.Message}");
+                return false;
+            }
+
+        }
+
+
+        public DateTime LastSendKeepAliveTry { get; set; } = DateTime.MinValue;
+        public DateTime LastSendKeepAliveSuccess { get; set; } = DateTime.Now;
+
+        /// <summary>
+        /// A mensagem K01 deve ser enviada pelo OTM ao PLC a cada 5 segundos
+        /// o PLC por sua vez responde a mensagem K02
+        /// se alguns dos lados fica sem receber a menagem por 10 segundos este deve finalizar esta conexão e iniciar uma nova conexão. 
+        /// Este processo garante que a conexão esta saldável e que ambos as partes estão aptas a responder as requisições. 
+        /// </summary>
+        private void SendKeepAlive()
+        {
+            var execTime = DateTime.Now;
+            if (LastSendKeepAliveTry.AddMilliseconds(MessageConstants.K01_INTERVAL_MS) <= execTime)
+            {
+                Logger.Debug($"PalantirDevice|SendKeepAlive|Inicio do envio da K01...");
+
+                var keepAliveMessage = new MessageKeepAlive(MessageCodesKeepAlive.ClientSend);
+
+                //Envia a mensagem e verifica se foi enviado corretamente
+                if (!SendData(keepAliveMessage.GetCompleteMessage()))
+                {
+                    Logger.Debug($"PalantirDevice|SendKeepAlive|Ocorreu um erro ao enviar a K01!");
+
+                    //Verifica se passou mais o tempo de timout da ultima conexão com sucesso para reconexão
+                    if (LastSendKeepAliveSuccess.AddMilliseconds(MessageConstants.K01_TIMEOUT_MS) <= execTime)
+                    {
+                        Logger.Debug($"PalantirDevice|SendKeepAlive|Executar desconexão por timeout!");
+                        ReconnectRequest = true;
+                    }
+                    else
+                    {
+                        Logger.Debug($"PalantirDevice|SendKeepAlive|Não conectado, tentando até terminar o timeout!");
+                    }
+
+                }
+                else
+                {
+                    Logger.Debug($"PalantirDevice|SendKeepAlive|K01 Enviada com sucesso!");
+                    LastSendKeepAliveSuccess = execTime;
+                }
+
+
+                LastSendKeepAliveTry = execTime;
+                Logger.Debug($"PalantirDevice|SendKeepAlive|Fim do envio da K01!");
+            }
+        }
+
+
+
+
+
+
+
+
+
 
         public void Connect(string ip, int port)
         {
@@ -259,12 +335,14 @@ namespace Otm.Server.Device.TcpServer
                 client.Connect(IPAddress.Parse(ip), port);
                 if (client.Connected)
                 {
-                    Logger.Debug($"TCPServerDevice|Connect|client Connected in Ip:'{IPServer}' and port:'{port}'");
+                    Logger.Debug($"PalantirDevice|Connect|client Connected in Ip:'{IPServer}' and port:'{port}'");
+
+                    ReconnectRequest = false;
                 }
             }
             catch (Exception e)
             {
-                Logger.Debug($"TCPServerDevice|Connect|error: '{e.Message}'");
+                Logger.Debug($"PalantirDevice|Connect|error: '{e.Message}'");
             }
 
         }
@@ -272,16 +350,17 @@ namespace Otm.Server.Device.TcpServer
 
         public void Start(BackgroundWorker worker)
         {
-            Int32 port = Int32.Parse(PortServer);
+            int port = int.Parse(PortServer);
             Connect(IPServer, port);
             while (true)
             {
                 try
                 {
-                    
-                    if (client.Connected)
+                    SendKeepAlive();
+
+                    if (client.Connected && !ReconnectRequest)
                     {
-                        SendData();
+                        //PrepareSendData();
                         GetData();
                     }
                     else
@@ -291,10 +370,12 @@ namespace Otm.Server.Device.TcpServer
                 }
                 catch (Exception e)
                 {
-                    Logger.Error($"TCPServerDevice|start sendData|error: '{e.Message}'");
+                    Logger.Error($"PalantirDevice|start sendData|error: '{e.Message}'");
                 }
             }
         }
+
+
 
         public void Stop()
         {
@@ -313,12 +394,12 @@ namespace Otm.Server.Device.TcpServer
             {
                 var cparts = dvConfig.Config.Split(';');
 
-                this.IPServer = (cparts.FirstOrDefault(x => x.Contains("IPServer=")) ?? "").Replace("IPServer=", "").Trim();
-                this.PortServer = (cparts.FirstOrDefault(x => x.Contains("PortServer=")) ?? "").Replace("PortServer=", "").Trim();
+                IPServer = (cparts.FirstOrDefault(x => x.Contains("IPServer=")) ?? "").Replace("IPServer=", "").Trim();
+                PortServer = (cparts.FirstOrDefault(x => x.Contains("PortServer=")) ?? "").Replace("PortServer=", "").Trim();
             }
             catch (Exception ex)
             {
-                Logger.Error($"FileDevice ({Config.Name})|GetDeviceParameter|Error: {ex}");
+                Logger.Error($"PalantirDevice| ({Config.Name})|GetDeviceParameter|Error: {ex}");
                 throw;
             }
         }
@@ -330,9 +411,9 @@ namespace Otm.Server.Device.TcpServer
             }
             catch (Exception ex)
             {
-                Logger.Error($"FileDevice ({Config.Name})|GetDeviceTags|Error: {ex}");
+                Logger.Error($"PalantirDevice| ({Config.Name})|GetDeviceTags|Error: {ex}");
                 throw;
             }
         }
     }
-    }
+}

@@ -39,7 +39,7 @@ namespace Otm.Server
         //}
 
         public void Initialize()
-        {
+            {
             Logger.Info($"OTM {Config.Name} Context Initializing ...");
             try
             {
