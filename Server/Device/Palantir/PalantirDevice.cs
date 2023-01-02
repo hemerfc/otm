@@ -1,4 +1,5 @@
-﻿using NLog;
+﻿using Nest;
+using NLog;
 using Otm.Server.Device.Palantir.Models;
 using Otm.Shared.ContextConfig;
 using System;
@@ -190,6 +191,7 @@ namespace Otm.Server.Device.Palantir
 
                                 var tagTriggers = new List<(Action<string, object> func, string tagName, object tagValue)>();
 
+
                                 Logger.Debug($"PalantirDevice|Received|new message:'{cmdLC}'");
 
                                 SetTagValue("data_message", cmdLC);
@@ -197,6 +199,8 @@ namespace Otm.Server.Device.Palantir
                                 if (tagsAction.ContainsKey("data_message"))
                                 {
                                     tagTriggers.Add(new(tagsAction["data_message"], "data_message", tagValues["data_message"]));
+
+                                    ProcessCompleteMessage((string)tagValues["data_message"]);
                                 }
 
                                 foreach (var tt in tagTriggers)
@@ -204,6 +208,7 @@ namespace Otm.Server.Device.Palantir
                                     lock (tagsActionLock)
                                     {
                                         tt.func(tt.tagName, tt.tagValue);
+
                                     }
                                 }
 
@@ -218,6 +223,88 @@ namespace Otm.Server.Device.Palantir
             }
 
             return received;
+        }
+
+        /// <summary>
+        /// Função para separar a string por virgula, a menos que ele esteja dentro de aspas duplas.
+        /// Créditos para base de código: ChatGPT
+        /// </summary>
+        /// <param name="input">Mensagem completa para ser dividida</param>
+        /// <returns></returns>
+        static string[] ParseMessage(string input)
+        {
+            string[] items = new string[input.Length / 2];
+            int itemCount = 0;
+            string currentItem = "";
+
+            for (int i = 0; i < input.Length; i++)
+            {
+                if (input[i] == '"')
+                {
+                    i++;
+                    while (i < input.Length && input[i] != '"')
+                    {
+                        currentItem += input[i++];
+                    }
+                }
+                else if (input[i] == ',')
+                {
+                    items[itemCount++] = currentItem;
+                    currentItem = "";
+                }
+                else
+                {
+                    currentItem += input[i];
+                }
+            }
+
+            itemCount++;
+            items[itemCount - 1] = currentItem;
+            string[] result = new string[itemCount];
+            Array.Copy(items, result, itemCount);
+            return result;
+        }
+
+        /// <summary>
+        /// Recebe uma mensagem completa e a processa de acordo com seus parametros.
+        /// </summary>
+        /// <param name="rawMessage">Mensagem completa para processamento</param>
+        private void ProcessCompleteMessage(string rawMessage)
+        {
+            Logger.Debug($"PalantirDevice|ProcessCompleteMessage|rawMessage: {rawMessage}");
+
+            //Obtendo o tipo da mensagem
+            string[] messageItems = ParseMessage(rawMessage);
+
+            if (messageItems.Length <= 0)
+            {
+                Logger.Error($"PalantirDevice|ProcessCompleteMessage|Quantidade insuficiente de parametros extraídos da mensagem");
+            }
+            else
+            {
+                switch (messageItems[0])
+                {
+                    case "K02":
+                        {
+                            Logger.Debug($"PalantirDevice|ProcessCompleteMessage|Mensagem KeepAlive - K02");
+                            var messageDatetime = messageItems[1];
+                            Logger.Debug($"PalantirDevice|ProcessCompleteMessage|Mensagem KeepAlive - K02 | messageDatetime: {messageDatetime}");
+                        }
+                        break;
+                    case "R01":
+                        {
+                            Logger.Debug($"PalantirDevice|ProcessCompleteMessage|Mensagem KeepAlive - K02");
+                            var messageDatetime = messageItems[1];
+                            Logger.Debug($"PalantirDevice|ProcessCompleteMessage|Mensagem KeepAlive - K02 | messageDatetime: {messageDatetime}");
+                        }
+                        break;
+                    default:
+                        {
+                            Logger.Error($"PalantirDevice|ProcessCompleteMessage|Tipo de mensagem '{messageItems[0]}' não conhecido");
+                        }
+                        break;
+                }
+            }
         }
 
         private static int SearchBytes(byte[] haystack, byte[] needle)
