@@ -3,6 +3,7 @@ using Otm.Server.Device.Palantir.Models;
 using Otm.Server.Device.Ptl;
 using Otm.Shared.ContextConfig;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -25,36 +26,53 @@ namespace Otm.Server.Device.Palantir
         {
             tagValues = new ConcurrentDictionary<string, object>();
             tagsAction = new ConcurrentDictionary<string, Action<string, object>>();
+            this.sendDataQueue = new Queue<byte[]>();
+
         }
 
         private ILogger Logger;
         private DeviceConfig Config;
         private string IPServer;
-        private string PortServer;
+        private int PortServer;
         private ITcpClientAdapter client;
 
         private byte[] STX_LC = new byte[] { MessageConstants.STX };
         private byte[] ETX_LC = new byte[] { MessageConstants.ETX };
         byte[] receiveBuffer = new byte[0];
 
-        #region CustomPallantirDevice
+        #region CustomPallantirDeviceParams
 
         public DateTime LastSendKeepAliveTry { get; set; } = DateTime.MinValue;
         public DateTime LastSendKeepAliveSuccess { get; set; } = DateTime.Now;
         private bool ReconnectRequest = false;
 
-        #endregion CustomPallantirDevice
+        #endregion CustomPallantirDeviceParams
+
+        #region FromPTLParams
+
+        private string cmd_rcvd = "";
+        private int cmd_count = 0;
+        private Queue<byte[]> sendDataQueue;
+        private readonly object lockSendDataQueue = new object();
+        public DateTime LastSend { get; private set; }
+        private bool Connecting;
+        private DateTime lastConnectionTry;
+        //private string ip;
+        //private int port;
+        private const int RECONNECT_DELAY = 3000;
+
+        #endregion FromPTLParams
 
         private readonly ConcurrentDictionary<string, object> tagValues;
         private readonly ConcurrentDictionary<string, Action<string, object>> tagsAction;
 
         public object tagsActionLock = new object();
 
-        public bool Ready => throw new NotImplementedException();
+        public bool Ready { get; private set; }
 
-        public BackgroundWorker Worker => throw new NotImplementedException();
+        public BackgroundWorker Worker { get; private set; }
 
-        public int LicenseRemainingHours { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public int LicenseRemainingHours { get; set; }
         public DateTime? LastUpdateDate { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public string Name { get { return Config.Name; } }
@@ -76,7 +94,7 @@ namespace Otm.Server.Device.Palantir
 
         public void GetLicenseRemainingHours()
         {
-            throw new NotImplementedException();
+            LicenseRemainingHours = int.MaxValue;
         }
 
         public DeviceTagConfig GetTagConfig(string name)
@@ -131,6 +149,7 @@ namespace Otm.Server.Device.Palantir
             Logger.Debug($"PalantirDevice|SetTagValue|TagName: '{tagName}'|TagValues: '{value}'");
         }
 
+        /*
         public void GetData()
         {
             try
@@ -150,14 +169,16 @@ namespace Otm.Server.Device.Palantir
             {
                 Logger.Error($"PalantirDevice|GetData|error new message:'{ex.Message}'");
             }
-        }
+        }*/
 
-        public bool Received(byte[] recv)
+        private bool ReceiveData()
         {
             var received = false;
 
+            var recv = client.GetData();
             if (recv != null && recv.Length > 0)
             {
+                Logger.Info($"PalantirDevice|ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
                 var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
                 receiveBuffer.CopyTo(tempBuffer, 0);
                 recv.CopyTo(tempBuffer, receiveBuffer.Length);
@@ -173,7 +194,7 @@ namespace Otm.Server.Device.Palantir
                 var stxLcPos = SearchBytes(strRcvd, STX_LC);
                 var etxLcPos = SearchBytes(strRcvd, ETX_LC);
 
-               var posicoesRelevantesEncontradas = new List<int>() { stxLcPos }
+                var posicoesRelevantesEncontradas = new List<int>() { stxLcPos }
                                                             .Where(x => x >= 0)
                                                             .OrderBy(x => x)
                                                             .ToList();
@@ -193,45 +214,28 @@ namespace Otm.Server.Device.Palantir
                         //Aguarda encontrar o ETX
                         if (stxLcPos < etxLcPos)
                         {
-                            //Processa se o ReadGate estiver aberto e fecha-o em seguida
-                            if (true)
-                            {
-
-                                var cmdLC = Encoding.ASCII.GetString(strRcvd[(stxLcPos + STX_LC.Length)..etxLcPos]);
-
-                                var tagTriggers = new List<(Action<string, object> func, string tagName, object tagValue)>();
-
-                                Logger.Debug($"PalantirDevice|Received|new message:'{cmdLC}'");
-
-                                SetTagValue("data_message", cmdLC);
-
-                                if (tagsAction.ContainsKey("data_message"))
-                                {
-                                    tagTriggers.Add(new(tagsAction["data_message"], "data_message", tagValues["data_message"]));
-                                }
-
-                                foreach (var tt in tagTriggers)
-                                {
-                                    lock (tagsActionLock)
-                                    {
-                                        tt.func(tt.tagName, tt.tagValue);
-                                    }
-                                }
-
-                                ProcessCompleteMessage(cmdLC);
 
 
-                            }
+                            var cmdLC = Encoding.ASCII.GetString(strRcvd[(stxLcPos + STX_LC.Length)..etxLcPos]);
+
+                            ProcessCompleteMessage(cmdLC);
+                                                        
+                            //Descartando a leitura do buffer pois ja foi processada
+                            //received = true;
                             receiveBuffer = receiveBuffer[(etxLcPos + STX_LC.Length)..];
                         }
                     }
                 }
                 else
                     receiveBuffer = Array.Empty<byte>();
+
+
             }
 
             return received;
         }
+
+
 
         private static int SearchBytes(byte[] haystack, byte[] needle)
         {
@@ -249,64 +253,87 @@ namespace Otm.Server.Device.Palantir
             return -1;
         }
 
-#pragma warning disable CS1998 // O método assíncrono não possui operadores 'await' e será executado de forma síncrona
-        public async void PrepareSendData()
-#pragma warning restore CS1998 // O método assíncrono não possui operadores 'await' e será executado de forma síncrona
+        private bool SendData()
         {
-            try
-            {
-                //byte[] buffer = System.Text.Encoding.ASCII.GetBytes("true");
-                byte[] buffer = System.Text.Encoding.ASCII.GetBytes($"{0x02}{0x63}{0x03}");
-                client.Client.Send(new byte[] { 0x02, 0x63, 0x03 });
-                Thread.Sleep(1000);
-            }
-            catch (Exception e)
-            {
-                Logger.Error($"PalantirDevice|SendData|error: '{e.Message}");
-            }
+            var sent = false;
 
-        }
-
-        public bool SendData(byte[] message)
-        {
-            try
-            {
-                client.Client.Send(message);
-                Thread.Sleep(1000);
-                return true;
-            }
-            catch (Exception e)
-            {
-                Logger.Error($"PalantirDevice|SendData|error: '{e.Message}");
-                return false;
-            }
-
-        }
-
-        public void Connect(string ip, int port)
-        {
-            try
-            {
-                client = new TcpClient();
-                client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
-                client.Connect(IPAddress.Parse(ip), port);
-                if (client.Connected)
+            if (sendDataQueue.Count > 0)
+                lock (lockSendDataQueue)
                 {
-                    Logger.Debug($"PalantirDevice|Connect|client Connected in Ip:'{IPServer}' and port:'{port}'");
+                    var st = new Stopwatch();
+                    st.Start();
 
-                    ReconnectRequest = false;
+                    var totalLength = 0;
+                    foreach (var it in sendDataQueue)
+                    {
+                        totalLength += it.Length;
+                    }
+
+                    var obj = new byte[totalLength];
+                    var pos = 0;
+                    while (sendDataQueue.Count > 0)
+                    {
+                        var it = sendDataQueue.Dequeue();
+                        Array.Copy(it, 0, obj, pos, it.Length);
+                        pos += it.Length;
+                    }
+
+                    client.SendData(obj);
+
+                    st.Stop();
+
+                    Logger.Debug($"Dev {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
+
+
+                    /*
+                    while (sendDataQueue.Count > 0)
+                    {
+                        var obj = sendDataQueue.Dequeue();
+                        client.SendData(obj);
+                        sent = true;
+                    }
+                    */
+                    this.LastSend = DateTime.Now;
+                }
+            else
+            {
+                if (LastSend.AddSeconds(3) < DateTime.Now)
+                {
+                    var getFwCmd = new byte[] { 0x07, 0x00, 0x60, 0x00, 0x00, 0x00, 0x09 };
+                    client.SendData(getFwCmd);
+                    this.LastSend = DateTime.Now;
                 }
             }
-            catch (Exception e)
-            {
-                Logger.Debug($"PalantirDevice|Connect|error: '{e.Message}'");
-            }
 
+            return sent;
+        }
+
+
+        private void Connect()
+        {
+            try
+            {
+                client.Connect(IPServer, PortServer);
+
+                if (client.Connected)
+                {
+                    Logger.Debug($"Dev {Config.Name}: Connected.");
+                }
+                else
+                {
+                    Logger.Error($"Dev {Config.Name}: Connection error.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, $"Dev {Config.Name}: Connection error.");
+            }
         }
 
 
         public void Start(BackgroundWorker worker)
         {
+            /*
             Int32 port = Int32.Parse(PortServer);
             Connect(IPServer, port);
             while (true)
@@ -329,6 +356,66 @@ namespace Otm.Server.Device.Palantir
                 {
                     Logger.Error($"PalantirDevice|start sendData|error: '{e.Message}'");
                 }
+            }*/
+
+            // backgroud worker
+            Worker = worker;
+
+            GetLicenseRemainingHours();
+
+            while (LicenseRemainingHours > 0)
+            {
+                try
+                {
+                    SendKeepAlive();
+
+                    if (client.Connected)
+                    {
+                        bool received, sent;
+
+                        do
+                        {
+                            received = ReceiveData();
+                            sent = SendData();
+                        } while (received || sent);
+
+                        Ready = true;
+                    }
+                    else
+                    {
+                        Ready = false;
+                        //ListaLigados.Clear();
+
+                        if (!Connecting)
+                        {
+                            // se ja tiver passado o delay, tenta reconectar
+                            if (lastConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
+                            {
+                                lastConnectionTry = DateTime.Now;
+                                Connecting = true;
+                                //Verifica se consegue conectar
+                                Connect();
+                                Connecting = false;
+                            }
+                        }
+                    }
+                    // wait 50ms
+                    /// TODO: wait time must be equals the minimum update rate of tags
+                    var waitEvent = new ManualResetEvent(false);
+                    waitEvent.WaitOne(50);
+
+                    if (Worker.CancellationPending)
+                    {
+                        Ready = false;
+                        Stop();
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Ready = false;
+                    Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
+                }
             }
         }
 
@@ -349,8 +436,11 @@ namespace Otm.Server.Device.Palantir
             {
                 var cparts = dvConfig.Config.Split(';');
 
-                this.IPServer = (cparts.FirstOrDefault(x => x.Contains("IPServer=")) ?? "").Replace("IPServer=", "").Trim();
-                this.PortServer = (cparts.FirstOrDefault(x => x.Contains("PortServer=")) ?? "").Replace("PortServer=", "").Trim();
+                IPServer = (cparts.FirstOrDefault(x => x.Contains("IPServer=")) ?? "").Replace("IPServer=", "").Trim();
+
+                var strPortServer = (cparts.FirstOrDefault(x => x.Contains("PortServer=")) ?? "").Replace("PortServer=", "").Trim();
+                if (!int.TryParse(strPortServer, out PortServer))
+                    throw new Exception($"Não foi possível converter a porta '{strPortServer}' em string ");
             }
             catch (Exception ex)
             {
@@ -382,10 +472,13 @@ namespace Otm.Server.Device.Palantir
             var execTime = DateTime.Now;
             if (LastSendKeepAliveTry.AddMilliseconds(MessageConstants.K01_INTERVAL_MS) <= execTime)
             {
-                Logger.Debug($"PalantirDevice|SendKeepAlive|Inicio do envio da K01...");
+                Logger.Debug($"PalantirDevice|SendKeepAlive|Incluindo uma K01 na fila de envio...");
 
                 var keepAliveMessage = new MessageKeepAlive(MessageCodesKeepAlive.ClientSend);
 
+                sendDataQueue.Enqueue(keepAliveMessage.GetCompleteMessage());
+
+                /*
                 //Envia a mensagem e verifica se foi enviado corretamente
                 if (!SendData(keepAliveMessage.GetCompleteMessage()))
                 {
@@ -410,8 +503,9 @@ namespace Otm.Server.Device.Palantir
                 }
 
 
+                */
                 LastSendKeepAliveTry = execTime;
-                Logger.Debug($"PalantirDevice|SendKeepAlive|Fim do envio da K01!");
+                Logger.Debug($"PalantirDevice|SendKeepAlive|K01 incluída na fila de envio!");
             }
         }
 
@@ -421,7 +515,7 @@ namespace Otm.Server.Device.Palantir
         /// </summary>
         /// <param name="input">Mensagem completa para ser dividida</param>
         /// <returns></returns>
-        static string[] ParseMessage(string input) 
+        static string[] ParseMessage(string input)
         {
             string[] items = new string[input.Length / 2];
             int itemCount = 0;

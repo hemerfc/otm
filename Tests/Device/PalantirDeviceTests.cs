@@ -9,6 +9,7 @@ using System.IO;
 using System.ComponentModel;
 using System.Text;
 using System.Threading;
+using Otm.Server.Device.Palantir;
 
 namespace Otm.Test.Device
 {
@@ -30,6 +31,10 @@ namespace Otm.Test.Device
 
         [InlineData("\x02K01,2019-01-21T13:44:23.455\x03",
             new string[] { "K01,2019-01-21T13:44:23.455" })]
+        [InlineData("\x02K01,2019-0\x02K01,2019-01-21T13:44:23.455\x03",
+            new string[] { "K01,2019-01-21T13:44:23.455" })]
+        [InlineData("\x02K01,2019-01-21T13:44:23.455\x03\x02K02,2019-01-21T13:44:23.455\x02",
+            new string[] { "K01,2019-01-21T13:44:23.455", "K02,2019-01-21T13:44:23.455" })]
 
         public void Receive_Ptl_Command(string recv, string[] result)
         {
@@ -155,7 +160,7 @@ namespace Otm.Test.Device
 
             var loggerMock = new Mock<ILogger>();
 
-            var devPtl = new PtlDevice();
+            var devPtl = new PalantirDevice();
             devPtl.Init(dvConfig, clientMock.Object, loggerMock.Object);
 
             var bgWorker = new BackgroundWorker

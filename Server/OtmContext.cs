@@ -137,7 +137,7 @@ namespace Otm.Server
 
                         StartAction(worker);
                         
-                        Logger.Info($"Error on start of {name} ");
+                        Logger.Info($"Success starting {name} ");
                     }
                     catch (Exception ex)
                     {
