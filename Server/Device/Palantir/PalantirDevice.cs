@@ -440,7 +440,7 @@ namespace Otm.Server.Device.Palantir
 
                 var strPortServer = (cparts.FirstOrDefault(x => x.Contains("PortServer=")) ?? "").Replace("PortServer=", "").Trim();
                 if (!int.TryParse(strPortServer, out PortServer))
-                    throw new Exception($"Não foi possível converter a porta '{strPortServer}' em string ");
+                    throw new Exception($"Não foi possível converter a porta '{strPortServer}' em int ");
             }
             catch (Exception ex)
             {

@@ -103,14 +103,14 @@ namespace Otm.Test.Device
             bgWorker.CancelAsync();
         }
 
-        private PtlDevice CreateDevice(out BackgroundWorker backgroundWorker)
+        private PalantirDevice CreateDevice(out BackgroundWorker backgroundWorker)
         {
             // Preparando ocenario para o teste
             var dvConfig = new DeviceConfig
             {
                 Name = "plc01",
                 Driver = "pl",
-                Config = "ip=127.0.0.1;port=3020",
+                Config = "IPServer=127.0.0.1;PortServer=3020",
                 Tags = (new DeviceTagConfig[]
                 {
                     new DeviceTagConfig
