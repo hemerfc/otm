@@ -1,4 +1,6 @@
 ﻿using NLog;
+using Otm.Server.Device.Palantir.Models;
+using Otm.Server.Device.Ptl;
 using Otm.Shared.ContextConfig;
 using System;
 using System.Collections.Concurrent;
@@ -29,11 +31,19 @@ namespace Otm.Server.Device.Palantir
         private DeviceConfig Config;
         private string IPServer;
         private string PortServer;
-        private TcpClient client;
+        private ITcpClientAdapter client;
 
-        private byte[] STX_LC = new byte[] { 0x02 };
-        private byte[] ETX_LC = new byte[] { 0x03 };
+        private byte[] STX_LC = new byte[] { MessageConstants.STX };
+        private byte[] ETX_LC = new byte[] { MessageConstants.ETX };
         byte[] receiveBuffer = new byte[0];
+
+        #region CustomPallantirDevice
+
+        public DateTime LastSendKeepAliveTry { get; set; } = DateTime.MinValue;
+        public DateTime LastSendKeepAliveSuccess { get; set; } = DateTime.Now;
+        private bool ReconnectRequest = false;
+
+        #endregion CustomPallantirDevice
 
         private readonly ConcurrentDictionary<string, object> tagValues;
         private readonly ConcurrentDictionary<string, Action<string, object>> tagsAction;
@@ -79,10 +89,19 @@ namespace Otm.Server.Device.Palantir
             return tagValues[tagName];
         }
 
+        public void Init(DeviceConfig dvConfig, ITcpClientAdapter client, ILogger logger)
+        {
+            this.client = client;
+            this.Logger = logger;
+            this.Config = dvConfig;
+            GetConfig(dvConfig);
+        }
+
         public void Init(DeviceConfig dvConfig, ILogger logger)
         {
             this.Logger = logger;
             this.Config = dvConfig;
+            this.client = new TcpClientAdapter();
             GetConfig(dvConfig);
         }
 
@@ -109,7 +128,7 @@ namespace Otm.Server.Device.Palantir
         public void SetTagValue(string tagName, object value)
         {
             tagValues[tagName] = value;
-            Logger.Debug($"TCPServerDevice|SetTagValue|TagName: '{tagName}'|TagValues: '{value}'");
+            Logger.Debug($"PalantirDevice|SetTagValue|TagName: '{tagName}'|TagValues: '{value}'");
         }
 
         public void GetData()
@@ -129,7 +148,7 @@ namespace Otm.Server.Device.Palantir
             }
             catch (Exception ex)
             {
-                Logger.Error($"TCPServerDevice|GetData|error new message:'{ex.Message}'");
+                Logger.Error($"PalantirDevice|GetData|error new message:'{ex.Message}'");
             }
         }
 
@@ -154,8 +173,7 @@ namespace Otm.Server.Device.Palantir
                 var stxLcPos = SearchBytes(strRcvd, STX_LC);
                 var etxLcPos = SearchBytes(strRcvd, ETX_LC);
 
-
-                var posicoesRelevantesEncontradas = new List<int>() { stxLcPos}
+               var posicoesRelevantesEncontradas = new List<int>() { stxLcPos }
                                                             .Where(x => x >= 0)
                                                             .OrderBy(x => x)
                                                             .ToList();
@@ -182,8 +200,8 @@ namespace Otm.Server.Device.Palantir
                                 var cmdLC = Encoding.ASCII.GetString(strRcvd[(stxLcPos + STX_LC.Length)..etxLcPos]);
 
                                 var tagTriggers = new List<(Action<string, object> func, string tagName, object tagValue)>();
-                                
-                                Logger.Debug($"TCPServerDevice|Received|new message:'{cmdLC}'");
+
+                                Logger.Debug($"PalantirDevice|Received|new message:'{cmdLC}'");
 
                                 SetTagValue("data_message", cmdLC);
 
@@ -199,6 +217,8 @@ namespace Otm.Server.Device.Palantir
                                         tt.func(tt.tagName, tt.tagValue);
                                     }
                                 }
+
+                                ProcessCompleteMessage(cmdLC);
 
 
                             }
@@ -230,7 +250,7 @@ namespace Otm.Server.Device.Palantir
         }
 
 #pragma warning disable CS1998 // O método assíncrono não possui operadores 'await' e será executado de forma síncrona
-        public async void SendData()
+        public async void PrepareSendData()
 #pragma warning restore CS1998 // O método assíncrono não possui operadores 'await' e será executado de forma síncrona
         {
             try
@@ -242,7 +262,23 @@ namespace Otm.Server.Device.Palantir
             }
             catch (Exception e)
             {
-                Logger.Error($"TCPServerDevice|SendData|error: '{e.Message}");
+                Logger.Error($"PalantirDevice|SendData|error: '{e.Message}");
+            }
+
+        }
+
+        public bool SendData(byte[] message)
+        {
+            try
+            {
+                client.Client.Send(message);
+                Thread.Sleep(1000);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"PalantirDevice|SendData|error: '{e.Message}");
+                return false;
             }
 
         }
@@ -256,12 +292,14 @@ namespace Otm.Server.Device.Palantir
                 client.Connect(IPAddress.Parse(ip), port);
                 if (client.Connected)
                 {
-                    Logger.Debug($"TCPServerDevice|Connect|client Connected in Ip:'{IPServer}' and port:'{port}'");
+                    Logger.Debug($"PalantirDevice|Connect|client Connected in Ip:'{IPServer}' and port:'{port}'");
+
+                    ReconnectRequest = false;
                 }
             }
             catch (Exception e)
             {
-                Logger.Debug($"TCPServerDevice|Connect|error: '{e.Message}'");
+                Logger.Debug($"PalantirDevice|Connect|error: '{e.Message}'");
             }
 
         }
@@ -275,10 +313,11 @@ namespace Otm.Server.Device.Palantir
             {
                 try
                 {
-                    
-                    if (client.Connected)
+                    SendKeepAlive();
+
+                    if (client.Connected && !ReconnectRequest)
                     {
-                        SendData();
+                        //PrepareSendData();
                         GetData();
                     }
                     else
@@ -288,7 +327,7 @@ namespace Otm.Server.Device.Palantir
                 }
                 catch (Exception e)
                 {
-                    Logger.Error($"TCPServerDevice|start sendData|error: '{e.Message}'");
+                    Logger.Error($"PalantirDevice|start sendData|error: '{e.Message}'");
                 }
             }
         }
@@ -331,5 +370,132 @@ namespace Otm.Server.Device.Palantir
                 throw;
             }
         }
+
+        /// <summary>
+        /// A mensagem K01 deve ser enviada pelo OTM ao PLC a cada 5 segundos
+        /// o PLC por sua vez responde a mensagem K02
+        /// se alguns dos lados fica sem receber a menagem por 10 segundos este deve finalizar esta conexão e iniciar uma nova conexão. 
+        /// Este processo garante que a conexão esta saldável e que ambos as partes estão aptas a responder as requisições. 
+        /// </summary>
+        private void SendKeepAlive()
+        {
+            var execTime = DateTime.Now;
+            if (LastSendKeepAliveTry.AddMilliseconds(MessageConstants.K01_INTERVAL_MS) <= execTime)
+            {
+                Logger.Debug($"PalantirDevice|SendKeepAlive|Inicio do envio da K01...");
+
+                var keepAliveMessage = new MessageKeepAlive(MessageCodesKeepAlive.ClientSend);
+
+                //Envia a mensagem e verifica se foi enviado corretamente
+                if (!SendData(keepAliveMessage.GetCompleteMessage()))
+                {
+                    Logger.Debug($"PalantirDevice|SendKeepAlive|Ocorreu um erro ao enviar a K01!");
+
+                    //Verifica se passou mais o tempo de timout da ultima conexão com sucesso para reconexão
+                    if (LastSendKeepAliveSuccess.AddMilliseconds(MessageConstants.K01_TIMEOUT_MS) <= execTime)
+                    {
+                        Logger.Debug($"PalantirDevice|SendKeepAlive|Executar desconexão por timeout!");
+                        ReconnectRequest = true;
+                    }
+                    else
+                    {
+                        Logger.Debug($"PalantirDevice|SendKeepAlive|Não conectado, tentando até terminar o timeout!");
+                    }
+
+                }
+                else
+                {
+                    Logger.Debug($"PalantirDevice|SendKeepAlive|K01 Enviada com sucesso!");
+                    LastSendKeepAliveSuccess = execTime;
+                }
+
+
+                LastSendKeepAliveTry = execTime;
+                Logger.Debug($"PalantirDevice|SendKeepAlive|Fim do envio da K01!");
+            }
+        }
+
+        /// <summary>
+        /// Função para separar a string por virgula, a menos que ele esteja dentro de aspas duplas.
+        /// Créditos para base de código: ChatGPT
+        /// </summary>
+        /// <param name="input">Mensagem completa para ser dividida</param>
+        /// <returns></returns>
+        static string[] ParseMessage(string input) 
+        {
+            string[] items = new string[input.Length / 2];
+            int itemCount = 0;
+            string currentItem = "";
+
+            for (int i = 0; i < input.Length; i++)
+            {
+                if (input[i] == '"')
+                {
+                    i++;
+                    while (i < input.Length && input[i] != '"')
+                    {
+                        currentItem += input[i++];
+                    }
+                }
+                else if (input[i] == ',')
+                {
+                    items[itemCount++] = currentItem;
+                    currentItem = "";
+                }
+                else
+                {
+                    currentItem += input[i];
+                }
+            }
+
+            itemCount++;
+            items[itemCount - 1] = currentItem;
+            string[] result = new string[itemCount];
+            Array.Copy(items, result, itemCount);
+            return result;
+        }
+
+        /// <summary>
+        /// Recebe uma mensagem completa e a processa de acordo com seus parametros.
+        /// </summary>
+        /// <param name="rawMessage">Mensagem completa para processamento</param>
+        private void ProcessCompleteMessage(string rawMessage)
+        {
+            Logger.Debug($"PalantirDevice|ProcessCompleteMessage|rawMessage: {rawMessage}");
+
+            //Obtendo o tipo da mensagem
+            string[] messageItems = ParseMessage(rawMessage);
+
+            if (messageItems.Length <= 0)
+            {
+                Logger.Error($"PalantirDevice|ProcessCompleteMessage|Quantidade insuficiente de parametros extraídos da mensagem");
+            }
+            else
+            {
+                switch (messageItems[0])
+                {
+                    case "K02":
+                        {
+                            Logger.Debug($"PalantirDevice|ProcessCompleteMessage|Mensagem KeepAlive - K02");
+                            var messageDatetime = messageItems[1];
+                            Logger.Debug($"PalantirDevice|ProcessCompleteMessage|Mensagem KeepAlive - K02 | messageDatetime: {messageDatetime}");
+                        }
+                        break;
+                    case "R01":
+                        {
+                            Logger.Debug($"PalantirDevice|ProcessCompleteMessage|Mensagem KeepAlive - K02");
+                            var messageDatetime = messageItems[1];
+                            Logger.Debug($"PalantirDevice|ProcessCompleteMessage|Mensagem KeepAlive - K02 | messageDatetime: {messageDatetime}");
+                        }
+                        break;
+                    default:
+                        {
+                            Logger.Error($"PalantirDevice|ProcessCompleteMessage|Tipo de mensagem '{messageItems[0]}' não conhecido");
+                        }
+                        break;
+                }
+            }
+        }
+
     }
-    }
+}
