@@ -125,8 +125,8 @@ namespace Otm.Test.Device
         public void Send_Ptl_Command()
         {
             /*LOCATION|displayValue|masterMessage*/
-            var cmd1 = $"001:002|{(byte)E_DisplayColor.Verde}|00000000001|{(int)E_PTLMasterMessage.None};001:003|1||{(int)E_PTLMasterMessage.ItemOk}";
-            var cmd2 = $"001:005|{(byte)E_DisplayColor.Laranja}|00000000002|{(int)E_PTLMasterMessage.None};001:003|1||{(int)E_PTLMasterMessage.ToteOk}";
+            var cmd1 = $"001:002|{(byte)E_DisplayColor.Verde}|00000000001|{(int)E_PTLMasterMessage.None}|{Guid.NewGuid().ToString()};001:003|1||{(int)E_PTLMasterMessage.ItemOk}|{Guid.NewGuid().ToString()}";
+            var cmd2 = $"001:005|{(byte)E_DisplayColor.Laranja}|00000000002|{(int)E_PTLMasterMessage.None}|{Guid.NewGuid().ToString()};001:003|1||{(int)E_PTLMasterMessage.ToteOk}|{Guid.NewGuid().ToString()}";
             
             recvFromPtlBuffer = new byte[0];
             sendToPtlBuffer = new byte[0];
@@ -138,10 +138,11 @@ namespace Otm.Test.Device
             Thread.Sleep(50);
 
             devPtl.SetTagValue("cmd_send", cmd1);
-
+            Thread.Sleep(100);
             devPtl.SetTagValue("cmd_send", cmd2);
             Thread.Sleep(100);
-
+            
+            // TODO: ARRUMAR ESTE TESTE!!
             var recvStr2 = Encoding.Default.GetString(sendToPtlBuffer);
             Assert.Equal(recvStr2, cmd1 + cmd2);
 

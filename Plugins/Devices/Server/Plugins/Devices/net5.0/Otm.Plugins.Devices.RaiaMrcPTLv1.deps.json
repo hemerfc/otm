@@ -15,28 +15,6 @@
           "Otm.Plugins.Devices.RaiaMrcPTLv1.dll": {}
         }
       },
-      "Beffyman.AspNetCore.Client/1.0.2": {
-        "dependencies": {
-          "Flurl.Http": "2.4.2",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "5.0.0",
-          "System.Text.Json": "4.7.0",
-          "System.Threading.Tasks.Extensions": "4.5.3"
-        },
-        "runtime": {
-          "lib/netstandard2.0/Beffyman.AspNetCore.Client.dll": {
-            "assemblyVersion": "1.0.2.0",
-            "fileVersion": "1.0.2.0"
-          }
-        }
-      },
-      "Beffyman.AspNetCore.Server/1.0.2": {
-        "runtime": {
-          "lib/netstandard2.0/Beffyman.AspNetCore.Server.dll": {
-            "assemblyVersion": "1.0.2.0",
-            "fileVersion": "1.0.2.0"
-          }
-        }
-      },
       "FluentValidation/9.3.0": {
         "runtime": {
           "lib/net5.0/FluentValidation.dll": {
