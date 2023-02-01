@@ -215,7 +215,7 @@ namespace Otm.Server.Device.S7
             SetTagValue("input_name", fileName);
             SetTagValue("input_content", fileContent);
 
-            SaveFile(fileName);
+            //SaveFile(fileName);
 
             //Se as tags possuem action
             if (tagsAction.ContainsKey("input_name"))
@@ -289,23 +289,32 @@ namespace Otm.Server.Device.S7
             }
         }
 
+
+
         private string GetContent(string filePath)
         {
             var result = string.Empty;
-
-            string[] lines = null;
+            Int16 retryLimit = 100;
+            Int16 retryCount = 0;
+            Int16 waitTime = 1000;
 
             if (File.Exists(filePath))
-                lines = File.ReadAllLines(filePath);
-
-            if (lines != null)
             {
-                foreach (string line in lines)
+                while (retryCount < retryLimit)
                 {
-                    result += "__" + line;
+                    try
+                    {
+                        result = string.Join("__", File.ReadLines(filePath));
+                        break;
+                    }
+                    catch (IOException)
+                    {
+                        Logger.Info($"FileDevice ({Config.Name})|Arquivo '{filePath}' em uso, tentando novamente (tentativa nº{(int)retryCount}).");
+                        retryCount++;
+                        Thread.Sleep(waitTime);
+                    }
                 }
             }
-
             return result;
         }
 
