@@ -1,0 +1,275 @@
+﻿{
+  "Enabled": false,
+  "Name": "NeodentPLC",
+  "LogName": "Logger2",
+  "Enabled": true,
+  "DataPoints": [
+    {
+      "Id": "40ab5649-b8f5-425f-adbf-82e83639a515",
+      "Name": "sp_desvia_estacao",
+      "DebugMessages": false,
+      "Driver": "mssql",
+      "Config": "Server=localhost; Database=Neodent; User ID=sa;Password=123qwe;;",
+      "Params": [
+        {
+          "Name": "COUNT",
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "BARCODE_READ",
+          "Mode": "FromOTM",
+          "TypeCode": "String",
+          "Length": 20
+        },
+        {
+          "Name": "ESTACAO",
+          "Mode": "FromOTM",
+          "TypeCode": "String",
+          "Length": 3
+        },
+        {
+          "Name": "CMD_RCV",
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "COUNT_RCV",
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        }
+      ],
+      "ContextName": null
+    },
+    {
+      "Name": "sp_script_hb",
+      "Script": "P2 = P1;",
+      "Driver": "script",
+      "Config": "",
+      "Params": [
+        {
+          "Name": "P1",
+          "Type": "Int",
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "P2",
+          "Type": "Int",
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        }
+      ]
+    }
+  ],
+  "Devices": [
+    {
+      "Id": "757da362-9b2c-4322-b350-b69dfa95c966",
+      "Name": "PLC_NEODENT",
+      "Driver": "s7",
+      "Config": "host=*;rack=*;slot=*",
+      "Tags": [
+        {
+          "Name": "HEART_BIT_RECV",
+          "Address": "db801.w0",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "HEART_BIT_SEND",
+          "Address": "db800.w0",
+          "Rate": 50,
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+
+        {
+          "Name": "LC04_CT",
+          "Address": "db801.w304",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "LC04_BCD",
+          "Address": "db801.w306",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "LC05_CT",
+          "Address": "db801.w328",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "LC05_BCD",
+          "Address": "db801.w330",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+        {
+          "Name": "LC06_CT",
+          "Address": "db801.w352",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "LC06_BCD",
+          "Address": "db801.w354",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "String"
+        },
+
+
+
+        {
+          "Name": "LC05_CMD_RCV",
+          "Address": "db800.w20",
+          "Rate": 50,
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "LC05_COUNT_RCV",
+          "Address": "db800.w21",
+          "Rate": 50,
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "LC06_CMD_RCV",
+          "Address": "db800.w22",
+          "Rate": 50,
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+        {
+          "Name": "LC06_COUNT_RCV",
+          "Address": "db800.w23",
+          "Rate": 50,
+          "Mode": "FromOTM",
+          "TypeCode": "Byte"
+        },
+
+
+
+        {
+          "Name": "END",
+          "Address": "db801.w424",
+          "Rate": 50,
+          "Mode": "ToOTM",
+          "TypeCode": "Byte"
+        }
+      ],
+      "ContextName": null
+    }
+  ],
+  "Transactions": [
+    {
+      "Id": "ef5b30eb-1c1b-4a51-a5ac-6f5c1785b0ab",
+      "Name": "TR_HB_DG",
+      "DataPointName": "sp_script_hb",
+      "SourceDeviceName": "PLC_DG",
+      "TargetDeviceName": "PLC_DG",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "HEART_BIT_RECV",
+      "TriggerTime": 0,
+      "SourceBinds": [
+        {
+          "DataPointParam": "P1",
+          "DeviceTag": "HEART_BIT_RECV"
+        }
+      ],
+      "TargetBinds": [
+        {
+          "DataPointParam": "P2",
+          "DeviceTag": "HEART_BIT_SEND"
+        }
+      ],
+      "ContextName": null
+    },
+
+
+    {
+      "Id": "2790b47a-b21b-4d6d-ae13-abc42d1eac1f",
+      "Name": "EST05",
+      "DataPointName": "sp_desvia_estacao",
+      "SourceDeviceName": "PLC_NEODENT",
+      "TargetDeviceName": "PLC_NEODENT",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "LC05_CT",
+      "TriggerTime": 0,
+      "SourceBinds": [
+        {
+          "DataPointParam": "COUNT",
+          "DeviceTag": "LC05_CT"
+        },
+        {
+          "DataPointParam": "BARCODE_READ",
+          "DeviceTag": "LC05_BCD"
+        },
+        {
+          "DataPointParam": "ESTACAO",
+          "DeviceTag": "005"
+        }
+      ],
+      "TargetBinds": [
+        {
+          "DataPointParam": "CMD_RCV",
+          "DeviceTag": "LC05_CMD_RCV"
+        },
+        {
+          "DataPointParam": "COUNT_RCV",
+          "DeviceTag": "LC05_COUNT_RCV"
+        }
+      ],
+      "ContextName": null
+    },
+
+
+    {
+      "Id": "8aa15822-e63b-40a9-ad3d-29acd174bc9f",
+      "Name": "EST06",
+      "DataPointName": "sp_desvia_estacao",
+      "SourceDeviceName": "PLC_NEODENT",
+      "TargetDeviceName": "PLC_NEODENT",
+      "TriggerType": "OnTagChange",
+      "TriggerTagName": "LC06_CT",
+      "TriggerTime": 0,
+      "SourceBinds": [
+        {
+          "DataPointParam": "COUNT",
+          "DeviceTag": "LC06_CT"
+        },
+        {
+          "DataPointParam": "BARCODE_READ",
+          "DeviceTag": "LC06_BCD"
+        },
+        {
+          "DataPointParam": "ESTACAO",
+          "DeviceTag": "006"
+        }
+      ],
+      "TargetBinds": [
+        {
+          "DataPointParam": "CMD_RCV",
+          "DeviceTag": "LC06_CMD_RCV"
+        },
+        {
+          "DataPointParam": "COUNT_RCV",
+          "DeviceTag": "LC06_COUNT_RCV"
+        }
+      ],
+      "ContextName": null
+    }
+
+  ]
+}
+

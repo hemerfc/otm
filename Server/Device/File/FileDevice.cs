@@ -10,6 +10,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.IO;
 using NLog;
+using Flurl.Http.Content;
 
 namespace Otm.Server.Device.S7
 {
@@ -170,7 +171,7 @@ namespace Otm.Server.Device.S7
                 Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Configurando conexão...");
                 Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Instaurando o Watcher na pasta de input: '{inputPath}'");
                 //using var watcher = new FileSystemWatcher(@"C:\temp\files\input");
-                var watcher = new FileSystemWatcher(@"C:\temp\files\input");
+                var watcher = new FileSystemWatcher(inputPath);
 
                 watcher.NotifyFilter = NotifyFilters.Attributes
                                      | NotifyFilters.CreationTime
@@ -211,9 +212,9 @@ namespace Otm.Server.Device.S7
             var tagTriggers = new List<(Action<string, object> func, string tagName, object tagValue)>();
 
             SetTagValue("input_name", fileName);
-            SetTagValue("input_content", fileContent);
+            SetTagValue("input_content", fileContent.Replace("\t", "__"));
 
-            SaveFile(fileName);
+            //SaveFile(fileName);
 
             //Se as tags possuem action
             if (tagsAction.ContainsKey("input_name"))
@@ -273,8 +274,11 @@ namespace Otm.Server.Device.S7
             Logger.Info($"FileDevice ({Config.Name})|OnRenamed|Content: {fileContent}");
         }
 
-        private void OnError(object sender, ErrorEventArgs e) =>
+        private void OnError(object sender, ErrorEventArgs e)
+        {
+            Logger.Info($"FileDevice ({Config.Name})|OnError|{e.GetException()}");
             PrintException(e.GetException());
+        }
 
         private void PrintException(Exception ex)
         {
@@ -296,7 +300,17 @@ namespace Otm.Server.Device.S7
             string[] lines = null;
 
             if (File.Exists(filePath))
-                lines = File.ReadAllLines(filePath);
+            {
+                try
+                {
+                    lines = File.ReadAllLines(filePath);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"FileDevice ({Config.Name})|Arquivo '{filePath}' em uso:({ex.StackTrace}, tentando novamente...");
+                    GetContent(filePath);
+                }
+            }
 
             if (lines != null)
             {

@@ -1,5 +1,5 @@
 {
-  "Enabled": true,
+  "Enabled": false,
   "Name": "S0101",
   "LogName": "Logger1",
   "DataPoints": [
