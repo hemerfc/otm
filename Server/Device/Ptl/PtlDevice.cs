@@ -10,6 +10,7 @@ using System.Diagnostics;
 using Otm.Server.Device.Licensing;
 using Newtonsoft.Json;
 using NLog;
+using Otm.Server.Device.TcpServer;
 
 namespace Otm.Server.Device.Ptl
 {

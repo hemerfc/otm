@@ -3,7 +3,7 @@
 
 
 	<ItemGroup>
-		<PackageReference Include="Beffyman.AspNetCore.Server" Version="1.0.2" />
+		<!--<PackageReference Include="Beffyman.AspNetCore.Server" Version="1.0.2" />-->
 		<PackageReference Include="Cronos" Version="0.7.1" />
 		<PackageReference Include="FluentValidation.AspNetCore" Version="9.3.0" />
 		<PackageReference Include="Jint" Version="2.11.58" />
@@ -20,7 +20,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Client\Otm.Client.csproj" />
 		<ProjectReference Include="..\Shared\Otm.Shared.csproj" />
 	</ItemGroup>
 
@@ -71,7 +70,7 @@
 		<Exec WorkingDirectory="Client" Command="npm install" />
 	</Target>
 
-	<Target Name="PublishRunWebpack" AfterTargets="BeforePublish">
+	<Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
 		<!-- As part of publishing, ensure the JS resources are freshly built in production mode -->
 		<Exec WorkingDirectory="Client" Command="npm install" />
 		<Exec WorkingDirectory="Client" Command="npm run build" />

@@ -27,7 +27,7 @@ namespace Otm.Server.Services
         private int LicenseRemainingHours { get; set; }
         private DateTime? LastUpdateDate { get; set; }
         private DateTime? LastLicenseTry;
-        private string licenseKey;
+        private string licenseKey = "";
         #endregion
 
         public OtmWorkerService(IStatusService statusService, IConfigService configService)
@@ -64,11 +64,11 @@ namespace Otm.Server.Services
         public void GetLicenseRemainingHours()
         {
             /*Atualiza quando:
-             * - Na inicialização do serviço
-             * - Quando a data da última atualização tiver 3 dias de diferença da última. Implementei com Mod, caso for alterada a data do servidor para frente, também funciona
+             * - Na inicializaï¿½ï¿½o do serviï¿½o
+             * - Quando a data da ï¿½ltima atualizaï¿½ï¿½o tiver 3 dias de diferenï¿½a da ï¿½ltima. Implementei com Mod, caso for alterada a data do servidor para frente, tambï¿½m funciona
              */
 
-            //Temporário até corrigir o container
+            //Temporï¿½rio atï¿½ corrigir o container
             //LicenseRemainingHours = int.MaxValue;
 
             if (LastLicenseTry == null

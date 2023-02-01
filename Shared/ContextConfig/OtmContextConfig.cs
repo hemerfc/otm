@@ -13,6 +13,7 @@ namespace Otm.Shared.ContextConfig
         public List<DataPointConfig> DataPoints { get; set; }
         public List<DeviceConfig> Devices { get; set; }
         public List<TransactionConfig> Transactions { get; set; }
+        public List<BrokerConfig> Brokers { get; set; }
 
     }
 }

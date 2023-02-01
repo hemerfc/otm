@@ -9,6 +9,7 @@ using System.Text;
 using System.Diagnostics;
 using Otm.Server.Device.Licensing;
 using NLog;
+using Otm.Server.Device.TcpServer;
 
 namespace Otm.Server.Device.Ptl
 {
