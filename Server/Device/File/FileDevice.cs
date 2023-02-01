@@ -172,7 +172,7 @@ namespace Otm.Server.Device.S7
                 Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Configurando conexão...");
                 Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Instaurando o Watcher na pasta de input: '{inputPath}'");
                 //using var watcher = new FileSystemWatcher(@"C:\temp\files\input");
-                var watcher = new FileSystemWatcher(@"C:\temp\files\input");
+                var watcher = new FileSystemWatcher(inputPath);
 
                 watcher.NotifyFilter = NotifyFilters.Attributes
                                      | NotifyFilters.CreationTime
@@ -302,7 +302,7 @@ namespace Otm.Server.Device.S7
             {
                 foreach (string line in lines)
                 {
-                    result += "\t" + line;
+                    result += "__" + line;
                 }
             }
 
