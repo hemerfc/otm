@@ -206,11 +206,35 @@ namespace Otm.Server.Device.S7
                 watcher.IncludeSubdirectories = true;
                 watcher.EnableRaisingEvents = true;
 
+                ProcessingExistingFiles();
 
                 configured = true;
             }
         }
 
+
+        private void ProcessingExistingFiles()
+        {
+            Logger.Info($"FileDevice|ProcessingExistingFiles|Verificando se existem arquivos pendentes na pasta");
+            var files = Directory.GetFiles(inputPath, inputFileFilter);
+            int count = files.Length;
+
+            if (count == 0)
+            {
+                Logger.Info($"FileDevice|ProcessingExistingFiles|Nenhum arquivo pendente.");
+                return;
+            }
+
+            Logger.Info($"FileDevice|ProcessingExistingFiles|Processando {count} arquivos.");
+            foreach (var file in files)
+            {
+                var filename = Path.GetFileName(file);
+                var fileContent = GetContent(file);
+                Logger.Info($"FileDevice|ProcessingExistingFiles|Processando arquivo: {filename}");
+                ProcessFile(filename, fileContent);
+        }
+
+        }
 
         public void Stop()
         {
