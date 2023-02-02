@@ -403,31 +403,46 @@ namespace Otm.Server.Device.S7
         }
 
         private void MoveFile(string filename) {
-            try
+            //Definindo os parametros para o retry
+            Int16 retryLimit = 100;
+            Int16 retryCount = 0;
+            Int16 waitTime = 1000;
+
+            Logger.Info($"FileDevice|MoveFile|Moving file: {filename}");
+
+            //Montando o caminho final do output de acordo com o parametro separateOutputFolderByDay
+            var finalOutputPath = separateOutputFolderByDay
+                                    ? Path.Combine(outputPath, DateTime.Now.ToString("yyyy"), DateTime.Now.ToString("MM"), DateTime.Now.ToString("dd"))
+                                    : outputPath;
+
+            //Verificando se o output existe
+            if (!Directory.Exists(finalOutputPath))
+                Directory.CreateDirectory(finalOutputPath);
+
+            //Definindo os arquivos de entrada e saida a serem movidos, na saída o nome do arquivo é incrementado com data e hora para evitar duplicados.
+            var inputFile = Path.Combine(inputPath, filename);
+            var outputFile = Path.Combine(finalOutputPath, $"{DateTime.Now:yyyyMMdd_HHmmss.ffff}_{filename}");
+
+            //Loop para mover o arquivo com Retry
+            while (retryCount < retryLimit)
             {
-                Logger.Info($"FileDevice|MoveFile|Moving file: {filename}");
+                try
+                {
+                    File.Move(inputFile, outputFile);
+                    Logger.Info($"FileDevice|MoveFile|File Moved!:  {filename}");
 
-                var finalOutputPath = outputPath;
-
-                if (separateOutputFolderByDay)
-                {                    
-                    var now = DateTime.Now;
-                    finalOutputPath = Path.Combine(outputPath, now.ToString("yyyy"), now.ToString("MM"), now.ToString("dd"));
+                    break;
                 }
-
-                if (!Directory.Exists(finalOutputPath))
-                    Directory.CreateDirectory(finalOutputPath);
-
-                var inputFile = Path.Combine(inputPath, filename);
-                var outputFile = Path.Combine(finalOutputPath, $"{DateTime.Now:yyyyMMdd_HHmmss.ffff}_{filename}");
-
-                File.Move(inputFile,outputFile);
-                Logger.Info($"FileDevice|MoveFile|File Moved!:  {filename}");
+                catch (Exception ex)
+                {
+                    Logger.Error($"FileDevice|MoveFile|Error move file|FileName ({filename})|Exception|Message: {ex.Message}");
+                    Logger.Error($"FileDevice|MoveFile|Error move file|Tentando novamente... (tentativa nº{(int)retryCount}).");
+                    retryCount++;
+                    Thread.Sleep(waitTime);
+                }
             }
-            catch (Exception ex)
-            {
-                Logger.Error($"FileDevice|MoveFile|Error move file|FileName ({filename})|Exception|Message: {ex.Message}");
-            }
+
+            
         }
 
         public void GetLicenseRemainingHours()
