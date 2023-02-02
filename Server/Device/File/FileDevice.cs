@@ -181,6 +181,8 @@ namespace Otm.Server.Device.S7
         {
             if (!configured)
             {
+                ProcessingExistingFiles();
+
                 Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Configurando conexão...");
                 Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Instaurando o Watcher na pasta de input: '{inputPath}'");
                 
@@ -207,8 +209,8 @@ namespace Otm.Server.Device.S7
                 watcher.Filter = inputFileFilter;
                 watcher.IncludeSubdirectories = true;
                 watcher.EnableRaisingEvents = true;
+                
 
-                ProcessingExistingFiles();
 
                 configured = true;
             }
@@ -312,8 +314,13 @@ namespace Otm.Server.Device.S7
             Logger.Info($"FileDevice ({Config.Name})|OnRenamed|Content: {fileContent}");
         }
 
-        private void OnError(object sender, ErrorEventArgs e) =>
+        private void OnError(object sender, ErrorEventArgs e)
+        {
+
             PrintException(e.GetException());
+            configured = false;
+            watcher.Dispose();
+        }
 
         private void PrintException(Exception? ex)
         {
