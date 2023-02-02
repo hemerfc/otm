@@ -11,6 +11,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.IO;
 using NLog;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace Otm.Server.Device.S7
 {
@@ -57,6 +58,7 @@ namespace Otm.Server.Device.S7
         private string outputPath;
         private string resultPath;
         private string inputFileFilter;
+        private bool separateOutputFolderByDay;
 
         private bool inputReady;
         private bool outputReady;
@@ -98,6 +100,15 @@ namespace Otm.Server.Device.S7
                 this.outputPath = (cparts.FirstOrDefault(x => x.Contains("outputPath=")) ?? "").Replace("outputPath=", "").Trim();
                 this.resultPath = (cparts.FirstOrDefault(x => x.Contains("resultPath=")) ?? "").Replace("resultPath=", "").Trim();
                 this.inputFileFilter = (cparts.FirstOrDefault(x => x.Contains("inputFileFilter=")) ?? "").Replace("inputFileFilter=", "").Trim();
+                
+
+                var separateOutputParam = (cparts.FirstOrDefault(x => x.Contains("separateOutputFolderByDay=")) ?? "").Replace("separateOutputFolderByDay=", "").Trim();
+
+                if (string.IsNullOrWhiteSpace(separateOutputParam))
+                    separateOutputParam = "false"; //O padrão é não separar
+
+                separateOutputFolderByDay = bool.Parse(separateOutputParam);
+
             }
             catch (Exception ex)
             {
@@ -395,12 +406,21 @@ namespace Otm.Server.Device.S7
             try
             {
                 Logger.Info($"FileDevice|MoveFile|Moving file: {filename}");
-                if (!Directory.Exists(outputPath))
-                    Directory.CreateDirectory(outputPath);
 
-                var inputFile = $"{inputPath}\\{filename}";
-                var outputFile = $"{outputPath}\\{DateTime.Now.ToString("yyyyMMdd_HHmmss.ffff")}_{filename}";
-                
+                var finalOutputPath = outputPath;
+
+                if (separateOutputFolderByDay)
+                {                    
+                    var now = DateTime.Now;
+                    finalOutputPath = Path.Combine(outputPath, now.ToString("yyyy"), now.ToString("MM"), now.ToString("dd"));
+                }
+
+                if (!Directory.Exists(finalOutputPath))
+                    Directory.CreateDirectory(finalOutputPath);
+
+                var inputFile = Path.Combine(inputPath, filename);
+                var outputFile = Path.Combine(finalOutputPath, $"{DateTime.Now:yyyyMMdd_HHmmss.ffff}_{filename}");
+
                 File.Move(inputFile,outputFile);
                 Logger.Info($"FileDevice|MoveFile|File Moved!:  {filename}");
             }
