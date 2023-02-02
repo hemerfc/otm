@@ -215,7 +215,7 @@ namespace Otm.Server.Device.S7
             SetTagValue("input_name", fileName);
             SetTagValue("input_content", fileContent);
 
-            //SaveFile(fileName);
+            MoveFile(fileName);
 
             //Se as tags possuem action
             if (tagsAction.ContainsKey("input_name"))
@@ -391,19 +391,22 @@ namespace Otm.Server.Device.S7
             }
         }
 
-        private void SaveFile(string filename) {
+        private void MoveFile(string filename) {
             try
             {
-                if (!File.Exists(outputPath))
-                {
-                    using (FileStream fs = File.Create(outputPath)) { }
-                }
+                Logger.Info($"FileDevice|MoveFile|Moving file: {filename}");
+                if (!Directory.Exists(outputPath))
+                    Directory.CreateDirectory(outputPath);
 
-                File.Move(inputPath + filename, outputPath);
+                var inputFile = $"{inputPath}\\{filename}";
+                var outputFile = $"{outputPath}\\{DateTime.Now.ToString("yyyyMMdd_HHmmss.ffff")}_{filename}";
+                
+                File.Move(inputFile,outputFile);
+                Logger.Info($"FileDevice|MoveFile|File Moved!:  {filename}");
             }
             catch (Exception ex)
             {
-                Logger.Error($"Error move file|FileName ({filename})|Exception|Message: {ex.Message}");
+                Logger.Error($"FileDevice|MoveFile|Error move file|FileName ({filename})|Exception|Message: {ex.Message}");
             }
         }
 
