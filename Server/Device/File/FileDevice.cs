@@ -53,6 +53,7 @@ namespace Otm.Server.Device.S7
         private readonly ConcurrentDictionary<string, int> tagVersion;
         private readonly ConcurrentDictionary<string, Action<string, object>> tagsAction;
         public EventingBasicConsumer consumer { get; set; }
+        private FileSystemWatcher watcher;
 
         private string inputPath;
         private string outputPath;
@@ -182,17 +183,18 @@ namespace Otm.Server.Device.S7
             {
                 Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Configurando conexão...");
                 Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Instaurando o Watcher na pasta de input: '{inputPath}'");
-                //using var watcher = new FileSystemWatcher(@"C:\temp\files\input");
-                var watcher = new FileSystemWatcher(inputPath);
-
-                watcher.NotifyFilter = NotifyFilters.Attributes
+                
+                watcher = new FileSystemWatcher(inputPath)
+                {
+                    NotifyFilter = NotifyFilters.Attributes
                                      | NotifyFilters.CreationTime
                                      | NotifyFilters.DirectoryName
                                      | NotifyFilters.FileName
                                      | NotifyFilters.LastAccess
                                      | NotifyFilters.LastWrite
                                      | NotifyFilters.Security
-                                     | NotifyFilters.Size;
+                                     | NotifyFilters.Size
+                };
 
                 watcher.Changed += OnChanged;
                 watcher.Created += OnCreated;
@@ -201,7 +203,7 @@ namespace Otm.Server.Device.S7
                 watcher.Error += OnError;
 
                 Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Utilizando o filtro: '{inputFileFilter}'");
-                //watcher.Filter = "*.txt";
+                
                 watcher.Filter = inputFileFilter;
                 watcher.IncludeSubdirectories = true;
                 watcher.EnableRaisingEvents = true;
@@ -232,8 +234,8 @@ namespace Otm.Server.Device.S7
                 var fileContent = GetContent(file);
                 Logger.Info($"FileDevice|ProcessingExistingFiles|Processando arquivo: {filename}");
                 ProcessFile(filename, fileContent);
-        }
-
+            }
+                     
         }
 
         public void Stop()
