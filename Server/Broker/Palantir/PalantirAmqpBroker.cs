@@ -78,7 +78,7 @@ namespace Otm.Server.Broker.Palantir
                 config.AmqpPort,
                 Config.AmqpQueueToConsume,
                 Config.AmqpQueueToProduce,
-                
+                new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
                 );
             this.sendDataQueue = new Queue<byte[]>();
         }
@@ -367,7 +367,14 @@ namespace Otm.Server.Broker.Palantir
 
         public void Consumer_Received(object sender, BasicDeliverEventArgs e)
         {
-            //var message = e.Body.FromByteArray<ProgressQueueMessage>();
+            var body = e.Body.ToArray();
+            //var message = Encoding.UTF8.GetString();
+
+            sendDataQueue.Enqueue(body);
+
+            var consumer = (sender as IBasicConsumer).Model;
+            consumer.BasicAck(deliveryTag: e.DeliveryTag, multiple: false);
+
         }
     }
 }
