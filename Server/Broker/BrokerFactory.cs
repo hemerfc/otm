@@ -7,6 +7,8 @@ using Otm.Server.Plugin;
 using NLog;
 using Otm.Server.Broker;
 using Otm.Server.Broker.Palantir;
+using Otm.Server.Broker.Ptl;
+using Otm.Server.Device.Ptl;
 
 namespace Otm.Server.Broker
 {
@@ -34,6 +36,18 @@ namespace Otm.Server.Broker
                             var palantirAmqpBroker = new PalantirAmqpBroker(config, logger);
                             palantirAmqpBroker.Init(config, logger);
                             brokers.Add(config.Name, palantirAmqpBroker);
+                            logger.Debug($"Broker {config?.Name}: Created");
+                            break;
+                        case "ptlSmartPicking":
+                            var ptlSmartPickingBroker = new SmartPickingBroker(config, logger);
+                            ptlSmartPickingBroker.Init(config, logger);
+                            brokers.Add(config.Name, ptlSmartPickingBroker);
+                            logger.Debug($"Broker {config?.Name}: Created");
+                            break;
+                        case "ptlAtop":
+                            var ptlAtopBroker = new AtopBroker(config, logger);
+                            ptlAtopBroker.Init(config, logger);
+                            brokers.Add(config.Name, ptlAtopBroker);
                             logger.Debug($"Broker {config?.Name}: Created");
                             break;
                         default:

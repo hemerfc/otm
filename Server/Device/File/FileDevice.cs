@@ -10,7 +10,6 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.IO;
 using NLog;
-using Flurl.Http.Content;
 
 namespace Otm.Server.Device.S7
 {

@@ -24,16 +24,25 @@ namespace Otm.Server.Device.TcpServer
             _client = new TcpClient();
             _client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
 
-            // resolve o nome pelo DNS
-            var hostEntry = Dns.GetHostEntry(hostName);
-            if (hostEntry.AddressList.Length > 0)
+            try
             {
-                _client.Connect(hostEntry.AddressList[0], port);
+                _client.Connect(hostName, port);
             }
-            else
+            catch (SocketException ex)
             {
-                throw new Exception($"HostName invalido {hostName} ou não foi possivel resolver para um IP valido!");
+                throw new Exception($"Erro de conexão: {ex.Message}");
             }
+
+            //// resolve o nome pelo DNS
+            //var hostEntry = Dns.GetHostEntry(hostName);
+            //if (hostEntry.AddressList.Length > 0)
+            //{
+            //    _client.Connect(hostEntry.AddressList[0], port);
+            //}
+            //else
+            //{
+            //    throw new Exception($"HostName invalido {hostName} ou não foi possivel resolver para um IP valido!");
+            //}
         }
 
         public byte[] GetData()

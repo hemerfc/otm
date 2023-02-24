@@ -1,44 +1,43 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using NLog;
+using Otm.Server.Device.Ptl;
+using Otm.Shared.ContextConfig;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Text;
-using System.Threading.Tasks;
+using Newtonsoft.Json;
 
-namespace Otm.Server.Device.Ptl
+namespace Otm.Server.Broker.Ptl
 {
-    public class AtopPtlDevice : IPtlDevice
+    public class AtopBroker : IPtlAmqtpBroker
     {
         private byte[] STX_LC = new byte[] { 0x02, 0x02 };       // "\x02\x02";
         private byte[] ETX_LC = new byte[] { 0x03, 0x03 };       // "\x03\x03";
         private byte[] STX_AT = new byte[] { 0x0f, 0x00, 0x60 }; //"\x0F\x00\x60";
         private byte[] STX_AT_MASTER_DISP12 = new byte[] { 0x14, 0x00, 0x60 }; //"\x2b\x00\x60";
         private byte[] STX_AT_MASTER_DISP08 = new byte[] { 0x11, 0x00, 0x60 }; //"\x2b\x00\x60";
-      
-        public override void ApagarDisplays(IEnumerable<PtlBaseClass> listaApagar)
+
+        private byte MasterDevice;
+        private bool readGateOpen;
+        private bool hasReadGate;
+        private string testCardCode;
+
+        private string cmd_rcvd = "";
+        private int cmd_count = 0;
+
+        public AtopBroker(BrokerConfig config, ILogger logger) : base(config, logger)
         {
-            foreach (var itemApagar in listaApagar.ToList())
-            {
-                //var buffer = Encoding.UTF8.GetBytes($"-{itemApagar}");
-                var buffer = new List<byte>();
-                byte displayId = itemApagar.GetDisplayId();
-
-                // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
-                buffer.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
-                // limpa o display
-                buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
-
-                sendDataQueue.Enqueue(buffer.ToArray());
-                ListaLigados.Remove(itemApagar);
-            }
         }
 
-        public override void AcenderDisplays(IEnumerable<PtlBaseClass> listaAcender)
+        public override void displaysOn(IEnumerable<PtlBaseClass> listaAcender)
         {
             foreach (var itemAcender in listaAcender.ToList())
             {
-                byte displayId = itemAcender.GetDisplayId();
+                byte displayId = itemAcender.GetDisplayIdBroker();
                 var displayCode = itemAcender.GetDisplayValueAsByteArray();
+
+                
 
                 //9 Adicionando o pre + pos
                 byte msgLength = (byte)(displayCode.Length + 9);
@@ -53,12 +52,19 @@ namespace Otm.Server.Device.Ptl
 
                 var buf2 = new List<byte>();
 
-                if (itemAcender.IsMasterMessage)
+                if (itemAcender.Location == Config.MasterDevice)
                 {
+
+                    // Apaga o display antes de setar um novo valor
+                    // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
+                    buf2.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
+                    // limpa o display
+                    buf2.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
+
                     //msgLength = (byte)(msgLength + 1);
                     buf2.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x66, 0x00, 0x00, 0x00, displayId, 0x11 });
                     buf2.AddRange(displayCode);
-
+                    buf2.Add(0x01);
                 }
                 else
                 {
@@ -80,16 +86,39 @@ namespace Otm.Server.Device.Ptl
                 sendDataQueue.Enqueue(buf.ToArray());
 
                 ListaLigados.Add(itemAcender);
+
+                SendData();
             }
         }
 
-        public override bool Received(byte[] recv)
+        public override void ProcessMessage(byte[] body)
+        {
+            var message = Encoding.Default.GetString(body);
+
+            Regex regex = new Regex(@"'(.*?)'");
+            string conteudo = regex.Match(message).Groups[1].Value;
+
+            var ListaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
+                                  let pententeInfos = rawPendente.Split('|').ToList()
+                                  select new PtlBaseClass(id: Guid.NewGuid(),
+                                                          location: pententeInfos[0],
+                                                          displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
+                                                          displayValue: pententeInfos[2])
+                                                                ).ToList();
+
+            var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Select(x => x.Id).Contains(i.Id));
+
+            displaysOn(ListaAcender);
+        }
+
+        public override bool ReceiveData()
         {
             var received = false;
 
+            var recv = client.GetData();
             if (recv != null && recv.Length > 0)
             {
-                Logger.Info($"ReceiveData(): Hardware: Atop Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
+                Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
                 var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
                 receiveBuffer.CopyTo(tempBuffer, 0);
                 recv.CopyTo(tempBuffer, receiveBuffer.Length);
@@ -133,8 +162,8 @@ namespace Otm.Server.Device.Ptl
                             if ((!hasReadGate) || (hasReadGate && readGateOpen))
                             {
 
-                                var cmdLC = Encoding.ASCII.GetString(strRcvd[(stxLcPos + STX_LC.Length)..etxLcPos]);
-                                var cmdParts = cmdLC.Split('|');
+                                var message = Encoding.ASCII.GetString(strRcvd[(stxLcPos + STX_LC.Length)..etxLcPos]);
+                                var cmdParts = message.Split('|');
 
                                 var cmdType = cmdParts[0];
                                 var cmdDevice = cmdParts[1];
@@ -146,25 +175,16 @@ namespace Otm.Server.Device.Ptl
                                 cmd_count++;
                                 //received = true;
 
-                                if (cmd_rcvd == testCardCode)
-                                {
-                                    EnviarComandoTeste();
-                                }
-                                else
-                                {
-                                    if (tagsAction.ContainsKey("cmd_rcvd"))
-                                    {
-                                        tagsAction["cmd_rcvd"]("cmd_rcvd", cmd_rcvd);
-                                    }
-                                    else if (tagsAction.ContainsKey("cmd_count"))
-                                    {
-                                        tagsAction["cmd_count"]("cmd_count", cmd_count);
-                                    }
-                                }
+                                var queueName = Config.AmqpQueueToProduce;
 
-                                EnviarBipLeituraMestre(MasterDevice);
+                                Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
+
+                                var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, cmdDevice.ToString().PadLeft(3, '0'), cmdValue, DateTime.Now);
+                                var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
+
+                                AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
+
                                 readGateOpen = false;
-                                Logger.Info($"ReceiveData(): Device: '{Config.Name}'. readGate fechado após leitura.");
 
                             }
                             //Se o ReadGate estava aberto a leitura foi processada, se estava fechado ignorada...
@@ -187,8 +207,6 @@ namespace Otm.Server.Device.Ptl
                             var subNode = cmdAT[7];
                             var cmdValue = Encoding.ASCII.GetString(cmdAT.Skip(8).Take(6).ToArray());
 
-                            Logger.Info($"ReceiveData(): Device: '{Config.Name}'. CmdAT: '{cmdAT}' subCmd:{subCmd} subNode:{subNode} cmdValue:{cmdValue}");
-
                             if (subCmd == 252)
                             {
                                 Logger.Info($"ReceiveData(): Device: '{Config.Name}'. subCmd: 252 IGNORADO");
@@ -199,22 +217,16 @@ namespace Otm.Server.Device.Ptl
                                 // ptl01|AT|001|000001
                                 cmd_rcvd = sendCMD;
                                 cmd_count++;
-                                //received = true;
+                                received = true;
 
-                                if (tagsAction.ContainsKey("cmd_rcvd"))
-                                {
-                                    lock (tagsActionLock)
-                                    {
-                                        tagsAction["cmd_rcvd"]("cmd_rcvd", cmd_rcvd);
-                                    }
-                                }
-                                else if (tagsAction.ContainsKey("cmd_count"))
-                                {
-                                    lock (tagsActionLock)
-                                    {
-                                        tagsAction["cmd_count"]("cmd_count", cmd_count);
-                                    }
-                                }
+                                var queueName = Config.AmqpQueueToProduce;
+
+                                Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {cmdAT}");
+
+                                var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, subNode.ToString().PadLeft(3, '0'), cmdValue.Trim(), DateTime.Now);
+                                var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
+
+                                AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
                             }
 
                             //Limpando o buffer que ja foi processado
@@ -240,27 +252,20 @@ namespace Otm.Server.Device.Ptl
 
                             Logger.Info($"ReceiveData(): Device: '{Config.Name}'. CmdAT: '{cmdAT}' subCmd:{subCmd} subNode:{subNode} cmdValue:{cmdValue}");
 
-
                             var sendCMD = $"{Config.Name}|AT|{subNode:000}|{cmdValue}";
                             // ptl01|AT|001|000001
                             cmd_rcvd = sendCMD;
                             cmd_count++;
                             //received = true;
 
-                            if (tagsAction.ContainsKey("cmd_rcvd"))
-                            {
-                                lock (tagsActionLock)
-                                {
-                                    tagsAction["cmd_rcvd"]("cmd_rcvd", cmd_rcvd);
-                                }
-                            }
-                            else if (tagsAction.ContainsKey("cmd_count"))
-                            {
-                                lock (tagsActionLock)
-                                {
-                                    tagsAction["cmd_count"]("cmd_count", cmd_count);
-                                }
-                            }
+                            var queueName = Config.AmqpQueueToProduce;
+
+                            Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {cmdAT}");
+
+                            var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, subNode.ToString().PadLeft(3, '0'), cmdValue.Trim(), DateTime.Now);
+                            var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
+
+                            AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
 
 
                             //Limpando o buffer que ja foi processado
@@ -276,22 +281,6 @@ namespace Otm.Server.Device.Ptl
             }
 
             return received;
-        }
-
-        private static int SearchBytes(byte[] haystack, byte[] needle)
-        {
-            var len = needle.Length;
-            var limit = haystack.Length - len;
-            for (var i = 0; i <= limit; i++)
-            {
-                var k = 0;
-                for (; k < len; k++)
-                {
-                    if (needle[k] != haystack[i + k]) break;
-                }
-                if (k == len) return i;
-            }
-            return -1;
         }
     }
 }

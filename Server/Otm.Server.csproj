@@ -52,9 +52,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Content Update="Configs\FileNeodent.json">
-	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	  </Content>
 	  <Content Update="NeodentPLC.json">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </Content>
@@ -67,13 +64,13 @@
 		</Exec>
 		<Error Condition="'$(ErrorCode)' != '0'" Text="Node.js is required to build and run this project. To continue, please install Node.js from https://nodejs.org/, and then restart your command prompt or IDE." />
 		<Message Importance="high" Text="Restoring dependencies using 'npm'. This may take several minutes..." />
-		<Exec WorkingDirectory="Client" Command="npm install" />
+		<!--<Exec WorkingDirectory="Client" Command="npm install" />-->
 	</Target>
 
 	<Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
 		<!-- As part of publishing, ensure the JS resources are freshly built in production mode -->
-		<Exec WorkingDirectory="Client" Command="npm install" />
-		<Exec WorkingDirectory="Client" Command="npm run build" />
+		<!--<Exec WorkingDirectory="Client" Command="npm install" />
+		<Exec WorkingDirectory="Client" Command="npm run build" />-->
 
 		<!-- Include the newly-built files in the publish output -->
 		<ItemGroup>

@@ -11,6 +11,7 @@ namespace Otm.Shared.ContextConfig
 
         public string SocketHostName { get; set; }
         public int SocketPort { get; set; }
+        public string MasterDevice { get; set; }
         public string AmqpHostName { get; set; }
         public int AmqpPort { get; set; }
         // filas que devem ser consumidas e encaminhadas oara o socket
