@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource>
+    <file preprocess="xml-stripblanks">client_row.ui</file>
+    <file preprocess="xml-stripblanks">window.ui</file>
+  </gresource>
+</gresources>
