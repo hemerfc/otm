@@ -2,7 +2,7 @@
 <interface>
   <template class="PtlWindow" parent="GtkApplicationWindow">
     <property name="width-request">360</property>
-    <property name="title" translatable="yes">To-Do</property>
+    <property name="title" translatable="yes">Ptl Emulator</property>
     <child>
       <object class="GtkBox">
         <property name="orientation">horizontal</property>

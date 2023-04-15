@@ -1,17 +1,17 @@
 mod imp;
 
-use futures::{ /* channel::mpsc::Sender , */ channel::mpsc::Receiver, StreamExt };
+use futures::{/* channel::mpsc::Sender , */ channel::mpsc::Receiver, StreamExt};
 
 use glib::{clone, Object};
 use gtk::subclass::prelude::*;
 use gtk::{gio, glib, Application, NoSelection, SignalListItemFactory};
 use gtk::{prelude::*, ListItem};
 
-use crate::ptl_server::{ /* MessageFromGtk,*/ MessageFromPtl};
 use crate::client_object::ClientObject;
 use crate::client_row::ClientRow;
-use crate::display_object::DisplayObject;
-use crate::display_item::DisplayItem;
+use crate::ptl_server::{/* MessageFromGtk,*/ MessageFromPtl, MessageTypeFromPtl};
+//use crate::display_object::DisplayObject;
+//use crate::display_item::DisplayItem;
 
 // ANCHOR: glib_wrapper
 glib::wrapper! {
@@ -63,11 +63,11 @@ impl Window {
             }));
 
         // Setup callback for clicking (and the releasing) the icon of the entry
-        self.imp().entry.connect_icon_release(
-            clone!(@weak self as window => move |_,_| {
+        self.imp()
+            .entry
+            .connect_icon_release(clone!(@weak self as window => move |_,_| {
                 window.new_client();
-            }),
-        );
+            }));
     }
     // ANCHOR_END: setup_callbacks
 
@@ -82,15 +82,15 @@ impl Window {
         buffer.set_text("");
 
         // Add new client to model
-        let client = ClientObject::new(false, content);
+        let client = ClientObject::new(false, content.parse::<i32>().unwrap());
         self.clients().append(&client);
     }
     // ANCHOR_END: new_client
 
     // ANCHOR: new_client_with_content
-    fn new_client_with_content(&self, content: String) {
+    fn new_client_with_content(&self, client_id : i32) {
         // Add new client to model
-        let client = ClientObject::new(false, content);
+        let client = ClientObject::new(false, client_id);
         self.clients().append(&client);
     }
     // ANCHOR_END: new_client_with_content
@@ -151,16 +151,36 @@ impl Window {
 
     // ANCHOR: spawn_local_handler
     /// Spawn channel receive client on the main event loop.
-    pub fn spawn_local_handler(&self, window:Window, mut rx_ptl: Receiver<MessageFromPtl>) {
+    pub fn spawn_local_handler(&self, window: Window, mut rx_ptl: Receiver<MessageFromPtl>) {
         let main_context = glib::MainContext::default();
         let future = async move {
             while let Some(msg) = rx_ptl.next().await {
-                //label.set_text(&item);
-                println!("Thread received data: {}", msg.msg_data);
+                let client_id = msg.client_id;
+                let content = match msg.content {
+                    Some(content) => content,
+                    None => String::from(""),
+                };
 
-                window.new_client_with_content(msg.msg_data);
+                println!("Thread received data: {}", content);
+
+                match msg.msg_type {
+                    MessageTypeFromPtl::ClientConnected => {
+                        window.new_client_with_content(client_id);
+                    }
+                    MessageTypeFromPtl::ClientDisconnected => {
+                        todo!();
+                    }
+                    MessageTypeFromPtl::Confirm => {
+                        todo!();
+                    }
+                    MessageTypeFromPtl::Read => {
+                        todo!();
+                    }
+                    MessageTypeFromPtl::Echo => {
+                        todo!();
+                    }
+                }
             }
-
         };
         main_context.spawn_local(future);
     }

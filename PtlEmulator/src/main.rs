@@ -1,24 +1,20 @@
 mod client_object;
 mod client_row;
-mod display_object;
 mod display_item;
-mod window;
+mod display_object;
 mod ptl_server;
+mod window;
 
-use std::thread;
-use futures::channel::mpsc::{ Sender, channel };
+use futures::channel::mpsc::channel;
 use gtk::prelude::*;
 use gtk::{gio, glib, Application};
-use ptl_server::{MessageFromPtl, MessageFromGtk, PtlServer};
+use ptl_server::{MessageFromGtk, MessageFromPtl, PtlServer};
 use window::Window;
-
-use crate::ptl_server::MessageTypeFromPtl;
 
 // ANCHOR: main
 fn main() -> glib::ExitCode {
     // Register and include resources
-    gio::resources_register_include!("compiled.gresource")
-        .expect("Failed to register resources.");
+    gio::resources_register_include!("compiled.gresource").expect("Failed to register resources.");
 
     // Create a new application
     let app = Application::builder()
@@ -40,7 +36,7 @@ fn build_ui(app: &Application) {
     let (tx_ptl, rx_ptl) = channel::<MessageFromPtl>(1000); // PTL -> GTK
     window.spawn_local_handler(window.to_owned(), rx_ptl);
 
-    let _server:PtlServer = PtlServer::start("127.0.0.1:25565".to_string(), tx_ptl, rx_gtk);
+    PtlServer::start("127.0.0.1:25565".to_string(), tx_ptl, rx_gtk);
 
     window.present();
 }

@@ -14,7 +14,7 @@ pub struct ClientRow {
     #[template_child]
     pub completed_button: TemplateChild<CheckButton>,
     #[template_child]
-    pub content_label: TemplateChild<Label>,
+    pub client_id_label: TemplateChild<Label>,
     // Vector holding the bindings to properties of `ClientObject`
     pub bindings: RefCell<Vec<Binding>>,
 }
@@ -23,7 +23,7 @@ pub struct ClientRow {
 #[glib::object_subclass]
 impl ObjectSubclass for ClientRow {
     // `NAME` needs to match `class` attribute of template
-    const NAME: &'static str = "ClientRow"; 
+    const NAME: &'static str = "ClientRow";
     type Type = client_row::ClientRow;
     type ParentType = gtk::Box;
 

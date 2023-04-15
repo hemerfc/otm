@@ -9,10 +9,10 @@ glib::wrapper! {
 }
 
 impl ClientObject {
-    pub fn new(completed: bool, content: String) -> Self {
+    pub fn new(completed: bool, client_id : i32) -> Self {
         Object::builder()
             .property("completed", completed)
-            .property("content", content)
+            .property("client_id", client_id)
             .build()
     }
 }
@@ -22,6 +22,6 @@ impl ClientObject {
 #[derive(Default)]
 pub struct ClientData {
     pub completed: bool,
-    pub content: String,
+    pub client_id: i32,
 }
 // ANCHOR: client_data

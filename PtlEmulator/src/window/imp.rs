@@ -1,9 +1,8 @@
-use std::cell::{RefCell};
+use std::cell::RefCell;
 
 use glib::subclass::InitializingObject;
 use gtk::subclass::prelude::*;
 use gtk::{gio, glib, CompositeTemplate, Entry, ListView};
-
 
 // ANCHOR: struct_and_subclass
 // Object holding the state

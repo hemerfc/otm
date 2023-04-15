@@ -10,7 +10,7 @@
       </object>
     </child>
     <child>
-      <object class="GtkLabel" id="content_label">
+      <object class="GtkLabel" id="client_id_label">
         <property name="margin-top">12</property>
         <property name="margin-bottom">12</property>
         <property name="margin-start">12</property>

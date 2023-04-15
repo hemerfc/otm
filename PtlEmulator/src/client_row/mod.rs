@@ -31,7 +31,7 @@ impl ClientRow {
     pub fn bind(&self, client_object: &ClientObject) {
         // Get state
         let completed_button = self.imp().completed_button.get();
-        let content_label = self.imp().content_label.get();
+        let client_id_label = self.imp().client_id_label.get();
         let mut bindings = self.imp().bindings.borrow_mut();
 
         // Bind `client_object.completed` to `client_row.completed_button.active`
@@ -42,17 +42,17 @@ impl ClientRow {
         // Save binding
         bindings.push(completed_button_binding);
 
-        // Bind `client_object.content` to `client_row.content_label.label`
-        let content_label_binding = client_object
-            .bind_property("content", &content_label, "label")
+        // Bind `client_object.client_id` to `client_row.content_label.label`
+        let client_id_label_binding = client_object
+            .bind_property("client_id", &client_id_label, "label")
             .flags(BindingFlags::SYNC_CREATE)
             .build();
         // Save binding
-        bindings.push(content_label_binding);
+        bindings.push(client_id_label_binding);
 
         // Bind `client_object.completed` to `client_row.content_label.attributes`
         let content_label_binding = client_object
-            .bind_property("completed", &content_label, "attributes")
+            .bind_property("completed", &completed_button, "attributes")
             .flags(BindingFlags::SYNC_CREATE)
             .transform_to(|_, active| {
                 let attribute_list = AttrList::new();

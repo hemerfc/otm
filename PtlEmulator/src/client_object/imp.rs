@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use glib::{ParamSpec, ParamSpecBoolean, ParamSpecString, Value};
+use glib::{ParamSpec, ParamSpecBoolean, ParamSpecInt, Value};
 use gtk::glib;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
@@ -31,7 +31,7 @@ impl ObjectImpl for ClientObject {
         static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
             vec![
                 ParamSpecBoolean::builder("completed").build(),
-                ParamSpecString::builder("content").build(),
+                ParamSpecInt::builder("client_id").build(),
             ]
         });
         PROPERTIES.as_ref()
@@ -40,15 +40,14 @@ impl ObjectImpl for ClientObject {
     fn set_property(&self, _id: usize, value: &Value, pspec: &ParamSpec) {
         match pspec.name() {
             "completed" => {
-                let input_value =
-                    value.get().expect("The value needs to be of type `bool`.");
+                let input_value = value.get().expect("The value needs to be of type `bool`.");
                 self.data.borrow_mut().completed = input_value;
             }
-            "content" => {
+            "client_id" => {
                 let input_value = value
                     .get()
-                    .expect("The value needs to be of type `String`.");
-                self.data.borrow_mut().content = input_value;
+                    .expect("The value needs to be of type `i32`.");
+                self.data.borrow_mut().client_id = input_value;
             }
             _ => unimplemented!(),
         }
@@ -57,7 +56,7 @@ impl ObjectImpl for ClientObject {
     fn property(&self, _id: usize, pspec: &ParamSpec) -> Value {
         match pspec.name() {
             "completed" => self.data.borrow().completed.to_value(),
-            "content" => self.data.borrow().content.to_value(),
+            "client_id" => self.data.borrow().client_id.to_value(),
             _ => unimplemented!(),
         }
     }
