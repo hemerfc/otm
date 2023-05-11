@@ -74,7 +74,8 @@ namespace Otm.Tests.Brokers
                 new PtlBaseClass(Guid.Empty, "001", E_DisplayColor.Verde, 30)
             };
 
-            Assert.Equal(expectedList, broker. );
+            throw new NotImplementedException();
+            //Assert.Equal(expectedList, broker. );
         }
 
         
