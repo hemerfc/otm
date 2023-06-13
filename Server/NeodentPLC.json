@@ -9,7 +9,7 @@
       "Name": "sp_desvia_estacao",
       "DebugMessages": false,
       "Driver": "mssql",
-      "Config": "Server=localhost; Database=Neodent; User ID=sa;Password=123qwe;;",
+      "Config": "Server=localhost; Database=Neodent; User ID=sa;Password=Secret1234;",
       "Params": [
         {
           "Name": "COUNT",
