@@ -19,13 +19,16 @@
 		<PackageReference Include="VueCliMiddleware" Version="5.0.0" />
 	</ItemGroup>
 
+	<!--
 	<ItemGroup>
 		<ProjectReference Include="..\Shared\Otm.Shared.csproj" />
 	</ItemGroup>
+	-->
 
 	<ItemGroup>
 		<Folder Include="Logs\" />
 	</ItemGroup>
+	
 	<ItemGroup>
 	  <None Update="Plugins\**\*.*">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
