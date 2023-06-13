@@ -5,7 +5,6 @@ using System.Data;
 using System.Linq;
 using Npgsql;
 using Otm.Server.ContextConfig;
-using Otm.Shared.ContextConfig;
 
 namespace Otm.Server.DataPoint
 {

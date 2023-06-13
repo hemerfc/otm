@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Otm.Shared.ContextConfig
+namespace Otm.Server.ContextConfig
 {
     public class OtmContextConfig
     {

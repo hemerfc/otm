@@ -1,7 +1,7 @@
 using System;
 using System.Text.Json.Serialization;
 
-namespace Otm.Shared.ContextConfig
+namespace Otm.Server.ContextConfig
 {
     public class DeviceTagConfig
     {

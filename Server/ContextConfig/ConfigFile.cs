@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Otm.Shared.ContextConfig
+namespace Otm.Server.ContextConfig
 {
     public record ConfigFile
     {

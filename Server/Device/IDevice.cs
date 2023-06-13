@@ -3,8 +3,7 @@ using System;
 using System.ComponentModel;
 using NLog;
 using Otm.Server.ContextConfig;
-using Otm.Shared.ContextConfig;
-using Otm.Shared.Status;
+using Otm.Server.Status;
 
 namespace Otm.Server.Device
 {

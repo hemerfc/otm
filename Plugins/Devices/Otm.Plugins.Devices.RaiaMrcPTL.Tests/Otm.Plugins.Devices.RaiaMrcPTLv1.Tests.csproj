@@ -20,7 +20,6 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\..\Server\Otm.Server.csproj" />
-		<ProjectReference Include="..\..\..\Shared\Otm.Shared.csproj" />
 		<ProjectReference Include="..\Otm.Plugins.Devices.RaiaMrcPTL\Otm.Plugins.Devices.RaiaMrcPTLv1.csproj" />
 	</ItemGroup>
 

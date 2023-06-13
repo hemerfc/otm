@@ -2,7 +2,7 @@ using System;
 using Xunit;
 using Moq;
 using Otm.Server.Device;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using NLog;
 using Otm.Server.Device.S7;
 using System.Collections.Generic;

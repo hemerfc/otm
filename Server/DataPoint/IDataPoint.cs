@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using Otm.Server.ContextConfig;
-using Otm.Shared.ContextConfig;
 
 namespace Otm.Server.DataPoint
 {

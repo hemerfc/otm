@@ -1,6 +1,6 @@
 ﻿using NLog;
 using Otm.Server.Device.Ptl;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,16 +18,18 @@ namespace Otm.Server.Broker.Ptl
         private byte[] STX_AT_MASTER_DISP12 = new byte[] { 0x14, 0x00, 0x60 }; //"\x2b\x00\x60";
         private byte[] STX_AT_MASTER_DISP08 = new byte[] { 0x11, 0x00, 0x60 }; //"\x2b\x00\x60";
 
-        private byte MasterDevice;
+        //private byte MasterDevice;
         private bool readGateOpen;
         private bool hasReadGate;
-        private string testCardCode;
+        //private string testCardCode;
 
         private string cmd_rcvd = "";
         private int cmd_count = 0;
 
         public AtopBroker(BrokerConfig config, ILogger logger) : base(config, logger)
         {
+            /// TODO: Verificar se é necessário
+            hasReadGate = false;
         }
 
         public override void displaysOn(IEnumerable<PtlBaseClass> listaAcender)

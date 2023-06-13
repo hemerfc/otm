@@ -27,7 +27,7 @@
   <ItemGroup>
     <!--<ProjectReference Include="..\Client\Otm.Client.csproj" />-->
     <ProjectReference Include="..\Server\Otm.Server.csproj" />
-    <ProjectReference Include="..\Shared\Otm.Shared.csproj" />
+    <!--<ProjectReference Include="..\Shared\Otm.Shared.csproj" />-->
   </ItemGroup>
   
   <ItemGroup>

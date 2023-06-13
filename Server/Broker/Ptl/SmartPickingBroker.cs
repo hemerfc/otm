@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 using NLog;
 using Otm.Server.Device.Ptl;
 using Otm.Server.Device.S7;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using RabbitMQ.Client;
 using System;
 using System.Collections.Generic;

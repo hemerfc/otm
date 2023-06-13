@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace Otm.Shared.ContextConfig
+namespace Otm.Server.ContextConfig
 {
     public class TransactionConfig
     {

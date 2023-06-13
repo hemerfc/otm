@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System;
 
-namespace Otm.Shared.ContextConfig
+namespace Otm.Server.ContextConfig
 {
     public class DataPointParamConfig
     {

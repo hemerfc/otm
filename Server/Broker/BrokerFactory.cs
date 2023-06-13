@@ -2,13 +2,11 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using Otm.Server.ContextConfig;
-using Otm.Shared.ContextConfig;
 using Otm.Server.Plugin;
-using NLog;
 using Otm.Server.Broker;
 using Otm.Server.Broker.Palantir;
 using Otm.Server.Broker.Ptl;
-using Otm.Server.Device.Ptl;
+using NLog;
 
 namespace Otm.Server.Broker
 {

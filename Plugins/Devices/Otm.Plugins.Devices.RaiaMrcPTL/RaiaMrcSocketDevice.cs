@@ -2,7 +2,7 @@
 using Otm.Server.Device;
 using Otm.Server.Device.Ptl;
 using Otm.Server.Device.TcpServer;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;

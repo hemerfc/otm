@@ -2,7 +2,7 @@
 using NLog;
 using Otm.Server.Broker.Ptl;
 using Otm.Server.Device.Ptl;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

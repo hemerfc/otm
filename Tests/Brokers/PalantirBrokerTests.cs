@@ -3,7 +3,7 @@ using System.Linq;
 using Xunit;
 using Moq;
 using Otm.Server.Device.Ptl;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using NLog;
 using System.ComponentModel;
 using System.Text;
@@ -53,7 +53,7 @@ namespace Otm.Test.Brokers
                 msgReceved.Add(message);
             };
 
-            // filas que serão consumidas
+            // filas que serï¿½o consumidas
             List<string> consumedQueueNames = new List<string>();
             foreach (var result in results)
             {
@@ -90,8 +90,8 @@ namespace Otm.Test.Brokers
             // para o loop do device
             bgWorker.CancelAsync();
 
-            // as duas listas precisão ser igual e ter a mesma ordem
-            Assert.True(msgReceved.SequenceEqual(results), "As mensagens enviadas e recebidas não são iguais!");
+            // as duas listas precisï¿½o ser igual e ter a mesma ordem
+            Assert.True(msgReceved.SequenceEqual(results), "As mensagens enviadas e recebidas nï¿½o sï¿½o iguais!");
         }
 
         // Teste o envio de mensagens vindas do RabbitMq,
@@ -174,8 +174,8 @@ namespace Otm.Test.Brokers
                 var messagesStream = string.Join("", outPutMessages);
                 var messagesBuffer = Encoding.UTF8.GetBytes(messagesStream);
 
-                // as duas listas precisão ser igual e ter a mesma ordem
-                Assert.True(messagesBuffer.SequenceEqual(dataStruct.sendBuffer), "As mensagens enviadas e recebidas não são iguais!");
+                // as duas listas precisï¿½o ser igual e ter a mesma ordem
+                Assert.True(messagesBuffer.SequenceEqual(dataStruct.sendBuffer), "As mensagens enviadas e recebidas nï¿½o sï¿½o iguais!");
             }
         }
 

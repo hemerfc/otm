@@ -3,7 +3,7 @@ using System.Linq;
 using Xunit;
 using Moq;
 using Otm.Server.Device.S7;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using NLog;
 
 namespace Otm.Test.Device

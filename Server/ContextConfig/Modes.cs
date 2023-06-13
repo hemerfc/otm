@@ -1,4 +1,4 @@
-namespace Otm.Shared.ContextConfig
+namespace Otm.Server.ContextConfig
 {
     public enum Modes
     {

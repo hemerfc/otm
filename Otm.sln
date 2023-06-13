@@ -4,8 +4,6 @@ VisualStudioVersion = 17.4.33205.214
 MinimumVisualStudioVersion = 16.0.0.0
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Otm.Server", "Server\Otm.Server.csproj", "{A9E3E38D-8955-4935-B1B3-D30B66917B5B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Otm.Shared", "Shared\Otm.Shared.csproj", "{13241B4B-3967-4B08-A4B6-695FE4F7E0D5}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Otm.Tests", "Tests\Otm.Tests.csproj", "{10106DA4-1F97-451C-93C0-DFAFBBFE6BE9}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Otm.Plugins", "Otm.Plugins", "{CC25428A-4D74-4E02-B841-53D7F7472506}"
@@ -17,8 +15,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Otm.Plugins.Devices.RaiaMrcPTLv1", "Plugins\Devices\Otm.Plugins.Devices.RaiaMrcPTL\Otm.Plugins.Devices.RaiaMrcPTLv1.csproj", "{C81D0E46-3C8A-4A80-8D62-E1CB3107C748}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Otm.Plugins.Devices.RaiaMrcPTLv1.Tests", "Plugins\Devices\Otm.Plugins.Devices.RaiaMrcPTL.Tests\Otm.Plugins.Devices.RaiaMrcPTLv1.Tests.csproj", "{FC29FA0D-D120-4534-84BC-EB99497B8B52}"
-EndProject
-Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{94D4BC44-EEB4-4108-8C1F-B94B70F664C6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

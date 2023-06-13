@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Otm.Shared.ContextConfig
+namespace Otm.Server.ContextConfig
 {
     public class DataPointConfig
     {

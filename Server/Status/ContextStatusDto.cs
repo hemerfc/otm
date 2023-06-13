@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Otm.Shared.Status
+namespace Otm.Server.Status
 {
     public class ContextStatusDto
     {

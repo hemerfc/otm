@@ -3,7 +3,7 @@ using System.Linq;
 using Xunit;
 using Moq;
 using Otm.Server.Device.Ptl;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using NLog;
 using System.IO;
 using System.ComponentModel;

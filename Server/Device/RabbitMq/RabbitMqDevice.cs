@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Text.Json;
 using System.Diagnostics;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using System.Collections.Concurrent;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -216,7 +216,7 @@ namespace Otm.Server.Device.S7
             //Usa reflection para pegar os FieldInfos da RabbitMessage
             foreach (var field in typeof(RabbitMessage).GetProperties())
             {
-                //Monta o Tag Name de acordo com as informações, obtendo o valor via reflection
+                //Monta o Tag Name de acordo com as informaï¿½ï¿½es, obtendo o valor via reflection
                 var tagName = $"{exchange}.{ea.RoutingKey}.{field.Name}";
                 //Obtem o nome do campo via reflection
                 SetTagValue(tagName, field.GetValue(rabbitMessage));

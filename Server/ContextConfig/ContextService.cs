@@ -1,4 +1,4 @@
-﻿using Otm.Shared.ContextConfig;
+﻿using Otm.Server.ContextConfig;
 using System;
 using System.Collections.Generic;
 using System.IO;

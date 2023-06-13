@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Otm.Shared
+namespace Otm.Server
 {
     public record LogMessage(Guid Id, DateTime DateTime, string Level, string Origin, string Message);
 }
