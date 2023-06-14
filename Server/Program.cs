@@ -25,6 +25,7 @@ namespace Otm.Server
             try
             {
                 logger.Debug("OTM Start");
+                
                 CreateHostBuilder(args).Build().Run();
             }
             catch (Exception exception)
