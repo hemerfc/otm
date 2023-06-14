@@ -348,3 +348,4 @@ ASALocalRun/
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
 /Server/Logs
+/Server/wwwroot

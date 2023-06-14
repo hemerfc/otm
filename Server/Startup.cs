@@ -8,7 +8,6 @@ using Microsoft.Extensions.Hosting;
 using System.Linq;
 using Otm.Server.ContextConfig;
 using Otm.Server.Services;
-using VueCliMiddleware;
 
 namespace Otm.Server
 {
@@ -40,10 +39,10 @@ namespace Otm.Server
             //services.AddControllersWithViews();
             //services.AddRazorPages();
             services.AddControllers();
-            services.AddSpaStaticFiles(configuration =>
+            /*services.AddSpaStaticFiles(configuration =>
             {
-                configuration.RootPath = "Client/dist";
-            });
+                configuration.RootPath = "wwwroot";
+            });*/
             services.AddSingleton<IConfigService>(ConfigService);
             services.AddSingleton<IContextService>(ContextService);
             services.AddSingleton<IStatusService>(StatusService);
@@ -53,8 +52,6 @@ namespace Otm.Server
 
             services.AddSingleton<OtmWorkerService>();
             services.AddHostedService(provider => provider.GetService<OtmWorkerService>());
-
-            //services.AddHostedService<OtmWorkerService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -83,28 +80,11 @@ namespace Otm.Server
             {
                 endpoints.MapControllers();
             });
+            
 
-            app.UseSpaStaticFiles();
-            app.UseSpa(spa =>
-            {
-                //if (env.IsDevelopment())
-                //    spa.Options.SourcePath = "Client/";
-                //else
-                //    spa.Options.SourcePath = "dist";
-
-                spa.Options.SourcePath = "Client/";
-                if (env.IsDevelopment())
-                {
-                    spa.UseVueCli(npmScript: "serve");
-                }
-            });
-
-            //app.UseEndpoints(endpoints =>
-            //{
-            //    endpoints.MapRazorPages();
-            //    endpoints.MapControllers();
-            //    endpoints.MapFallbackToFile("index.html");
-            //});
+            // For the wwwroot folder
+            app.UseDefaultFiles();
+            app.UseStaticFiles();
         }
     }
 }

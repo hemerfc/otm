@@ -40,23 +40,29 @@ namespace Otm.Server
             }
         }
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
+        public static IHostBuilder CreateHostBuilder(string[] args) 
+        {
+            var contentRoot = Directory.GetCurrentDirectory();
+            var webRoot = Path.Combine(contentRoot, "wwwroot");
+
+            var builder = Host.CreateDefaultBuilder(args)
               .UseWindowsService()
               .ConfigureWebHostDefaults(webBuilder =>
               {
-                  webBuilder.UseStartup<Startup>();
+                    webBuilder.UseKestrel();
+                    webBuilder.UseStartup<Startup>();
+                    webBuilder.UseContentRoot(contentRoot);
+                    webBuilder.UseWebRoot(webRoot);
               })
               .ConfigureLogging(logging =>
               {
-                  logging.ClearProviders();
+                  //logging.ClearProviders();
                   logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
               })
               .UseNLog();
-             //.ConfigureServices((hostContext, services) =>
-             //{
-             //    services.AddHostedService<Worker>();
-             //});  // NLog: Setup NLog for Dependency injection
+              
+            return builder;
+        }
 
     }
 }
