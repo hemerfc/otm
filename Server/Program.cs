@@ -56,7 +56,7 @@ namespace Otm.Server
               })
               .ConfigureLogging(logging =>
               {
-                  //logging.ClearProviders();
+                  logging.ClearProviders();
                   logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
               })
               .UseNLog();
