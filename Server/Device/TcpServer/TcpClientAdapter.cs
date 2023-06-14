@@ -26,11 +26,11 @@ namespace Otm.Server.Device.TcpServer
 
             try
             {
-                _client.Connect(hostName, port);
+                _client.ConnectAsync(hostName, port).Wait(1000);
             }
             catch (SocketException ex)
             {
-                throw new Exception($"Erro de conexão: {ex.Message}");
+                throw new Exception($"Erro de conexï¿½o: {ex.Message}");
             }
 
             //// resolve o nome pelo DNS
@@ -41,7 +41,7 @@ namespace Otm.Server.Device.TcpServer
             //}
             //else
             //{
-            //    throw new Exception($"HostName invalido {hostName} ou não foi possivel resolver para um IP valido!");
+            //    throw new Exception($"HostName invalido {hostName} ou nï¿½o foi possivel resolver para um IP valido!");
             //}
         }
 
