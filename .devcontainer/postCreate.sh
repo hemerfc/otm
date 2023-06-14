@@ -1,2 +1,5 @@
+#!/usr/bin/env bash
+npm --prefix=./Client install
+npm --prefix=./Client run build
 dotnet restore Otm.sln
-nvm install v16.20.0
+dotnet build Otm.sln
