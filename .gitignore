@@ -1,16 +1,14 @@
-Otm/*/bin/*
-Otm/*/obj/*
-Otm/*/out/*
-Otm/*/.vscode/*
-Otm.Tests/*/bin/*
-Otm.Tests/*/obj/*
-Otm.Tests/*/out/*
-Otm.Tests/*/.vscode/*
-Otm.Server/Configs/*
-Otm.Server/clientapp/node_modules
-Otm.Server/clientapp/dist
+bin/*
+obj/*
+out/*
 .vscode/*
-.vscode/*
+Tests/*/bin/*
+Tests/*/obj/*
+Tests/*/out/*
+Tests/*/.vscode/*
+Server/Configs/*
+Server/clientapp/node_modules
+Server/clientapp/dist
 
 
 ## Ignore Visual Studio temporary files, build results, and
@@ -280,6 +278,9 @@ FakesAssemblies/
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
 node_modules/
+package-lock.json
+**/package-lock.json
+
 
 # Visual Studio 6 build log
 *.plg
@@ -347,3 +348,4 @@ ASALocalRun/
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
 /Server/Logs
+/Server/wwwroot

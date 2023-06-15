@@ -5,11 +5,11 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using NLog;
+using Otm.Server.Broker;
 using Otm.Server.ContextConfig;
 using Otm.Server.DataPoint;
 using Otm.Server.Device;
 using Otm.Server.Transaction;
-using Otm.Shared.ContextConfig;
 
 namespace Otm.Server
 {
@@ -19,7 +19,7 @@ namespace Otm.Server
         public IDictionary<string, IDataPoint> DataPoints { get; private set; }
         public IDictionary<string, IDevice> Devices { get; private set; }
         public IDictionary<string, ITransaction> Transactions { get; private set; }
-        //private readonly ILogger Logger;
+        public IDictionary<string, IBroker> Brokers { get; private set; }
         private readonly Logger Logger;
 
 
@@ -29,15 +29,6 @@ namespace Otm.Server
             Logger = logger;
         }
 
-        //private readonly ILogger _logger;
-        //private readonly ILogger _emailOnFatalError;
-
-        //public TestService(ILoggerFactory loggerFactory)
-        //{
-        //    _logger = loggerFactory.CreateLogger(GetType().ToString());
-        //    _emailOnFatalError = loggerFactory.CreateLogger("emailOnFatalError");
-        //}
-
         public void Initialize()
             {
             Logger.Info($"OTM {Config.Name} Context Initializing ...");
@@ -46,6 +37,7 @@ namespace Otm.Server
                 DataPoints = DataPointFactory.CreateDataPoints(Config.DataPoints, Logger);
                 Devices = DeviceFactory.CreateDevices(Config.Devices, Logger);
                 Transactions = TransactionFactory.CreateTransactions(Config.Transactions, DataPoints, Devices, Logger);
+                Brokers = BrokerFactory.CreateBrokers(Config.Brokers, Logger);
                 Logger.Info($"OTM {Config.Name} Context Initialized!");
             }
             catch (Exception ex)
@@ -75,6 +67,17 @@ namespace Otm.Server
                     foreach (var trans in Transactions.Values)
                     {
                         BuildWorkerAndStart(trans.Name, trans.Start);
+                    }
+                }
+
+                // wait Devices start
+                Thread.Sleep(2000);
+
+                if (Brokers != null)
+                {
+                    foreach (var broker in Brokers.Values)
+                    {
+                        BuildWorkerAndStart(broker.Name, broker.Start);
                     }
                 }
 
@@ -137,7 +140,7 @@ namespace Otm.Server
 
                         StartAction(worker);
                         
-                        Logger.Info($"Error on start of {name} ");
+                        Logger.Info($"Success starting {name} ");
                     }
                     catch (Exception ex)
                     {

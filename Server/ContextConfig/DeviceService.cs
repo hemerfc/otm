@@ -6,7 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using FluentValidation.Results;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 
 namespace Otm.Server.ContextConfig
 {

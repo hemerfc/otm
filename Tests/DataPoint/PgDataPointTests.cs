@@ -3,14 +3,16 @@ using System.Linq;
 using Xunit;
 using System.Collections.Generic;
 using Moq;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using Otm.Server.DataPoint;
-using Microsoft.Extensions.Logging;
+using NLog;
 
 namespace Otm.Test.DataPoint
 {
     public class PgDataPointTests
     {
+        private static string ConnStr = "Host=localhost;Database=OtmTest;Username=otm;Password=otm";
+
         [Fact]
         public void Execute_DataPoint_sp_test01()
         {
@@ -19,7 +21,7 @@ namespace Otm.Test.DataPoint
                 new DataPointConfig {
                     Name = "sp_test01",
                     Driver = "pg",
-                    Config = "Host=localhost;Database=otm;Username=otm;Password=otm",
+                    Config = ConnStr,
                     Params = (new DataPointParamConfig[] {
                         new DataPointParamConfig {
                             Name = "p1",
@@ -55,7 +57,7 @@ namespace Otm.Test.DataPoint
                 new DataPointConfig {
                     Name = "sp_test02",
                     Driver = "pg",
-                    Config = "Host=localhost;Database=otm;Username=otm;Password=otm",
+                    Config = ConnStr,
                     Params = (new DataPointParamConfig[] {
                         new DataPointParamConfig {
                             Name = "@p1",
@@ -91,14 +93,14 @@ namespace Otm.Test.DataPoint
         }
 
         [Fact]
-        public void Execute_DataPoint_sp_test_ptl01()
+        public void Execute_DataPoint_sp_test03()
         {
             // prepare
             var dpConfig = new DataPointConfig[]{
                 new DataPointConfig {
-                    Name = "sp_test_ptl01",
+                    Name = "sp_test03",
                     Driver = "pg",
-                    Config = "Host=localhost;Database=otm;Username=otm;Password=otm",
+                    Config = ConnStr,
                     Params = (new DataPointParamConfig[] {
                         new DataPointParamConfig {
                             Name = "@p1",
@@ -127,7 +129,7 @@ namespace Otm.Test.DataPoint
             inParams["@p3"] = "";
 
             var loggerMock = new Mock<ILogger>();
-            var dpSpTest01 = DataPointFactory.CreateDataPoints(dpConfig, loggerMock.Object)["sp_test_ptl01"];
+            var dpSpTest01 = DataPointFactory.CreateDataPoints(dpConfig, loggerMock.Object)["sp_test03"];
 
             var outParams = dpSpTest01.Execute(inParams);
 

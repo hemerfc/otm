@@ -1,25 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Otm.Server.ContextConfig;
 using System.Diagnostics;
-using Microsoft.Extensions.Logging;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using System.Collections.Concurrent;
-using Otm.Shared.Status;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using Otm.Server.Device.RabbitMq;
-using System.Reflection;
 using NLog;
 
 namespace Otm.Server.Device.S7
@@ -42,8 +33,7 @@ namespace Otm.Server.Device.S7
 
         public Stopwatch Stopwatch { get; }
 
-        private DateTime? connError = null;
-        private Logger Logger;
+        private ILogger Logger;
 
         public bool Ready { get; private set; }
 
@@ -78,7 +68,7 @@ namespace Otm.Server.Device.S7
 
         public object tagsActionLock = new object();
 
-        public void Init(DeviceConfig dvConfig, Logger logger)
+        public void Init(DeviceConfig dvConfig, ILogger logger)
         {
             this.Logger = logger;
             this.Config = dvConfig;
@@ -226,7 +216,7 @@ namespace Otm.Server.Device.S7
             //Usa reflection para pegar os FieldInfos da RabbitMessage
             foreach (var field in typeof(RabbitMessage).GetProperties())
             {
-                //Monta o Tag Name de acordo com as informações, obtendo o valor via reflection
+                //Monta o Tag Name de acordo com as informaï¿½ï¿½es, obtendo o valor via reflection
                 var tagName = $"{exchange}.{ea.RoutingKey}.{field.Name}";
                 //Obtem o nome do campo via reflection
                 SetTagValue(tagName, field.GetValue(rabbitMessage));

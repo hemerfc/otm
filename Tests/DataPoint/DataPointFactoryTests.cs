@@ -1,8 +1,8 @@
 using System;
 using Xunit;
 using Moq;
-using Otm.Shared.ContextConfig;
-using Microsoft.Extensions.Logging;
+using Otm.Server.ContextConfig;
+using NLog;
 using Otm.Server.DataPoint;
 using System.Linq;
 

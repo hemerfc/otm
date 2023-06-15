@@ -6,9 +6,9 @@ using System.Reflection;
 using System.Text.Json;
 using FluentValidation;
 using FluentValidation.Results;
-using Otm.Shared;
-using Otm.Shared.ContextConfig;
-using Otm.Shared.Status;
+using Otm.Server;
+using Otm.Server.ContextConfig;
+using Otm.Server.Status;
 
 namespace Otm.Server.ContextConfig
 {

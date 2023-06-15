@@ -4,11 +4,7 @@ using System.Collections.Generic;
 using Otm.Server.ContextConfig;
 using Otm.Server.DeviceDrivers;
 using Otm.Server.Device.S7;
-using Microsoft.Extensions.Logging;
-using Otm.Shared.ContextConfig;
 using Otm.Server.Device.Ptl;
-using System.IO;
-using System.Reflection;
 using Otm.Server.Plugin;
 using NLog;
 using Otm.Server.Device.TcpServer;
@@ -18,7 +14,7 @@ namespace Otm.Server.Device
 {
     public static class DeviceFactory
     {
-        public static IDictionary<string, IDevice> CreateDevices(List<DeviceConfig> devicesConfig, Logger logger)
+        public static IDictionary<string, IDevice> CreateDevices(List<DeviceConfig> devicesConfig, ILogger logger)
         {
             var devices = new Dictionary<string, IDevice>();
 

@@ -146,5 +146,25 @@ namespace Otm.Server.Device.Ptl
             }
             
         }
+
+        /// <summary>
+        /// Get DisplayId based on Location split
+        /// </summary>
+        /// <returns></returns>
+        internal byte GetDisplayIdBroker()
+        {
+            try
+            {
+                if (byte.TryParse(Location, out var result))
+                    return result;
+                else
+                    return 0;
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
+
+        }
     }
 }

@@ -14,7 +14,7 @@ namespace Otm.Server.Device.Ptl
         private byte[] STX_AT = new byte[] { 0x0f, 0x00, 0x60 }; //"\x0F\x00\x60";
         private byte[] STX_AT_MASTER_DISP12 = new byte[] { 0x14, 0x00, 0x60 }; //"\x2b\x00\x60";
         private byte[] STX_AT_MASTER_DISP08 = new byte[] { 0x11, 0x00, 0x60 }; //"\x2b\x00\x60";
-
+      
         public override void ApagarDisplays(IEnumerable<PtlBaseClass> listaApagar)
         {
             foreach (var itemApagar in listaApagar.ToList())

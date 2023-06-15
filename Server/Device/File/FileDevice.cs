@@ -4,8 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Diagnostics;
-using Microsoft.Extensions.Logging;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using System.Collections.Concurrent;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -34,8 +33,7 @@ namespace Otm.Server.Device.S7
 
         public Stopwatch Stopwatch { get; }
 
-        private DateTime? connError = null;
-        private Logger Logger;
+        private ILogger Logger;
 
         public bool Ready { get; private set; }
 
@@ -78,7 +76,7 @@ namespace Otm.Server.Device.S7
 
         public object tagsActionLock = new object();
 
-        public void Init(DeviceConfig dvConfig, Logger logger)
+        public void Init(DeviceConfig dvConfig, ILogger logger)
         {
             this.Logger = logger;
             this.Config = dvConfig;
@@ -106,7 +104,7 @@ namespace Otm.Server.Device.S7
                 var separateOutputParam = (cparts.FirstOrDefault(x => x.Contains("separateOutputFolderByDay=")) ?? "").Replace("separateOutputFolderByDay=", "").Trim();
 
                 if (string.IsNullOrWhiteSpace(separateOutputParam))
-                    separateOutputParam = "false"; //O padrão é não separar
+                    separateOutputParam = "false"; //O padrï¿½o ï¿½ nï¿½o separar
 
                 separateOutputFolderByDay = bool.Parse(separateOutputParam);
 
@@ -143,7 +141,7 @@ namespace Otm.Server.Device.S7
                         ConfigureConnection();
                     else
                     {
-                        Logger.Error($"FileDevice ({Config.Name})|Start|Erro nos diretórios: inputReady:{(inputReady ? "Ok" : "Nok")}.  outputReady:{(outputReady ? "Ok" : "Nok")}");
+                        Logger.Error($"FileDevice ({Config.Name})|Start|Erro nos diretï¿½rios: inputReady:{(inputReady ? "Ok" : "Nok")}.  outputReady:{(outputReady ? "Ok" : "Nok")}");
                         configured = false;
                     }
 
@@ -183,12 +181,12 @@ namespace Otm.Server.Device.S7
             {
                 ProcessingExistingFiles();
 
-                Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Configurando conexão...");
+                Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Configurando conexï¿½o...");
                 Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Instaurando o Watcher na pasta de input: '{inputPath}'");
-                
-                watcher = new FileSystemWatcher(inputPath)
-                {
-                    NotifyFilter = NotifyFilters.Attributes
+                //using var watcher = new FileSystemWatcher(@"C:\temp\files\input");
+                var watcher = new FileSystemWatcher(inputPath);
+
+                watcher.NotifyFilter = NotifyFilters.Attributes
                                      | NotifyFilters.CreationTime
                                      | NotifyFilters.DirectoryName
                                      | NotifyFilters.FileName
@@ -252,9 +250,9 @@ namespace Otm.Server.Device.S7
             var tagTriggers = new List<(Action<string, object> func, string tagName, object tagValue)>();
 
             SetTagValue("input_name", fileName);
-            SetTagValue("input_content", fileContent);
+            SetTagValue("input_content", fileContent.Replace("\t", "__"));
 
-            MoveFile(fileName);
+            //SaveFile(fileName);
 
             //Se as tags possuem action
             if (tagsAction.ContainsKey("input_name"))
@@ -316,20 +314,20 @@ namespace Otm.Server.Device.S7
 
         private void OnError(object sender, ErrorEventArgs e)
         {
-
+            Logger.Info($"FileDevice ({Config.Name})|OnError|{e.GetException()}");
             PrintException(e.GetException());
-            configured = false;
-            watcher.Dispose();
         }
 
-        private void PrintException(Exception? ex)
+        private void PrintException(Exception ex)
         {
             if (ex != null)
             {
                 Logger.Error($"FileDevice ({Config.Name})|PrintException|Message: {ex.Message}");
                 Logger.Error($"FileDevice ({Config.Name})|PrintException|Stacktrace:");
                 Logger.Error($"FileDevice ({Config.Name})|PrintException|{(ex.StackTrace)}");
-                PrintException(ex.InnerException);
+
+                if (ex.InnerException != null)
+                    PrintException(ex.InnerException);
             }
         }
 
@@ -344,6 +342,19 @@ namespace Otm.Server.Device.S7
 
             if (File.Exists(filePath))
             {
+                try
+                {
+                    lines = File.ReadAllLines(filePath);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"FileDevice ({Config.Name})|Arquivo '{filePath}' em uso:({ex.StackTrace}, tentando novamente...");
+                    GetContent(filePath);
+                }
+            }
+
+            if (lines != null)
+            {
                 while (retryCount < retryLimit)
                 {
                     try
@@ -353,7 +364,7 @@ namespace Otm.Server.Device.S7
                     }
                     catch (IOException)
                     {
-                        Logger.Info($"FileDevice ({Config.Name})|Arquivo '{filePath}' em uso, tentando novamente (tentativa nº{(int)retryCount}).");
+                        Logger.Info($"FileDevice ({Config.Name})|Arquivo '{filePath}' em uso, tentando novamente (tentativa nï¿½{(int)retryCount}).");
                         retryCount++;
                         Thread.Sleep(waitTime);
                     }
@@ -452,7 +463,7 @@ namespace Otm.Server.Device.S7
             if (!Directory.Exists(finalOutputPath))
                 Directory.CreateDirectory(finalOutputPath);
 
-            //Definindo os arquivos de entrada e saida a serem movidos, na saída o nome do arquivo é incrementado com data e hora para evitar duplicados.
+            //Definindo os arquivos de entrada e saida a serem movidos, na saï¿½da o nome do arquivo ï¿½ incrementado com data e hora para evitar duplicados.
             var inputFile = Path.Combine(inputPath, filename);
             var outputFile = Path.Combine(finalOutputPath, $"{DateTime.Now:yyyyMMdd_HHmmss.ffff}_{filename}");
 
@@ -469,7 +480,7 @@ namespace Otm.Server.Device.S7
                 catch (Exception ex)
                 {
                     Logger.Error($"FileDevice|MoveFile|Error move file|FileName ({filename})|Exception|Message: {ex.Message}");
-                    Logger.Error($"FileDevice|MoveFile|Error move file|Tentando novamente... (tentativa nº{(int)retryCount}).");
+                    Logger.Error($"FileDevice|MoveFile|Error move file|Tentando novamente... (tentativa nï¿½{(int)retryCount}).");
                     retryCount++;
                     Thread.Sleep(waitTime);
                 }

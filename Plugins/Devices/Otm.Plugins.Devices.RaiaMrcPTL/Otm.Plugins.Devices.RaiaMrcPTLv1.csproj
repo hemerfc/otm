@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net5.0</TargetFramework>
+		<TargetFramework>net7.0</TargetFramework>
 		<AssemblyName>Otm.Plugins.Devices.RaiaMrcPTLv1</AssemblyName>
 		<RootNamespace>Otm.Plugins.Devices.RaiaMrcPTLv1</RootNamespace>
 	</PropertyGroup>
@@ -17,7 +17,6 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\..\..\Server\Otm.Server.csproj" />
-	  <ProjectReference Include="..\..\..\Shared\Otm.Shared.csproj" />
 	</ItemGroup>
 
 </Project>

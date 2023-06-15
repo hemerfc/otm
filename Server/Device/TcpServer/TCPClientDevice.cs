@@ -1,5 +1,5 @@
 ﻿using NLog;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -25,7 +25,7 @@ namespace Otm.Server.Device.TcpServer
             tagsAction = new ConcurrentDictionary<string, Action<string, object>>();
         }
 
-        private Logger Logger;
+        private ILogger Logger;
         private DeviceConfig Config;
         private string IPServer;
         private string PortServer;
@@ -34,8 +34,6 @@ namespace Otm.Server.Device.TcpServer
         private byte[] STX_LC = new byte[] { 0x02 };
         private byte[] ETX_LC = new byte[] { 0x03 };
         byte[] receiveBuffer = new byte[0];
-        private bool readGateOpen;
-        private bool hasReadGate;
 
         private readonly ConcurrentDictionary<string, object> tagValues;
         private readonly ConcurrentDictionary<string, Action<string, object>> tagsAction;
@@ -81,7 +79,7 @@ namespace Otm.Server.Device.TcpServer
             return tagValues[tagName];
         }
 
-        public void Init(DeviceConfig dvConfig, Logger logger)
+        public void Init(DeviceConfig dvConfig, ILogger logger)
         {
             this.Logger = logger;
             this.Config = dvConfig;
@@ -231,10 +229,9 @@ namespace Otm.Server.Device.TcpServer
             return -1;
         }
 
-
-
-
+#pragma warning disable CS1998 // O método assíncrono não possui operadores 'await' e será executado de forma síncrona
         public async void SendData()
+#pragma warning restore CS1998 // O método assíncrono não possui operadores 'await' e será executado de forma síncrona
         {
             try
             {

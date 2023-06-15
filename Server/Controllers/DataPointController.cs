@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Otm.Server.ContextConfig;
-using Otm.Shared.ContextConfig;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -84,7 +83,7 @@ namespace Otm.Server.Controllers
                     configFiles.Close();
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
             }
 
@@ -126,7 +125,7 @@ namespace Otm.Server.Controllers
                     configFiles.Close();
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
             }
 

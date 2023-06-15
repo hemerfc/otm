@@ -1,8 +1,11 @@
-﻿using System;
+﻿//using Flurl.Http.Configuration;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -32,7 +35,7 @@ namespace Otm.Server.Device.Licensing
                 if (x.isValid)
                     result = x.remainingHours;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
 
             }
@@ -41,32 +44,20 @@ namespace Otm.Server.Device.Licensing
         }
 
 
-
         public static LicensingResponse JsonPost(LicensingRequest request)
         {
             var result = new LicensingResponse();
 
+            var httpClient = new HttpClient();
 
-            var httpWebRequest = (HttpWebRequest)WebRequest.Create(parameter_licenseserverurl);
-            httpWebRequest.ContentType = "application/json";
-            httpWebRequest.Method = "POST";
+            string jsonRequest = JsonSerializer.Serialize(request);
+            var response = httpClient.PostAsJsonAsync(parameter_licenseserverurl, jsonRequest);
 
-            using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
-            {
-                string json = JsonSerializer.Serialize(request);
+            var responseJson = response.Result.Content.ToString();
 
-                streamWriter.Write(json);
-            }
+            Console.WriteLine($"Response:\n: {responseJson}");
 
-            var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
-            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
-            {
-                var responseJson = streamReader.ReadToEnd();
-
-                Console.WriteLine($"Response:\n: {responseJson}");
-
-                result = JsonSerializer.Deserialize<LicensingResponse>(responseJson);
-            }
+            result = JsonSerializer.Deserialize<LicensingResponse>(responseJson);
 
             return result;
         }

@@ -1,7 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using NLog;
 using Otm.Server.Device;
 using Otm.Server.Device.Ptl;
-using Otm.Shared.ContextConfig;
+using Otm.Server.Device.TcpServer;
+using Otm.Server.ContextConfig;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -138,7 +139,7 @@ namespace Otm.Plugins.Devices.RaiaMrcPTL
         public void SetTagValue(string tagName, object value)
         {
             if (tagName != "cmd_send")
-                Logger.LogError($"Dev {Config.Name}: O tag name '{tagName}', não é valido!");
+                Logger.Error($"Dev {Config.Name}: O tag name '{tagName}', não é valido!");
             else if (value is string @string)
             {
                 if (string.IsNullOrWhiteSpace((string)value))
@@ -219,7 +220,7 @@ namespace Otm.Plugins.Devices.RaiaMrcPTL
                 catch (Exception ex)
                 {
                     Ready = false;
-                    Logger.LogError($"Dev {Config.Name}: Update Loop Error {ex}");
+                    Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
                 }
             }
         }
@@ -253,7 +254,7 @@ namespace Otm.Plugins.Devices.RaiaMrcPTL
 
                     st.Stop();
 
-                    Logger.LogDebug($"Dev {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
+                    Logger.Debug($"Dev {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
 
                     this.LastSend = DateTime.Now;
                 }
@@ -280,16 +281,16 @@ namespace Otm.Plugins.Devices.RaiaMrcPTL
 
                 if (client.Connected)
                 {
-                    Logger.LogDebug($"Dev {Config.Name}: Connected.");
+                    Logger.Debug($"Dev {Config.Name}: Connected.");
                 }
                 else
                 {
-                    Logger.LogError($"Dev {Config.Name}: Connection error.");
+                    Logger.Error($"Dev {Config.Name}: Connection error.");
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, $"Dev {Config.Name}: Connection error.");
+                Logger.Error(ex, $"Dev {Config.Name}: Connection error.");
             }
         }
 

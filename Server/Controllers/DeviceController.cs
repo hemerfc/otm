@@ -1,12 +1,11 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Otm.Server.ContextConfig;
-using Otm.Server.Device.S7;
-using Otm.Shared.ContextConfig;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Otm.Server.Device.S7;
+using Otm.Server.ContextConfig;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Otm.Server.Controllers
 {
