@@ -10,7 +10,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.IO;
 using NLog;
-using Microsoft.AspNetCore.Components.Forms;
+//using Flurl.Http.Content;
 
 namespace Otm.Server.Device.S7
 {
@@ -51,13 +51,11 @@ namespace Otm.Server.Device.S7
         private readonly ConcurrentDictionary<string, int> tagVersion;
         private readonly ConcurrentDictionary<string, Action<string, object>> tagsAction;
         public EventingBasicConsumer consumer { get; set; }
-        private FileSystemWatcher watcher;
 
         private string inputPath;
         private string outputPath;
         private string resultPath;
         private string inputFileFilter;
-        private bool separateOutputFolderByDay;
 
         private bool inputReady;
         private bool outputReady;
@@ -99,15 +97,6 @@ namespace Otm.Server.Device.S7
                 this.outputPath = (cparts.FirstOrDefault(x => x.Contains("outputPath=")) ?? "").Replace("outputPath=", "").Trim();
                 this.resultPath = (cparts.FirstOrDefault(x => x.Contains("resultPath=")) ?? "").Replace("resultPath=", "").Trim();
                 this.inputFileFilter = (cparts.FirstOrDefault(x => x.Contains("inputFileFilter=")) ?? "").Replace("inputFileFilter=", "").Trim();
-                
-
-                var separateOutputParam = (cparts.FirstOrDefault(x => x.Contains("separateOutputFolderByDay=")) ?? "").Replace("separateOutputFolderByDay=", "").Trim();
-
-                if (string.IsNullOrWhiteSpace(separateOutputParam))
-                    separateOutputParam = "false"; //O padr�o � n�o separar
-
-                separateOutputFolderByDay = bool.Parse(separateOutputParam);
-
             }
             catch (Exception ex)
             {
@@ -179,8 +168,6 @@ namespace Otm.Server.Device.S7
         {
             if (!configured)
             {
-                ProcessingExistingFiles();
-
                 Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Configurando conex�o...");
                 Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Instaurando o Watcher na pasta de input: '{inputPath}'");
                 //using var watcher = new FileSystemWatcher(@"C:\temp\files\input");
@@ -193,8 +180,7 @@ namespace Otm.Server.Device.S7
                                      | NotifyFilters.LastAccess
                                      | NotifyFilters.LastWrite
                                      | NotifyFilters.Security
-                                     | NotifyFilters.Size
-                };
+                                     | NotifyFilters.Size;
 
                 watcher.Changed += OnChanged;
                 watcher.Created += OnCreated;
@@ -203,40 +189,16 @@ namespace Otm.Server.Device.S7
                 watcher.Error += OnError;
 
                 Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Utilizando o filtro: '{inputFileFilter}'");
-                
+                //watcher.Filter = "*.txt";
                 watcher.Filter = inputFileFilter;
                 watcher.IncludeSubdirectories = true;
                 watcher.EnableRaisingEvents = true;
-                
 
 
                 configured = true;
             }
         }
 
-
-        private void ProcessingExistingFiles()
-        {
-            Logger.Info($"FileDevice|ProcessingExistingFiles|Verificando se existem arquivos pendentes na pasta");
-            var files = Directory.GetFiles(inputPath, inputFileFilter);
-            int count = files.Length;
-
-            if (count == 0)
-            {
-                Logger.Info($"FileDevice|ProcessingExistingFiles|Nenhum arquivo pendente.");
-                return;
-            }
-
-            Logger.Info($"FileDevice|ProcessingExistingFiles|Processando {count} arquivos.");
-            foreach (var file in files)
-            {
-                var filename = Path.GetFileName(file);
-                var fileContent = GetContent(file);
-                Logger.Info($"FileDevice|ProcessingExistingFiles|Processando arquivo: {filename}");
-                ProcessFile(filename, fileContent);
-            }
-                     
-        }
 
         public void Stop()
         {
@@ -331,14 +293,11 @@ namespace Otm.Server.Device.S7
             }
         }
 
-
-
         private string GetContent(string filePath)
         {
             var result = string.Empty;
-            Int16 retryLimit = 100;
-            Int16 retryCount = 0;
-            Int16 waitTime = 1000;
+
+            string[] lines = null;
 
             if (File.Exists(filePath))
             {
@@ -355,21 +314,12 @@ namespace Otm.Server.Device.S7
 
             if (lines != null)
             {
-                while (retryCount < retryLimit)
+                foreach (string line in lines)
                 {
-                    try
-                    {
-                        result = string.Join("__", File.ReadLines(filePath));
-                        break;
-                    }
-                    catch (IOException)
-                    {
-                        Logger.Info($"FileDevice ({Config.Name})|Arquivo '{filePath}' em uso, tentando novamente (tentativa n�{(int)retryCount}).");
-                        retryCount++;
-                        Thread.Sleep(waitTime);
-                    }
+                    result += "\t" + line;
                 }
             }
+
             return result;
         }
 
@@ -446,47 +396,20 @@ namespace Otm.Server.Device.S7
             }
         }
 
-        private void MoveFile(string filename) {
-            //Definindo os parametros para o retry
-            Int16 retryLimit = 100;
-            Int16 retryCount = 0;
-            Int16 waitTime = 1000;
-
-            Logger.Info($"FileDevice|MoveFile|Moving file: {filename}");
-
-            //Montando o caminho final do output de acordo com o parametro separateOutputFolderByDay
-            var finalOutputPath = separateOutputFolderByDay
-                                    ? Path.Combine(outputPath, DateTime.Now.ToString("yyyy"), DateTime.Now.ToString("MM"), DateTime.Now.ToString("dd"))
-                                    : outputPath;
-
-            //Verificando se o output existe
-            if (!Directory.Exists(finalOutputPath))
-                Directory.CreateDirectory(finalOutputPath);
-
-            //Definindo os arquivos de entrada e saida a serem movidos, na sa�da o nome do arquivo � incrementado com data e hora para evitar duplicados.
-            var inputFile = Path.Combine(inputPath, filename);
-            var outputFile = Path.Combine(finalOutputPath, $"{DateTime.Now:yyyyMMdd_HHmmss.ffff}_{filename}");
-
-            //Loop para mover o arquivo com Retry
-            while (retryCount < retryLimit)
+        private void SaveFile(string filename) {
+            try
             {
-                try
+                if (!File.Exists(outputPath))
                 {
-                    File.Move(inputFile, outputFile);
-                    Logger.Info($"FileDevice|MoveFile|File Moved!:  {filename}");
+                    using (FileStream fs = File.Create(outputPath)) { }
+                }
 
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"FileDevice|MoveFile|Error move file|FileName ({filename})|Exception|Message: {ex.Message}");
-                    Logger.Error($"FileDevice|MoveFile|Error move file|Tentando novamente... (tentativa n�{(int)retryCount}).");
-                    retryCount++;
-                    Thread.Sleep(waitTime);
-                }
+                File.Move(inputPath + filename, outputPath);
             }
-
-            
+            catch (Exception ex)
+            {
+                Logger.Error($"Error move file|FileName ({filename})|Exception|Message: {ex.Message}");
+            }
         }
 
         public void GetLicenseRemainingHours()
