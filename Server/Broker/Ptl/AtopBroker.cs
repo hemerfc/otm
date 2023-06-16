@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Text;
 using Newtonsoft.Json;
+using Otm.Server.Broker.Amqtp;
 
 namespace Otm.Server.Broker.Ptl
 {
@@ -26,7 +27,7 @@ namespace Otm.Server.Broker.Ptl
         private string cmd_rcvd = "";
         private int cmd_count = 0;
 
-        public AtopBroker(BrokerConfig config, ILogger logger) : base(config, logger)
+        public AtopBroker(BrokerConfig config, ILogger logger, IAmqpChannelFactory amqtpFactory) : base(config, logger, amqtpFactory)
         {
             /// TODO: Verificar se é necessário
             hasReadGate = false;
@@ -38,8 +39,6 @@ namespace Otm.Server.Broker.Ptl
             {
                 byte displayId = itemAcender.GetDisplayIdBroker();
                 var displayCode = itemAcender.GetDisplayValueAsByteArray();
-
-                
 
                 //9 Adicionando o pre + pos
                 byte msgLength = (byte)(displayCode.Length + 9);
@@ -184,7 +183,7 @@ namespace Otm.Server.Broker.Ptl
                                 var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, cmdDevice.ToString().PadLeft(3, '0'), cmdValue, DateTime.Now);
                                 var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
 
-                                AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
+                                AmqpChannel.Publish(queueName, json);
 
                                 readGateOpen = false;
 
@@ -228,7 +227,7 @@ namespace Otm.Server.Broker.Ptl
                                 var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, subNode.ToString().PadLeft(3, '0'), cmdValue.Trim(), DateTime.Now);
                                 var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
 
-                                AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
+                                AmqpChannel.Publish(queueName, json);
                             }
 
                             //Limpando o buffer que ja foi processado
@@ -267,8 +266,7 @@ namespace Otm.Server.Broker.Ptl
                             var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, subNode.ToString().PadLeft(3, '0'), cmdValue.Trim(), DateTime.Now);
                             var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
 
-                            AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
-
+                            AmqpChannel.Publish(queueName, json);
 
                             //Limpando o buffer que ja foi processado
                             //received = true;
@@ -278,8 +276,6 @@ namespace Otm.Server.Broker.Ptl
                 }
                 else
                     receiveBuffer = Array.Empty<byte>();
-
-
             }
 
             return received;

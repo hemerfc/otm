@@ -59,8 +59,12 @@ namespace Otm.Tests.Brokers
         [Fact]
         public void ProcessMessage_ShouldGenerateListOfPendentes_Correctly()
         {
+            // Mock
+            AmqpRabbitChannelFactory
+
+
             // Arrange
-            var broker = new SmartPickingBroker(config, loggerMock.Object);
+            var broker = new SmartPickingBroker(config, loggerMock.Object, );
             var body = Encoding.Default.GetBytes("P02,QuickFlow,PTL01,'004|0|20,003|0|10,001|0|30',21/02/2023 10:34:52");
 
             // Act

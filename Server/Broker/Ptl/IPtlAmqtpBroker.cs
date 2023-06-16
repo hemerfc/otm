@@ -1,6 +1,7 @@
 ﻿using Otm.Server.Device.Ptl;
 using Otm.Server.ContextConfig;
 using Otm.Server.Device.TcpServer;
+using Otm.Server.Broker.Amqtp;
 using System;
 using System.Text;
 using System.Linq;
@@ -19,7 +20,7 @@ namespace Otm.Server.Broker.Ptl
     {
         public ILogger Logger;
 
-        public IModel AmqpChannel { get; set; }
+        public IAmqpChannelWrapper AmqpChannel { get; set; }
 
         public BrokerConfig Config;
         public ITcpClientAdapter client;
@@ -54,14 +55,16 @@ namespace Otm.Server.Broker.Ptl
 
         private readonly object lockSendDataQueue = new object();
         public Queue<byte[]> sendDataQueue;
-        public IBasicProperties basicProperties;
         public readonly List<PtlBaseClass> ListaLigados = new List<PtlBaseClass>();
         public byte[] receiveBuffer = new byte[0];
 
-        public IPtlAmqtpBroker(BrokerConfig config, ILogger logger)
+        public IAmqpChannelFactory AmqtpFactory { get; set; }
+
+        public IPtlAmqtpBroker(BrokerConfig config, ILogger logger, IAmqpChannelFactory amqtpFactory)
         {
             this.Config = config;
             this.Logger = logger;
+            this.AmqtpFactory = amqtpFactory;
         }
 
         public abstract void displaysOn(IEnumerable<PtlBaseClass> listaAcender);
@@ -74,7 +77,6 @@ namespace Otm.Server.Broker.Ptl
             this.Config = config;
 
             this.client = tcpClientAdapter ?? new TcpClientAdapter();
-            this.connectionFactory = CreateConnectionFactory(config.AmqpHostName, config.AmqpPort);
             this.sendDataQueue = new Queue<byte[]>();
         }
 
@@ -104,13 +106,15 @@ namespace Otm.Server.Broker.Ptl
                                 LastAmqpConnectionTry = DateTime.Now;
                                 AmpqConnecting = true;
 
+                                var factory = new AmqpRabbitChannelFactory();
                                 // tenta conectar
-                                this.AmqpChannel = CreateChannel(
-                                    connectionFactory,
+                                this.AmqpChannel = factory.Create(
+                                    Config.AmqpHostName, 
+                                    Config.AmqpPort,
                                     Config.AmqpQueueToConsume,
                                     Config.AmqpQueueToProduce,
-                                    new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
-                                    );
+                                    new EventHandler<BasicDeliverEventArgs>(Consumer_Received),
+                                    Logger);
 
                                 AmpqConnecting = false;
                             }
@@ -173,57 +177,6 @@ namespace Otm.Server.Broker.Ptl
             throw new NotImplementedException();
         }
 
-        private ConnectionFactory CreateConnectionFactory(string hostName, int port)
-        {
-            var factory = new ConnectionFactory() { HostName = hostName, Port = port, AutomaticRecoveryEnabled = true };
-            return factory;
-        }
-
-        private IModel CreateChannel(ConnectionFactory factory, string queuesToConsume, string queuesToProduce, EventHandler<BasicDeliverEventArgs> onReceived)
-        {
-            try
-            {
-                var connection = factory.CreateConnection();
-                var channel = connection.CreateModel();
-                var consumer = new EventingBasicConsumer(channel);
-
-                basicProperties = channel.CreateBasicProperties();
-                basicProperties.Persistent = true;
-
-                consumer.Received += onReceived;
-
-                var queueNames = queuesToConsume.Split("|");
-                foreach (var queueName in queueNames)
-                {
-                    channel.QueueDeclare(queue: queueName,
-                                 durable: true,
-                                 exclusive: false,
-                                 autoDelete: false,
-                                 arguments: null);
-
-                    channel.BasicConsume(queue: queueName,
-                                         autoAck: false,
-                                         consumer: consumer);
-                }
-
-                queueNames = queuesToProduce.Split("|");
-                foreach (var queueName in queueNames)
-                {
-                    channel.QueueDeclare(queue: queueName,
-                                 durable: true,
-                                 exclusive: false,
-                                 autoDelete: false,
-                                 arguments: null);
-                }
-
-                return channel;
-            }
-            catch
-            {
-                Logger.Warn($"Broker {Config.Name}: Error creating amqtp channel {Config.AmqpHostName}:{Config.AmqpPort}");
-                return null;
-            }
-        }
 
         public void Consumer_Received(object sender, BasicDeliverEventArgs e)
         {

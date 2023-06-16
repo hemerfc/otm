@@ -3,6 +3,7 @@ using Nest;
 using Newtonsoft.Json;
 using NLog;
 using Otm.Server.Device.Ptl;
+using Otm.Server.Broker.Amqtp;
 using Otm.Server.Device.S7;
 using Otm.Server.ContextConfig;
 using RabbitMQ.Client;
@@ -17,7 +18,7 @@ namespace Otm.Server.Broker.Ptl
 {
     public class SmartPickingBroker : IPtlAmqtpBroker
     {
-        public SmartPickingBroker(BrokerConfig config, ILogger logger) : base(config, logger)
+        public SmartPickingBroker(BrokerConfig config, ILogger logger, IAmqpChannelFactory amqtpFactory) : base(config, logger, amqtpFactory)
         {
         }
 
@@ -121,7 +122,7 @@ namespace Otm.Server.Broker.Ptl
                             var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, display, value,DateTime.Now);
                             var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
 
-                            AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));                        
+                            AmqpChannel.Publish(queueName, json);                        
                         }
 
                         receiveBuffer = receiveBuffer[(primeiraPosRelevante + messageSize)..];
