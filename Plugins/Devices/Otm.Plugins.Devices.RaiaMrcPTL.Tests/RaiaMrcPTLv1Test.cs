@@ -1,7 +1,7 @@
 using Moq;
 using NLog;
 using Otm.Server.Device.Ptl;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using System;
 using System.ComponentModel;
 using System.Linq;

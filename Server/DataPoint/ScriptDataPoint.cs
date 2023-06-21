@@ -7,7 +7,6 @@ using Otm.Server.ContextConfig;
 using System.Data.SqlClient;
 using Jint;
 using Microsoft.Extensions.Logging;
-using Otm.Shared.ContextConfig;
 
 namespace Otm.Server.DataPoint
 {

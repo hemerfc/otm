@@ -3,7 +3,7 @@ using System.Linq;
 using Xunit;
 using System.Collections.Generic;
 using Moq;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using NLog;
 using Otm.Server.DataPoint;
 using Nest;

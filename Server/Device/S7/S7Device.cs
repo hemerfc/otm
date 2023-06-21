@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Text.Json.Serialization;
 using System.Diagnostics;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using System.Collections.Concurrent;
 using NLog;
 

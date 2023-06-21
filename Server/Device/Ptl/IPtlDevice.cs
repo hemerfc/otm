@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.ComponentModel;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using System.Threading;
 using System.Collections.Generic;
 using System.Net;

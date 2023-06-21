@@ -7,12 +7,11 @@ using System.IO;
 using System.Reflection;
 using Otm.Server.ContextConfig;
 using System.Text.Json;
-using FluentValidation;
-using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Otm.Shared.ContextConfig;
 using System.Collections.Generic;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using NLog.Web;
 
 namespace Otm.Server.Controllers

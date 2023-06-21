@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using Otm.Server.ContextConfig;
 using Otm.Server.DeviceDrivers;
 using Otm.Server.Device.S7;
-using Otm.Shared.ContextConfig;
 using Otm.Server.Device.Ptl;
 using Otm.Server.Plugin;
 using NLog;

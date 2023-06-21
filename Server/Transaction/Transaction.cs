@@ -12,7 +12,6 @@ using NLog;
 using Otm.Server.ContextConfig;
 using Otm.Server.DataPoint;
 using Otm.Server.Device;
-using Otm.Shared.ContextConfig;
 
 namespace Otm.Server.Transaction
 {

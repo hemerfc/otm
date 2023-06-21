@@ -1,5 +1,5 @@
 ﻿using NLog;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

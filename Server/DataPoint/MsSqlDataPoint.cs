@@ -5,7 +5,6 @@ using System.Data;
 using System.Linq;
 using Otm.Server.ContextConfig;
 using System.Data.SqlClient;
-using Otm.Shared.ContextConfig;
 using NLog;
 
 namespace Otm.Server.DataPoint

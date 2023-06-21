@@ -4,7 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Diagnostics;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using System.Collections.Concurrent;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -129,7 +129,7 @@ namespace Otm.Server.Device.S7
                         ConfigureConnection();
                     else
                     {
-                        Logger.Error($"FileDevice ({Config.Name})|Start|Erro nos diretórios: inputReady:{(inputReady ? "Ok" : "Nok")}.  outputReady:{(outputReady ? "Ok" : "Nok")}");
+                        Logger.Error($"FileDevice ({Config.Name})|Start|Erro nos diretï¿½rios: inputReady:{(inputReady ? "Ok" : "Nok")}.  outputReady:{(outputReady ? "Ok" : "Nok")}");
                         configured = false;
                     }
 
@@ -167,7 +167,7 @@ namespace Otm.Server.Device.S7
         {
             if (!configured)
             {
-                Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Configurando conexão...");
+                Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Configurando conexï¿½o...");
                 Logger.Info($"FileDevice ({Config.Name})|ConfigureConnection|Instaurando o Watcher na pasta de input: '{inputPath}'");
                 //using var watcher = new FileSystemWatcher(@"C:\temp\files\input");
                 var watcher = new FileSystemWatcher(inputPath);

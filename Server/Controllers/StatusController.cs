@@ -11,9 +11,8 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Otm.Shared.ContextConfig;
 using System.Collections.Generic;
-using Otm.Shared.Status;
+using Otm.Server.Status;
 
 namespace Otm.Server.Controllers
 {

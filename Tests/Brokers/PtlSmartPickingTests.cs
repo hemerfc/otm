@@ -2,7 +2,7 @@
 using NLog;
 using Otm.Server.Broker.Ptl;
 using Otm.Server.Device.Ptl;
-using Otm.Shared.ContextConfig;
+using Otm.Server.ContextConfig;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -74,7 +74,8 @@ namespace Otm.Tests.Brokers
                 new PtlBaseClass(Guid.Empty, "001", E_DisplayColor.Verde, 30)
             };
 
-            Assert.Equal(expectedList, broker. );
+            throw new NotImplementedException();
+            //Assert.Equal(expectedList, broker. );
         }
 
         
