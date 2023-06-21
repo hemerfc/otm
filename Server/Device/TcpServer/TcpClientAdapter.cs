@@ -13,7 +13,7 @@ namespace Otm.Server.Device.TcpServer
         // The real implementation
         private TcpClient _client;
 
-        public bool Connected => _client?.Connected ?? false;
+        public bool Connected => _client? .Connected ?? false;
 
         public TcpClientAdapter()
         {
@@ -45,10 +45,33 @@ namespace Otm.Server.Device.TcpServer
             //}
         }
 
+        //public bool Connected()
+        //{
+        //    if (_client == null)
+        //    {
+        //        return false;
+        //    }
+
+        //    if (!_client.Client.Connected)
+        //    {
+        //        return false;
+        //    }
+
+        //    //try
+        //    //{
+        //    //    _client.Client.Send(new byte[0]);
+        //    //}
+        //    //catch (SocketException)
+        //    //{
+        //    //    return false;
+        //    //}
+
+        //    return true;
+        //}
+
+
         public byte[] GetData()
         {
-            //try
-            //{
             if (_client.Available > 0)
             {
                 var buffer = new byte[_client.Available];
@@ -56,10 +79,6 @@ namespace Otm.Server.Device.TcpServer
                 return buffer;
             }
             return null;
-            //}
-            //catch (Exception ex) {
-            //    throw ex;
-            //}
         }
 
         public int SendData(byte[] buffer)

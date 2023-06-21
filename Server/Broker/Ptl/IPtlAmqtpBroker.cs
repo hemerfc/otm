@@ -57,7 +57,7 @@ namespace Otm.Server.Broker.Ptl
         public DateTime LastConnectionTry { get; set; }
         public DateTime LastSend { get; private set; }
      
-        private readonly object lockSendDataQueue = new object();
+        protected readonly object lockSendDataQueue = new object();
         public Queue<byte[]> sendDataQueue;
         public IBasicProperties basicProperties;
         public readonly List<PtlBaseClass> ListaLigados = new List<PtlBaseClass>();
@@ -195,7 +195,7 @@ namespace Otm.Server.Broker.Ptl
             return channel;
         }
         public void Consumer_Received(object sender, BasicDeliverEventArgs e)
-        {
+        {            
             var body = e.Body.ToArray();
             //var message = Encoding.UTF8.GetString();
 
@@ -243,36 +243,50 @@ namespace Otm.Server.Broker.Ptl
             if (sendDataQueue.Count > 0)
                 lock (lockSendDataQueue)
                 {
-                    var st = new Stopwatch();
-                    st.Start();
-
-                    var totalLength = 0;
-                    foreach (var it in sendDataQueue)
+                    try
                     {
-                        totalLength += it.Length;
-                    }
+                        var st = new Stopwatch();
+                        st.Start();
 
-                    var obj = new byte[totalLength];
-                    var pos = 0;
-                    while (sendDataQueue.Count > 0)
+                        var totalLength = 0;
+                        foreach (var it in sendDataQueue)
+                        {
+                            totalLength += it.Length;
+                        }
+
+                        var obj = new byte[totalLength];
+                        var pos = 0;
+                        while (sendDataQueue.Count > 0)
+                        {
+                            var it = sendDataQueue.Dequeue();
+                            Array.Copy(it, 0, obj, pos, it.Length);
+                            pos += it.Length;
+                        }
+
+                        var message = Encoding.Default.GetString(obj);
+                        Logger.Info($"SendData: {Config.Name}: Message {message}");
+
+                        client.SendData(obj);
+
+                        st.Stop();
+
+                        Logger.Debug($"Dev {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
+
+                        this.LastSend = DateTime.Now;
+                    }
+                    catch (Exception e)
                     {
-                        var it = sendDataQueue.Dequeue();
-                        Array.Copy(it, 0, obj, pos, it.Length);
-                        pos += it.Length;
+                        Logger.Error($"SendData {Config.Name}: error: {e.Message}");
                     }
-
-                    var message = Encoding.Default.GetString(obj);
-
-                    client.SendData(obj);
-
-                    st.Stop();
-
-                    Logger.Debug($"Dev {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
-
-                    this.LastSend = DateTime.Now;
                 }
             else
             {
+                if (LastSend.AddSeconds(3) < DateTime.Now)
+                {
+                    //var getFwCmd = new byte[] { 0x07, 0x00, 0x60, 0x00, 0x00, 0x00, 0x09 };
+                    //client.SendData(getFwCmd);
+                    //this.LastSend = DateTime.Now;
+                }
             }
 
             return sent;

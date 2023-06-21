@@ -11,5 +11,7 @@ namespace Otm.Server.Device.Ptl
         int SendData(byte[] buffer);
         void Connect(string ip, int port);
         bool Connected { get; }
+
+        //bool Connected();
     }
 }

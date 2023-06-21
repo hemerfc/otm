@@ -147,6 +147,19 @@ namespace Otm.Server.Device.Ptl
             
         }
 
+        internal int GetDisplayIdToInt()
+        {
+            try
+            {
+                return Int32.Parse((Location.Split(":")[1]));
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
+
+        }
+
         /// <summary>
         /// Get DisplayId based on Location split
         /// </summary>

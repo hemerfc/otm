@@ -1,19 +1,44 @@
 ﻿{
-  "Enabled": true,
+  "Enabled": false,
   "Name": "PTL",
   "LogName": "Logger5",
   "Brokers": [
     {
       "Id": "8e820806-ae93-49be-95db-74c5c268c4b6",
       "Name": "PTL001",
+      "Origin": "PTL001",
       "Driver": "ptlAtop",
       "SocketHostName": "192.168.25.221",
+      "SocketPort": 4660,
+      "MasterDevice": "001",
+      "PtlId": "001",
+      "AmqpHostName": "localhost",
+      "AmqpPort": 5672,
+      "AmqpQueueToProduce": "P02",
+      "AmqpQueueToConsume": "PTL001_P03"
+    },
+    {
+      "Id": "8e820806-ae93-49be-95db-74c5c268c4b6",
+      "Name": "PTL002",
+      "Driver": "ptlAtop",
+      "SocketHostName": "192.168.25.222",
       "SocketPort": 4660,
       "MasterDevice": "001",
       "AmqpHostName": "localhost",
       "AmqpPort": 5672,
       "AmqpQueueToProduce": "P02",
-      "AmqpQueueToConsume": "PTL001_P03"
+      "AmqpQueueToConsume": "PTL002_P03"
+    },
+    {
+      "Id": "8e820806-ae93-49be-95db-74c5c268c4b6",
+      "Name": "PLC001",
+      "Driver": "pl",
+      "SocketHostName": "25.56.253.69",
+      "SocketPort": 5000,
+      "AmqpHostName": "localhost",
+      "AmqpPort": 5672,
+      "AmqpQueueToProduce": "R01|K01",
+      "AmqpQueueToConsume": "R02|K02"
     }
   ]
 }

@@ -22,10 +22,6 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Shared\Otm.Shared.csproj" />
 	</ItemGroup>
-
-	<ItemGroup>
-		<Folder Include="Logs\" />
-	</ItemGroup>
 	<ItemGroup>
 	  <None Update="Plugins\**\*.*">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -52,6 +48,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Content Update="Configs\PTL.json">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+	    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+	  </Content>
 	  <Content Update="NeodentPLC.json">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </Content>
