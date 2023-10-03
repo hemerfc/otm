@@ -67,6 +67,10 @@ namespace Otm.Server.DataPoint
                     datapoint = new MsSqlDataPoint(dpConfig, logger);
                     logger.Info($"DataPoint {dpConfig.Name}: Created");
                     break;
+                case "oracle":
+                    datapoint = new OracleDataPoint(dpConfig);
+                    logger.Info($"DataPoint {dpConfig.Name}: Created");
+                    break;
                 case "script":
                     datapoint = new ScriptDataPoint(dpConfig);
                     logger.Info($"DataPoint {dpConfig.Name}: Created");

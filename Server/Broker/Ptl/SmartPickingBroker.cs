@@ -13,6 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace Otm.Server.Broker.Ptl
 {
@@ -24,25 +25,28 @@ namespace Otm.Server.Broker.Ptl
 
         private byte[] STX_LC = Encoding.ASCII.GetBytes("P");
         private int messageSize = 12;
-
+        private object processMessageLock = new object();
         public override void ProcessMessage(byte[] body) {
+            lock (processMessageLock)
+            {
+                var message = Encoding.Default.GetString(body);
 
-            var message = Encoding.Default.GetString(body);
+                Regex regex = new Regex(@"'(.*?)'");
+                string conteudo = regex.Match(message).Groups[1].Value;
 
-            Regex regex = new Regex(@"'(.*?)'");
-            string conteudo = regex.Match(message).Groups[1].Value;
+                var ListaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
+                                      let pententeInfos = rawPendente.Split('|').ToList()
+                                        select new PtlBaseClass(id: Guid.NewGuid(),
+                                                                location: pententeInfos[0],
+                                                                displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
+                                                                displayValue: pententeInfos[2])
+                                                                    ).ToList();
+                
+                var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Select(x => x.Id).Contains(i.Id));
 
-            var ListaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
-                                  let pententeInfos = rawPendente.Split('|').ToList()
-                                    select new PtlBaseClass(id: Guid.NewGuid(),
-                                                            location: pententeInfos[0],
-                                                            displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
-                                                            displayValue: pententeInfos[2])
-                                                                ).ToList();
-            
-            var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Select(x => x.Id).Contains(i.Id));
-
-            displaysOn(ListaAcender);
+                displaysOn(ListaAcender);
+                Thread.Sleep(300);
+            }
         }
 
         public override void displaysOn(IEnumerable<PtlBaseClass> listaAcender)

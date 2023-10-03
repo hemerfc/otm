@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Otm.Server.DataPoint;
 using Xunit;
 
 namespace Otm.Tests.Brokers
@@ -50,7 +51,7 @@ namespace Otm.Tests.Brokers
         }
 
     }
-
+    /*
     public class SmartPickingBrokerTests
     {
         private readonly Mock<ILogger> loggerMock = new Mock<ILogger>();
@@ -60,11 +61,11 @@ namespace Otm.Tests.Brokers
         public void ProcessMessage_ShouldGenerateListOfPendentes_Correctly()
         {
             // Mock
-            AmqpRabbitChannelFactory
+            //AmqpRabbitChannelFactory
 
 
             // Arrange
-            var broker = new SmartPickingBroker(config, loggerMock.Object, );
+            var broker = new SmartPickingBroker(config, loggerMock.Object, new ConcurrentDictionary<string, IDataPoint>() );
             var body = Encoding.Default.GetBytes("P02,QuickFlow,PTL01,'004|0|20,003|0|10,001|0|30',21/02/2023 10:34:52");
 
             // Act
@@ -81,7 +82,6 @@ namespace Otm.Tests.Brokers
             throw new NotImplementedException();
             //Assert.Equal(expectedList, broker. );
         }
-
-        
     }
+    */
 }

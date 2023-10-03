@@ -304,6 +304,10 @@ namespace Otm.Server.Device.S7
                                     dbItem.Value = S7.GetByteAt(db.Buffer, dbItem.Offset);
                                     //tagValues[dbItem.Name] = dbItem.Value;
                                     break;
+                                case TypeCode.Int16:
+                                    dbItem.Value = S7.GetWordAt(db.Buffer, dbItem.Offset);
+                                    //tagValues[dbItem.Name] = dbItem.Value;
+                                    break;
                                 case TypeCode.Int32:
                                     dbItem.Value = S7.GetIntAt(db.Buffer, dbItem.Offset);
                                     //tagValues[dbItem.Name] = dbItem.Value;
@@ -379,32 +383,44 @@ namespace Otm.Server.Device.S7
                 {
                     foreach (var dbItem in db.Itens.Values)
                     {
-                        if (dbItem.Value != null/* && !dbItem.Value.Equals(dbItem.OldValue)*/)
+                        if (dbItem.Value != null /* && !dbItem.Value.Equals(dbItem.OldValue)*/)
                         {
                             dbItem.OldValue = dbItem.Value;
 
-                            switch (dbItem.TypeCode)
+                            try
                             {
-                                case TypeCode.Byte:
-                                    S7.SetByteAt(db.Buffer, dbItem.Offset, Convert.ToByte(dbItem.Value));
-                                    break;
-                                case TypeCode.Int32:
-                                    S7.SetIntAt(db.Buffer, dbItem.Offset, (short)((int)dbItem.Value));
-                                    break;
-                                case TypeCode.Decimal:
-                                    S7.SetRealAt(db.Buffer, dbItem.Offset, (float)dbItem.Value);
-                                    break;
-                                case TypeCode.Boolean:
-                                    S7.SetBitAt(ref db.Buffer, dbItem.Offset, dbItem.BitOffset, (bool)dbItem.Value);
-                                    break;
-                                case TypeCode.String:
-                                    S7.SetStringAt(db.Buffer, dbItem.Offset, ((string)dbItem.Value).Length, (string)dbItem.Value);
-                                    /// TODO: Create a property to limit lenght of a string
-                                    break;
-                                default:
-                                    //tagValues[dbItem.Name] = null;
-                                    var msg = $"Dev {Config.Name}: Set value error. Tag {dbItem.Name}";
-                                    throw new Exception(msg);
+                                switch (dbItem.TypeCode)
+                                {
+                                    case TypeCode.Byte:
+                                        S7.SetByteAt(db.Buffer, dbItem.Offset, Convert.ToByte(dbItem.Value));
+                                        break;
+                                    case TypeCode.Int16:
+                                        S7.SetWordAt(db.Buffer, dbItem.Offset, (ushort)((Int16)dbItem.Value));
+                                        break;
+                                    case TypeCode.Int32:
+                                        S7.SetIntAt(db.Buffer, dbItem.Offset, (short)((Int32)dbItem.Value));
+                                        break;
+                                    case TypeCode.Decimal:
+                                        S7.SetRealAt(db.Buffer, dbItem.Offset, (float)dbItem.Value);
+                                        break;
+                                    case TypeCode.Boolean:
+                                        S7.SetBitAt(ref db.Buffer, dbItem.Offset, dbItem.BitOffset, (bool)dbItem.Value);
+                                        break;
+                                    case TypeCode.String:
+                                        S7.SetStringAt(db.Buffer, dbItem.Offset, ((string)dbItem.Value).Length,
+                                            (string)dbItem.Value);
+                                        /// TODO: Create a property to limit lenght of a string
+                                        break;
+                                    default:
+                                        //tagValues[dbItem.Name] = null;
+                                        var msg = $"Dev {Config.Name}: Set value error. Tag {dbItem.Name}";
+                                        throw new Exception(msg);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Logger.Error($"Dev {Config.Name}: Unable to set tag value, Tag '{dbItem.Name}' Value '{dbItem.Value}'");
+                                throw;
                             }
                         }
                     }
