@@ -13,161 +13,207 @@ namespace Otm.Test.DataPoint
     public class OracleDataPointTests
     {
         private static string ConnStr = "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=FREEPDB1)));User Id=system;Password=senha;";
-
+     
         [Fact]
-        public void Execute_DataPoint_sp_test01()
+        public void Execute_DataPoint_SP_SCRIPT_HB()
         {
             /* PLSQL
-             CREATE OR REPLACE PROCEDURE ANONYMOUS.SP_TEST01 
-               (p1 number,
-               p2 in out number) 
+             CREATE OR REPLACE PROCEDURE SP_SCRIPT_HB (
+               P1  IN NUMBER,
+               P2  OUT NUMBER)
                IS
-               BEGIN
-               p2 := p1*2;
-               END SP_TEST01;
+               BEGIN	
+               P2 := P1;	
                
+               END SP_SCRIPT_HB;
              */
             
-            // prepare
+            // Prepare the DataPointConfig for SP_SCRIPT_HB
             var dpConfig = new DataPointConfig[]{
                 new DataPointConfig {
-                    Name = "ANONYMOUS.SP_TEST01",
+                    Name = "ANONYMOUS.SP_SCRIPT_HB",
                     Driver = "oracle",
                     Config = ConnStr,
                     Params = (new DataPointParamConfig[] {
                         new DataPointParamConfig {
-                            Name = "@p1",
+                            Name = "@P1",
                             TypeCode = TypeCode.Int32,
                             Mode = Modes.FromOTM
                         },
                         new DataPointParamConfig {
-                            Name = "@p2",
+                            Name = "@P2",
                             TypeCode = TypeCode.Int32,
-                            Mode = Modes.ToOTM
-                        }
-                    }).ToList()
+                            Mode = Modes.ToOTM,
+                            Length = 9
+                        },
+                    }).ToList(),
+                    ContextName = "ANONYMOUS"
                 }
             };
 
             var inParams = new Dictionary<string, object>();
-            inParams["@p1"] = 25;
-            inParams["@p2"] = 0;
+            inParams["@P1"] = 1;
+            inParams["@P2"] = 0;
 
             var loggerMock = new Mock<ILogger>();
-            var dpSpTest01 = DataPointFactory.CreateDataPoints(dpConfig, loggerMock.Object)["ANONYMOUS.SP_TEST01"];
+            var dpSP_SCRIPT_HB = DataPointFactory.CreateDataPoints(dpConfig, loggerMock.Object)["ANONYMOUS.SP_SCRIPT_HB"];
 
-            var outParams = dpSpTest01.Execute(inParams);
+            var outParams = dpSP_SCRIPT_HB.Execute(inParams);
 
-            Assert.Equal(50, outParams["@p2"]);
+            Assert.Equal(1, outParams["@P2"]);
         }
 
-        [Fact]
-        public void Execute_DataPoint_sp_test02()
+
+
+        private static IDictionary<string, object> Prepare_DataPoint_SP_SORTER_AGUIA(IDictionary<string, object> values)
         {
             /* PLSQL
-             CREATE OR REPLACE PROCEDURE ANONYMOUS.SP_TEST02
-               (p1 number,p2 number,
-               p3 in out number) 
-               IS
-               BEGIN
-               p3 := p1*p2;
-               END SP_TEST02;               
+             CREATE OR REPLACE PROCEDURE SP_SORTER_AGUIA (
+               BARCODE       IN  VARCHAR2,
+               BARCODE_COUNT IN  INTEGER,
+               CMD           OUT INTEGER,
+               CMD_COUNT     OUT INTEGER
+               )
+               IS 
+               CX_FINALIZADA VARCHAR2(13);
+               BEGIN	
+               CMD := 99;
+               CMD_COUNT := BARCODE_COUNT;
+               
+               SELECT FINALIZADA
+               INTO CX_FINALIZADA
+               FROM RGNV_AGUIA_CARGASWM
+               WHERE SCANNER = BARCODE;
+               
+               IF CX_FINALIZADA =  'S' THEN
+               CMD := 1;	
+               END IF;
+               
+               
+               EXCEPTION
+               WHEN NO_DATA_FOUND THEN
+               CMD := 99;
+               END SP_SORTER_AGUIA;
+               
+             *
+             * 
              */
-            
-            // prepare
+            // Prepare the DataPointConfig for SP_SORTER_AGUIA
             var dpConfig = new DataPointConfig[]{
                 new DataPointConfig {
-                    Name = "ANONYMOUS.SP_TEST02",
+                    Name = "ANONYMOUS.SP_SORTER_AGUIA",
                     Driver = "oracle",
                     Config = ConnStr,
                     Params = (new DataPointParamConfig[] {
                         new DataPointParamConfig {
-                            Name = "@p1",
-                            TypeCode = TypeCode.Int32,
-                            Mode = Modes.FromOTM
-                        },
-                        new DataPointParamConfig {
-                            Name = "@p2",
-                            TypeCode = TypeCode.Int32,
-                            Mode = Modes.Static,
-                            Value = 2
-                        },
-                        new DataPointParamConfig {
-                            Name = "@p3",
-                            TypeCode = TypeCode.Int32,
-                            Mode = Modes.ToOTM
-                        }
-                    }).ToList()
-                }
-            };
-
-            var inParams = new Dictionary<string, object>();
-            inParams["@p1"] = 15;
-            inParams["@p2"] = 2;
-            inParams["@p3"] = 0;
-
-            var loggerMock = new Mock<ILogger>();
-            var dpSpTest01 = DataPointFactory.CreateDataPoints(dpConfig, loggerMock.Object)["ANONYMOUS.SP_TEST02"];
-
-            var outParams = dpSpTest01.Execute(inParams);
-
-            Assert.Equal(30, outParams["@p3"]);
-        }
-
-        [Fact]
-        public void Execute_DataPoint_sp_test_ptl01()
-        {
-            /* PLSQL
-              CREATE OR REPLACE PROCEDURE SP_TEST_STRING
-               (p1 INT16,
-               p2 VARCHAR2,
-               p3 in out VARCHAR2) 
-               IS
-               BEGIN
-               
-               p3 := TRIM(p2) || TO_CHAR(p1);
-               
-               END SP_TEST_STRING;
-             */
-            // prepare
-            var dpConfig = new DataPointConfig[]{
-                new DataPointConfig {
-                    Name = "ANONYMOUS.SP_TEST_STRING",
-                    Driver = "oracle",
-                    Config = ConnStr,
-                    Params = (new DataPointParamConfig[] {
-                        new DataPointParamConfig {
-                            Name = "@p1",
-                            TypeCode = TypeCode.Int32,
-                            Mode = Modes.FromOTM
-                        },
-                        new DataPointParamConfig {
-                            Name = "@p2",
+                            Name = "@BARCODE",
                             TypeCode = TypeCode.String,
                             Mode = Modes.FromOTM,
-                            Length = 100,
+                            Length = 13
                         },
                         new DataPointParamConfig {
-                            Name = "@p3",
-                            TypeCode = TypeCode.String,
+                            Name = "@BARCODE_COUNT",
+                            TypeCode = TypeCode.Int16,
+                            Mode = Modes.FromOTM
+                        },
+                        new DataPointParamConfig {
+                            Name = "@CMD",
+                            TypeCode = TypeCode.Int32,
                             Mode = Modes.ToOTM,
-                            Length = 100,
+                            Length = 9
+                        },
+                        new DataPointParamConfig {
+                            Name = "@CMD_COUNT",
+                            TypeCode = TypeCode.Int32,
+                            Mode = Modes.ToOTM,
+                            Length = 4
                         }
-                    }).ToList()
+                    }).ToList(),
+                    ContextName = "ANONYMOUS"
                 }
             };
 
-            var inParams = new Dictionary<string, object>();
-            inParams["@p1"] = 12;
-            inParams["@p2"] = "teste";
-            inParams["@p3"] = "";
-
             var loggerMock = new Mock<ILogger>();
-            var dpSpTest01 = DataPointFactory.CreateDataPoints(dpConfig, loggerMock.Object)["ANONYMOUS.SP_TEST_STRING"];
-
-            var outParams = dpSpTest01.Execute(inParams);
-
-            Assert.Equal("teste12", outParams["@p3"]);
+            var dpSP_SORTER_AGUIA = DataPointFactory.CreateDataPoints(dpConfig, loggerMock.Object)["ANONYMOUS.SP_SORTER_AGUIA"];
+            var result =  dpSP_SORTER_AGUIA.Execute(values);
+            return result;
         }
+        
+        [Fact]
+        public void Execute_DataPoint_SP_SORTER_AGUIA_BarcodeNotFound()
+        {
+            var inParams = new Dictionary<string, object>();
+            inParams["@BARCODE"] = "404";
+            inParams["@BARCODE_COUNT"] = 1;
+            inParams["@CMD"] = 0;
+            inParams["@CMD_COUNT"] = 0;
+            
+            var outParams = Prepare_DataPoint_SP_SORTER_AGUIA(inParams);
+
+            Assert.Equal(99, outParams["@CMD"]); 
+            Assert.Equal(1, outParams["@CMD_COUNT"]); 
+        }
+        
+        [Fact]
+        public void Execute_DataPoint_SP_SORTER_AGUIA_BarcodeNoRead()
+        {
+            var inParams = new Dictionary<string, object>();
+            inParams["@BARCODE"] = "NoRead";
+            inParams["@BARCODE_COUNT"] = 2;
+            inParams["@CMD"] = 0;
+            inParams["@CMD_COUNT"] = 0;
+            
+            var outParams = Prepare_DataPoint_SP_SORTER_AGUIA(inParams);
+
+            Assert.Equal(99, outParams["@CMD"]); 
+            Assert.Equal(2, outParams["@CMD_COUNT"]); 
+        }
+        
+        [Fact]
+        public void Execute_DataPoint_SP_SORTER_AGUIA_CaixaNaoFinalizada()
+        {
+            var inParams = new Dictionary<string, object>();
+            inParams["@BARCODE"] = "12345"; // Inserida no banco como finalizada 'N'
+            inParams["@BARCODE_COUNT"] = 3;
+            inParams["@CMD"] = 0;
+            inParams["@CMD_COUNT"] = 0;
+            
+            var outParams = Prepare_DataPoint_SP_SORTER_AGUIA(inParams);
+
+            Assert.Equal(99, outParams["@CMD"]); 
+            Assert.Equal(3, outParams["@CMD_COUNT"]); 
+        }
+        
+        [Fact]
+        public void Execute_DataPoint_SP_SORTER_AGUIA_CaixaFinalizada()
+        {
+            var inParams = new Dictionary<string, object>();
+            inParams["@BARCODE"] = "98765"; // Inserida no banco como finalizada 'S'
+            inParams["@BARCODE_COUNT"] = 4;
+            inParams["@CMD"] = 0;
+            inParams["@CMD_COUNT"] = 0;
+            
+            var outParams = Prepare_DataPoint_SP_SORTER_AGUIA(inParams);
+
+            Assert.Equal(1, outParams["@CMD"]); 
+            Assert.Equal(4, outParams["@CMD_COUNT"]); 
+        }
+        
+        [Fact]
+        public void Execute_DataPoint_SP_SORTER_AGUIA_BarcodeVazio()
+        {
+            var inParams = new Dictionary<string, object>();
+            inParams["@BARCODE"] = ""; 
+            inParams["@BARCODE_COUNT"] = 5;
+            inParams["@CMD"] = 0;
+            inParams["@CMD_COUNT"] = 0;
+            
+            var outParams = Prepare_DataPoint_SP_SORTER_AGUIA(inParams);
+
+            Assert.Equal(99, outParams["@CMD"]); 
+            Assert.Equal(5, outParams["@CMD_COUNT"]); 
+        }
+
+
     }
 }
