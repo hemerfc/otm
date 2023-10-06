@@ -162,7 +162,7 @@ namespace Otm.Server.Transaction
 
                     if (dvTag.TypeCode != dpParam.TypeCode)
                     {
-                        var ex = new Exception($"Invalid data type between DataPointParam and DeviceTag in Transaction config. DataPointParam ({bind.DataPointParam}) DeviceTag ({bind.DeviceTag}) Transaction ({trConfig.Name})");
+                        var ex = new Exception($"Invalid data type between DataPointParam ({dpParam.TypeCode}) and DeviceTag ({dvTag.TypeCode}) in Transaction config. DataPointParam ({bind.DataPointParam}) DeviceTag ({bind.DeviceTag}) Transaction ({trConfig.Name})");
                         ex.Data.Add("field", "Name");
                         throw ex;
                     }

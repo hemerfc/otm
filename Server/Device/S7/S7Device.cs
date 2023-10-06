@@ -474,7 +474,7 @@ namespace Otm.Server.Device.S7
             {
                 connError = null;
 
-                Logger.Error($"Dev {Config.Name}: Connected.");
+                Logger.Info($"Dev {Config.Name}: Connected.");
             }
         }
 

@@ -43,6 +43,7 @@ namespace Otm.Server.DataPoint
                 using (var command = new OracleCommand(Config.Name, conn))
 #pragma warning restore CA2100 // Review SQL queries for security vulnerabilities
                 {
+                    
                     command.CommandType = CommandType.StoredProcedure;
                     //command.ArrayBindCount = Config.Params.Count(p => p.Mode == Modes.FromOTM || p.Mode == Modes.Static);
                         

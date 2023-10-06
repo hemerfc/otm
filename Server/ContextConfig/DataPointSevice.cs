@@ -31,6 +31,7 @@ namespace Otm.Server.ContextConfig
                         dp.Config = dataPoint.Config;
                         dp.DebugMessages = dataPoint.DebugMessages;
                         dp.Params = dataPoint.Params;
+                        dp.ContextName = dataPoint.ContextName;
                     }
                 }
             }
