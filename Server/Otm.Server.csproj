@@ -14,14 +14,11 @@
 		<PackageReference Include="System.Data.SqlClient" Version="4.8.1" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="5.0.0" />
 	</ItemGroup>
-<<<<<<< HEAD
-=======
 
 	<ItemGroup>
 		<Folder Include="Logs\" />
 	</ItemGroup>
 	
->>>>>>> 3480c1117afc5cd3f1f6a2f3f2a1b5c30136a2ca
 	<ItemGroup>
 	  <None Update="Plugins\**\*.*">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

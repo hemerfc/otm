@@ -571,12 +571,12 @@ namespace Otm.Server.Broker.Palantir
         {
             var body = e.Body.ToArray();
             //var message = Encoding.UTF8.GetString();
+            Logger.Debug($"Dev {Config.Name}: Recebida routingKey {e.RoutingKey} exchange {e.Exchange} body{e.Body}");
 
             sendDataQueue.Enqueue(body);
-
+            
             var consumer = (sender as IBasicConsumer).Model;
             consumer.BasicAck(deliveryTag: e.DeliveryTag, multiple: false);
-
         }
     }
 }

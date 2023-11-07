@@ -54,7 +54,6 @@ namespace Otm.Server.Broker.Ptl
      
         protected readonly object lockSendDataQueue = new object();
 
-        private readonly object lockSendDataQueue = new object();
         public Queue<byte[]> sendDataQueue;
         public IBasicProperties basicProperties;
         public readonly List<PtlBaseClass> ListaLigados = new List<PtlBaseClass>();
@@ -296,8 +295,8 @@ namespace Otm.Server.Broker.Ptl
                             pos += it.Length;
                         }
 
-                        var message = Encoding.Default.GetString(obj);
-                        Logger.Info($"SendData: {Config.Name}: Message {message}");
+                        var msg = Encoding.Default.GetString(obj);
+                        Logger.Info($"SendData: {Config.Name}: Message {msg}");
 
                         client.SendData(obj);
 
@@ -306,21 +305,13 @@ namespace Otm.Server.Broker.Ptl
                         Logger.Debug($"Dev {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
 
                         this.LastSend = DateTime.Now;
+
+                        sent = true;
                     }
                     catch (Exception e)
                     {
                         Logger.Error($"SendData {Config.Name}: error: {e.Message}");
                     }
-
-                    var message = Encoding.Default.GetString(obj);
-
-                    client.SendData(obj);
-
-                    st.Stop();
-
-                    Logger.Debug($"Broker {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
-
-                    this.LastSend = DateTime.Now;
                 }
             else
             {
