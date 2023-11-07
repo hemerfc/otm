@@ -305,13 +305,13 @@ namespace Otm.Server.Broker.Ptl
                         Logger.Debug($"Dev {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
 
                         this.LastSend = DateTime.Now;
-
-                        sent = true;
                     }
                     catch (Exception e)
                     {
                         Logger.Error($"SendData {Config.Name}: error: {e.Message}");
                     }
+                    
+                    this.LastSend = DateTime.Now;
                 }
             else
             {

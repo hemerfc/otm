@@ -570,8 +570,8 @@ namespace Otm.Server.Broker.Palantir
         public void Consumer_Received(object sender, BasicDeliverEventArgs e)
         {
             var body = e.Body.ToArray();
-            //var message = Encoding.UTF8.GetString();
-            Logger.Debug($"Dev {Config.Name}: Recebida routingKey {e.RoutingKey} exchange {e.Exchange} body{e.Body}");
+            var msg = Encoding.UTF8.GetString(e.Body.ToArray());
+            Logger.Debug($"Dev {Config.Name}: Recebida routingKey {e.RoutingKey} body{msg}");
 
             sendDataQueue.Enqueue(body);
             
