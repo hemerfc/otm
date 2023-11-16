@@ -1,31 +1,29 @@
-﻿using Jint.Parser;
-using Nest;
-using Newtonsoft.Json;
-using NLog;
+﻿using NLog;
 using Otm.Server.Device.Ptl;
-using Otm.Server.Device.S7;
 using Otm.Server.ContextConfig;
-using RabbitMQ.Client;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace Otm.Server.Broker.Ptl
 {
     public class SmartPickingBroker : IPtlAmqtpBroker
     {
+        #region init
         public SmartPickingBroker(BrokerConfig config, ILogger logger) : base(config, logger)
         {
         }
 
         private byte[] STX_LC = Encoding.ASCII.GetBytes("P");
         private int messageSize = 12;
-
-        public override void ProcessMessage(byte[] body) {
-
+        #endregion
+        
+        // processa as mensagens recebidas do rabbitmq
+        public override void ProcessMessage(byte[] body) 
+        {
             var message = Encoding.Default.GetString(body);
 
             Logger.Info($"ProcessMessage(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
@@ -33,7 +31,7 @@ namespace Otm.Server.Broker.Ptl
             Regex regex = new Regex(@"'(.*?)'");
             string conteudo = regex.Match(message).Groups[1].Value;
 
-            var ListaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
+            var listaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
                                   let pententeInfos = rawPendente.Split('|').ToList()
                                     select new PtlBaseClass(id: Guid.NewGuid(),
                                                             location: pententeInfos[0],
@@ -41,35 +39,39 @@ namespace Otm.Server.Broker.Ptl
                                                             displayValue: pententeInfos[2])
                                                                 ).ToList();
             
-            //var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Select(x => x.Location).Contains(i.Location));
-
-            var ListaApagar = ListaLigados.Where(x => !ListaPendentes.Any(ligado =>
-                ligado.Location == x.Location
-                && ligado.DisplayValue == x.DisplayValue
-                && ligado.DisplayColor == x.DisplayColor
+            var listaApagar = ListaLigados.Where(x => !listaPendentes.Any(x =>
+                x.Location == x.Location
+                && x.DisplayValue == x.DisplayValue
+                && x.DisplayColor == x.DisplayColor
             ));
 
-            displayOff(ListaApagar);
+            displayOff(listaApagar);
+            displaysOn(listaPendentes);
 
-            displaysOn(ListaPendentes);
+            SendData();
         }
 
-        public void displayOff(IEnumerable<PtlBaseClass> ListaApagar)
+        // insere os displays que devem ser apagados na fila de envio (sendDataQueue)
+        public void displayOff(IEnumerable<PtlBaseClass> listaApagar)
         {
-            foreach (var itemApagar in ListaApagar.ToList())
+            foreach (var itemApagar in listaApagar.ToList())
             {
                 byte displayId = itemApagar.GetDisplayIdBroker();
 
                 var mensagem = String.Format("{0:D3}{1:D3}|", "CLR", Int32.Parse(itemApagar.Location));
 
-                var buffer = System.Text.Encoding.ASCII.GetBytes(mensagem);
-                sendDataQueue.Enqueue(buffer.ToArray());
-
-                sendDataQueue.Enqueue(buffer.ToArray());
+                var buffer = Encoding.ASCII.GetBytes(mensagem);
+                
+                lock (lockSendDataQueue)
+                {
+                    sendDataQueue.Enqueue(buffer.ToArray());
+                }
+                
                 ListaLigados.Remove(itemApagar);
             }
         }
 
+        // insere os displays que devem ser ligados na fila de envio (sendDataQueue)
         public override void displaysOn(IEnumerable<PtlBaseClass> listaAcender)
         {
             foreach (var itemAcender in listaAcender.ToList())
@@ -88,12 +90,13 @@ namespace Otm.Server.Broker.Ptl
                 }
 
                 var buffer = System.Text.Encoding.ASCII.GetBytes(mensagem);
-
-                sendDataQueue.Enqueue(buffer.ToArray());
-
+                
+                lock (lockSendDataQueue)
+                {
+                    sendDataQueue.Enqueue(buffer.ToArray());
+                }
+                
                 ListaLigados.Add(itemAcender);
-
-                SendData();
             }
         }
 

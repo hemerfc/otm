@@ -4,15 +4,15 @@ using Otm.Server.ContextConfig;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Text;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
-using System.Threading;
 
 namespace Otm.Server.Broker.Ptl
 {
     public class AtopBroker : IPtlAmqtpBroker
     {
+        #region init
         private byte[] STX_LC = new byte[] { 0x02, 0x02 };       // "\x02\x02";
         private byte[] ETX_LC = new byte[] { 0x03, 0x03 };       // "\x03\x03";
         private byte[] STX_AT = new byte[] { 0x0f, 0x00, 0x60 }; //"\x0F\x00\x60";
@@ -32,15 +32,66 @@ namespace Otm.Server.Broker.Ptl
             /// TODO: Verificar se é necessário
             hasReadGate = false;
         }
+        #endregion
+        
+        // processa as mensagens recebidas do rabbitmq
+        public override void ProcessMessage(byte[] body)
+        {
+            var message = Encoding.Default.GetString(body);
 
+            Logger.Info($"ProcessMessage(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
+
+            Regex regex = new Regex(@"'(.*?)'");
+            string conteudo = regex.Match(message).Groups[1].Value;
+
+            var listaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
+                    let pententeInfos = rawPendente.Split('|').ToList()
+                    select new PtlBaseClass(id: Guid.NewGuid(),
+                        location: pententeInfos[0],
+                        displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
+                        displayValue: pententeInfos[2])
+                ).ToList();
+
+            var listaApagar = ListaLigados.Where(x => !listaPendentes.Any(x =>
+                x.Location == x.Location
+                && x.DisplayValue == x.DisplayValue
+                && x.DisplayColor == x.DisplayColor
+            ));
+            
+            displayOff(listaApagar);
+            displaysOn(listaPendentes);
+
+            SendData();
+        }
+        
+        // insere os displays que devem ser apagados na fila de envio (sendDataQueue)
+        public void displayOff(IEnumerable<PtlBaseClass> listaApagar) {
+            foreach (var itemApagar in listaApagar.ToList())
+            {
+                byte displayId = itemApagar.GetDisplayIdBroker();
+
+                var buffer = new List<byte>();
+                // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
+                buffer.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
+                // limpa o display
+                buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
+
+                lock (lockSendDataQueue)
+                {
+                    sendDataQueue.Enqueue(buffer.ToArray());
+                }
+
+                ListaLigados.Remove(itemApagar);
+            }
+        }
+        
+        // insere os displays que devem ser ligados na fila de envio (sendDataQueue)
         public override void displaysOn(IEnumerable<PtlBaseClass> listaAcender)
         {
             foreach (var itemAcender in listaAcender.ToList())
             {
                 byte displayId = itemAcender.GetDisplayId();
                 var displayCode = itemAcender.GetDisplayValueAsByteArray();
-
-                
 
                 //9 Adicionando o pre + pos
                 byte msgLength = (byte)(displayCode.Length + 9);
@@ -49,15 +100,11 @@ namespace Otm.Server.Broker.Ptl
 
                 // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
                 buf.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)itemAcender.DisplayColor });
-                //msgBuf.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, 0x01 });
-
-                // "\x11\x00\x60\x66\x00\x00\x00\x64\x11\x4c\x4f\x47\x49\x4e\x20\x4f\x4b" -> LOGIN OK -> MODELO 70C(MESTRE)
 
                 var buf2 = new List<byte>();
 
                 if (itemAcender.Location == Config.MasterDevice)
                 {
-
                     // Apaga o display antes de setar um novo valor
                     // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
                     buf2.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
@@ -94,57 +141,7 @@ namespace Otm.Server.Broker.Ptl
                 }
 
                 ListaLigados.Add(itemAcender);
-
-                //SendData();
             }
-        }
-
-        public void displayOff(IEnumerable<PtlBaseClass> ListaApagar) {
-            foreach (var itemApagar in ListaApagar.ToList())
-            {
-                //var buffer = Encoding.UTF8.GetBytes($"-{itemApagar}");
-                var buffer = new List<byte>();
-                byte displayId = itemApagar.GetDisplayIdBroker();
-
-                // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
-                buffer.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
-                // limpa o display
-                buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
-
-                sendDataQueue.Enqueue(buffer.ToArray());
-                ListaLigados.Remove(itemApagar);
-            }
-        }
-
-        public override void ProcessMessage(byte[] body)
-        {
-            var message = Encoding.Default.GetString(body);
-
-            Logger.Info($"ProcessMessage(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
-
-            Regex regex = new Regex(@"'(.*?)'");
-            string conteudo = regex.Match(message).Groups[1].Value;
-
-            var ListaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
-                                  let pententeInfos = rawPendente.Split('|').ToList()
-                                  select new PtlBaseClass(id: Guid.NewGuid(),
-                                                          location: pententeInfos[0],
-                                                          displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
-                                                          displayValue: pententeInfos[2])
-                                                                ).ToList();
-
-            var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Select(x => x.Id).Contains(i.Id));
-
-            //var ListaApagar = ListaLigados.Where(i => !ListaPendentes.Select(x => x.Location).Contains(i.Location));
-
-            var ListaApagar = ListaLigados.Where(x => ListaPendentes.Any(ligado => ligado.Location == x.Location));
-
-            var teste1 = ListaPendentes.ToList();
-            var teste = ListaApagar.ToList();
-
-            //Thread.Sleep(1200);
-            displayOff(ListaApagar);
-            displaysOn(ListaAcender);
         }
 
         public override bool ReceiveData()
