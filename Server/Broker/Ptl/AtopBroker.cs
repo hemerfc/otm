@@ -52,11 +52,35 @@ namespace Otm.Server.Broker.Ptl
                         displayValue: pententeInfos[2])
                 ).ToList();
 
-            var listaApagar = ListaLigados.Where(x => !listaPendentes.Any(x =>
-                x.Location == x.Location
-                && x.DisplayValue == x.DisplayValue
-                && x.DisplayColor == x.DisplayColor
+            var strListaPendentes = listaPendentes.Aggregate("", (s, x) =>
+                s +
+                " Location: " + x.Location +
+                " DisplayValue: " + x.DisplayValue +
+                " DisplayColor: " + x.DisplayColor + ", ");
+            
+            Logger.Info("listaPendentes" + strListaPendentes);
+
+            var strListaLigados = ListaLigados.Aggregate("", (s, x) =>
+                s +
+                " Location: " + x.Location +
+                " DisplayValue: " + x.DisplayValue +
+                " DisplayColor: " + x.DisplayColor + ", ");
+            
+            Logger.Info("listaLigados" + strListaLigados);
+            
+            var listaApagar = ListaLigados.Where(x1 => !listaPendentes.Any(x2 =>
+                x1.Location == x2.Location
+                && x1.DisplayValue == x2.DisplayValue
+                && x1.DisplayColor == x2.DisplayColor
             ));
+            
+            var strListaApagar = listaApagar.Aggregate("", (s, x) =>
+                s +
+                " Location: " + x.Location +
+                " DisplayValue: " + x.DisplayValue +
+                " DisplayColor: " + x.DisplayColor + ", ");
+            
+            Logger.Info("listaApagar" + strListaApagar);
             
             displayOff(listaApagar);
             displaysOn(listaPendentes);
@@ -66,18 +90,24 @@ namespace Otm.Server.Broker.Ptl
         
         // insere os displays que devem ser apagados na fila de envio (sendDataQueue)
         public void displayOff(IEnumerable<PtlBaseClass> listaApagar) {
+            Logger.Info("displayOff count:" + listaApagar.Count());
             foreach (var itemApagar in listaApagar.ToList())
             {
-                byte displayId = itemApagar.GetDisplayIdBroker();
+                Logger.Info("displayOff foreach itemApagar:" + itemApagar.DisplayValue);
+                
+                byte displayId = itemApagar.GetDisplayId();
 
+                Logger.Info("displayOff foreach displayId:" + displayId);
+                
                 var buffer = new List<byte>();
                 // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
                 buffer.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
                 // limpa o display
                 buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
-
+                
                 lock (lockSendDataQueue)
                 {
+                    Logger.Info("Apagar o display" + displayId);
                     sendDataQueue.Enqueue(buffer.ToArray());
                 }
 
@@ -113,10 +143,23 @@ namespace Otm.Server.Broker.Ptl
 
                     //buf2.AddRange(new byte[] { 0x07, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, 0xFC });
 
-                    //msgLength = (byte)(msgLength + 1);
-                    buf2.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x66, 0x00, 0x00, 0x00, displayId, 0x11 });
-                    buf2.AddRange(displayCode);
-                    buf2.Add(0x01);
+                    /// TODO: TRANSFORMAR ISSO EM UMA CONFIGURAÇÃO, POR TIPO DE DISPLAY
+                    if(false) // TIPO DISPLAY 12 DIGITOS
+                    {
+                    // este comando comentado funciona para o display de 12 digitos
+                    // // msgLength = (byte)(msgLength + 1);
+                    // buf2.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x66, 0x00, 0x00, 0x00, displayId, 0x11 });
+                    // buf2.AddRange(displayCode);
+                    // buf2.Add(0x01);
+                    }
+
+                    if (true) // TIPO DISPLAY 8 DIGITOS
+                    {
+                        // comando para o display de 8 digitos
+                        buf2.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, displayId });
+                        buf2.AddRange(displayCode);
+                        buf2.Add(0x01);
+                    }
                 }
                 else
                 {
