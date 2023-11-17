@@ -296,7 +296,10 @@ namespace Otm.Server.Broker.Ptl
                         }
 
                         var msg = Encoding.Default.GetString(obj);
+
                         Logger.Info($"SendData: {Config.Name}: Message {msg}");
+                        var msghexa = String.Join(String.Empty, Array.ConvertAll(obj, x => x.ToString("X2")));
+                        Logger.Info($"SendData: {Config.Name}: MessageHexa {msghexa}");
 
                         client.SendData(obj);
 
