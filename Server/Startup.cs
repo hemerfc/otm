@@ -39,10 +39,6 @@ namespace Otm.Server
             //services.AddControllersWithViews();
             //services.AddRazorPages();
             services.AddControllers();
-            /*services.AddSpaStaticFiles(configuration =>
-            {
-                configuration.RootPath = "wwwroot";
-            });*/
             services.AddSingleton<IConfigService>(ConfigService);
             services.AddSingleton<IContextService>(ContextService);
             services.AddSingleton<IStatusService>(StatusService);
@@ -52,6 +48,8 @@ namespace Otm.Server
 
             services.AddSingleton<OtmWorkerService>();
             services.AddHostedService(provider => provider.GetService<OtmWorkerService>());
+
+            //services.AddHostedService<OtmWorkerService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -80,11 +78,28 @@ namespace Otm.Server
             {
                 endpoints.MapControllers();
             });
-            
 
-            // For the wwwroot folder
-            app.UseDefaultFiles();
-            app.UseStaticFiles();
+            // app.UseSpaStaticFiles();
+            // app.UseSpa(spa =>
+            // {
+            //     //if (env.IsDevelopment())
+            //     //    spa.Options.SourcePath = "Client/";
+            //     //else
+            //     //    spa.Options.SourcePath = "dist";
+            //
+            //     spa.Options.SourcePath = "Client/";
+            //     if (env.IsDevelopment())
+            //     {
+            //         spa.UseVueCli(npmScript: "serve");
+            //     }
+            // });
+
+            //app.UseEndpoints(endpoints =>
+            //{
+            //    endpoints.MapRazorPages();
+            //    endpoints.MapControllers();
+            //    endpoints.MapFallbackToFile("index.html");
+            //});
         }
     }
 }
