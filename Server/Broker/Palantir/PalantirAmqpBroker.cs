@@ -1,10 +1,10 @@
-﻿using Nest;
+﻿using Jint.Parser;
+using Nest;
 using Newtonsoft.Json;
 using NLog;
 using Otm.Server.Device;
 using Otm.Server.Device.Ptl;
 using Otm.Server.Device.TcpServer;
-using Otm.Server.ContextConfig;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
@@ -22,6 +22,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Otm.Server.ContextConfig;
 
 namespace Otm.Server.Broker.Palantir
 {
@@ -104,7 +105,7 @@ namespace Otm.Server.Broker.Palantir
             {
                 try
                 {
-                    if (client.Connected)
+                    if (client.Connected && AmqpChannel != null && AmqpChannel.IsOpen)
                     {
                         bool received, sent;
 
@@ -119,6 +120,13 @@ namespace Otm.Server.Broker.Palantir
                     else
                     {
                         Ready = false;
+
+                        this.AmqpChannel = CreateChannel(Config.AmqpHostName,
+                            Config.AmqpPort,
+                            Config.AmqpQueueToConsume,
+                            Config.AmqpQueueToProduce,
+                            new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
+                        );
 
                         if (!Connecting)
                         {
@@ -152,56 +160,6 @@ namespace Otm.Server.Broker.Palantir
                     Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
                 }
             }
-
-            //try
-            //{
-            //    if (client.Connected)
-            //    {
-            //        bool received, sent;
-
-            //        do
-            //        {
-            //            received = ReceiveData();
-            //            sent = SendData();
-            //        } while (received || sent);
-
-            //        Ready = true;
-            //    }
-            //    else
-            //    {
-            //        Ready = false;
-
-            //        if (!Connecting)
-            //        {
-            //            // se ja tiver passado o delay, tenta reconectar
-            //            if (LastConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
-            //            {
-            //                LastConnectionTry = DateTime.Now;
-            //                Connecting = true;
-            //                //Verifica se consegue conectar
-            //                Connect();
-            //                Connecting = false;
-            //            }
-            //        }
-            //    }
-
-            //    // wait 50ms
-            //    /// TODO: wait time must be equals the minimum update rate of tags
-            //    var waitEvent = new ManualResetEvent(false);
-            //    waitEvent.WaitOne(50);
-
-            //    if (Worker.CancellationPending)
-            //    {
-            //        Ready = false;
-            //        Stop();
-            //        return;
-            //    }
-            //}
-            //catch (Exception ex)
-            //{
-            //    Ready = false;
-            //    Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
-            //}
         }
 
         public void Stop()
@@ -216,7 +174,7 @@ namespace Otm.Server.Broker.Palantir
             var recv = client.GetData();
             if (recv != null && recv.Length > 0)
             {
-                Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
+                //Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
                 var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
                 receiveBuffer.CopyTo(tempBuffer, 0);
                 recv.CopyTo(tempBuffer, receiveBuffer.Length);
@@ -285,7 +243,7 @@ namespace Otm.Server.Broker.Palantir
                     var messageType = messageStr.Split(",").First();
                     var queueName = messageType;
 
-                    Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {messageStr}");
+                    Logger.Info($"ReceiveData(): Drive: {Config.Name}. Message: {messageStr}");
                     var json = JsonConvert.SerializeObject(new { Body = messageStr });
 
 
@@ -300,87 +258,6 @@ namespace Otm.Server.Broker.Palantir
 
             return received;
         }
-
-        //private bool ReceiveData()
-        //{
-        //    var received = false;
-
-        //    var recv = client.GetData();
-
-        //    if (recv != null && recv.Length > 0)
-        //    {
-        //        Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
-        //        var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
-        //        receiveBuffer.CopyTo(tempBuffer, 0);
-        //        recv.CopyTo(tempBuffer, receiveBuffer.Length);
-        //        receiveBuffer = tempBuffer;
-        //    }
-
-        //    if (receiveBuffer.Length > 0)
-        //    {
-        //        var strRcvd1 = Encoding.ASCII.GetString(receiveBuffer);
-        //        var strRcvd = receiveBuffer;
-
-        //        /// TODO: falta processar os bytes recebidos
-        //        var stxLcPos = SearchBytes(strRcvd, STX);
-        //        var etxLcPos = SearchBytes(strRcvd, ETX);
-
-
-        //        var posicoesRelevantesEncontradas = new List<int>() { stxLcPos }
-        //                                                    .Where(x => x >= 0)
-        //                                                    .OrderBy(x => x)
-        //                                                    .ToList();
-
-        //        //Se encontrou algo relevante processa, senão zera...
-        //        if (posicoesRelevantesEncontradas.Count > 0)
-        //        {
-        //            received = true;
-
-        //            var primeiraPosRelevante = posicoesRelevantesEncontradas.First();
-        //            //Filtra o array para remover o lixo do inicio
-        //            receiveBuffer = receiveBuffer[primeiraPosRelevante..];
-
-        //            //Se for uma leitura, verifica se ja tem o STX
-        //            if (primeiraPosRelevante == stxLcPos)
-        //            {
-        //                //Aguarda encontrar o ETX
-        //                if (stxLcPos < etxLcPos)
-        //                {
-        //                    //Processa se o ReadGate estiver aberto e fecha-o em seguida
-        //                    if (true)
-        //                    {
-
-        //                        var cmdLC = Encoding.ASCII.GetString(strRcvd[(stxLcPos + STX.Length)..etxLcPos]);
-
-        //                        try
-        //                        {
-        //                            // pega a mensagem do buffer
-        //                            var message = strRcvd[(stxLcPos + STX.Length)..etxLcPos];
-        //                            var messageStr = Encoding.ASCII.GetString(message);
-        //                            var messageType = messageStr.Split(",").First();
-        //                            var queueName = "QF_" + messageType;
-
-        //                            Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {messageStr}");
-
-        //                            AmqpChannel.BasicPublish("", queueName, true, basicProperties, message);
-        //                        }
-        //                        catch (Exception e)
-        //                        {
-        //                            throw;
-        //                        }
-
-
-        //                    }
-        //                    receiveBuffer = receiveBuffer[(etxLcPos + STX.Length)..];
-        //                }
-        //            }
-        //        }
-        //        else
-        //            receiveBuffer = Array.Empty<byte>();
-        //    }
-
-        //    return received;
-        //}
 
         private static int SearchBytes(byte[] haystack, byte[] needle)
         {
@@ -464,7 +341,7 @@ namespace Otm.Server.Broker.Palantir
 
                         foreach (Match match in matches)
                         {
-                            Logger.Info($"SendData: {Config.Name}: Message {match}");
+                            //Logger.Info($"SendData: {Config.Name}: Message {match}");
                             Match conteudo = Regex.Match(match.ToString(), @"""body"":\s*""([^""]*)""");
 
                             // Adiciona o byte 2 no início da mensagem
@@ -480,7 +357,7 @@ namespace Otm.Server.Broker.Palantir
 
                             st.Stop();
 
-                            Logger.Debug($"Dev {Config.Name}: Enviado {conteudo.Groups[1].Value} bytes em {messageBytes.Length} ms");
+                            Logger.Info($"SendData():    Drive: {Config.Name}: Message: {conteudo.Groups[1].Value}");
                         }
 
 
@@ -494,13 +371,11 @@ namespace Otm.Server.Broker.Palantir
                 }
             else
             {
-                if (LastSend.AddSeconds(35) < DateTime.Now)
+                if (LastSend.AddSeconds(10) < DateTime.Now)
                 {
-                    //var getFwCmd = new byte[] { 0x07, 0x00, 0x60, 0x00, 0x00, 0x00, 0x09 };
-                    //client.SendData(getFwCmd);
-
-                    //client.Dispose();
-                    //this.LastSend = DateTime.Now;
+                    var getFwCmd = new byte[] { 2,3 };
+                    client.SendData(getFwCmd);
+                    this.LastSend = DateTime.Now;
                 }
             }
 
@@ -570,13 +445,13 @@ namespace Otm.Server.Broker.Palantir
         public void Consumer_Received(object sender, BasicDeliverEventArgs e)
         {
             var body = e.Body.ToArray();
-            var msg = Encoding.UTF8.GetString(e.Body.ToArray());
-            Logger.Debug($"Dev {Config.Name}: Recebida routingKey {e.RoutingKey} body{msg}");
+            //var message = Encoding.UTF8.GetString();
 
             sendDataQueue.Enqueue(body);
-            
+
             var consumer = (sender as IBasicConsumer).Model;
             consumer.BasicAck(deliveryTag: e.DeliveryTag, multiple: false);
+
         }
     }
 }

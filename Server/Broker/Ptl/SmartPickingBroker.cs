@@ -1,29 +1,26 @@
-﻿using NLog;
+﻿using Newtonsoft.Json;
+using NLog;
 using Otm.Server.Device.Ptl;
-using Otm.Server.ContextConfig;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using Newtonsoft.Json;
+using Otm.Server.ContextConfig;
 
 namespace Otm.Server.Broker.Ptl
 {
     public class SmartPickingBroker : IPtlAmqtpBroker
     {
-        #region init
         public SmartPickingBroker(BrokerConfig config, ILogger logger) : base(config, logger)
         {
         }
 
         private byte[] STX_LC = Encoding.ASCII.GetBytes("P");
         private int messageSize = 12;
-        #endregion
-        
-        // processa as mensagens recebidas do rabbitmq
-        public override void ProcessMessage(byte[] body) 
-        {
+
+        public override void ProcessMessage(byte[] body) {
+
             var message = Encoding.Default.GetString(body);
 
             Logger.Info($"ProcessMessage(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
@@ -31,47 +28,51 @@ namespace Otm.Server.Broker.Ptl
             Regex regex = new Regex(@"'(.*?)'");
             string conteudo = regex.Match(message).Groups[1].Value;
 
-            var listaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
+            var ListaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
                                   let pententeInfos = rawPendente.Split('|').ToList()
-                                    select new PtlBaseClass(id: Guid.NewGuid(),
+                                    select new PtlBaseClass(id: Guid.Parse(pententeInfos[3]),
                                                             location: pententeInfos[0],
-                                                            displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
+                                                            displayColor: pententeInfos[1],
                                                             displayValue: pententeInfos[2])
                                                                 ).ToList();
-            
-            var listaApagar = ListaLigados.Where(x => !listaPendentes.Any(x =>
-                x.Location == x.Location
-                && x.DisplayValue == x.DisplayValue
-                && x.DisplayColor == x.DisplayColor
+
+                           
+            var ListaAcender = ListaPendentes.Where(pendente => !ListaLigados.Any(ligado =>
+                ligado.Location == pendente.Location 
+                && ligado.DisplayValue == pendente.DisplayValue 
+                && ligado.Id == pendente.Id
             ));
 
-            displayOff(listaApagar);
-            displaysOn(listaPendentes);
+            //var ListaApagar = ListaLigados.Where(ligado => !ListaPendentes.Any(pendente => pendente.Location == ligado.Location && pendente.DisplayValue == ligado.DisplayValue || pendente.DisplayColorInt != ligado.DisplayColorInt));
+            var ListaApagar = ListaLigados.Where(ligado => !ListaPendentes.Any(pendente =>
+                pendente.Location == ligado.Location 
+                && pendente.DisplayValue == ligado.DisplayValue
+                && pendente.Id == ligado.Id
+                || pendente.DisplayColorInt != ligado.DisplayColorInt
+            ));
 
-            SendData();
+            displayOff(ListaApagar);
+
+            displaysOn(ListaAcender);
+
         }
 
-        // insere os displays que devem ser apagados na fila de envio (sendDataQueue)
-        public void displayOff(IEnumerable<PtlBaseClass> listaApagar)
+        public void displayOff(IEnumerable<PtlBaseClass> ListaApagar)
         {
-            foreach (var itemApagar in listaApagar.ToList())
+            foreach (var itemApagar in ListaApagar.ToList())
             {
-                byte displayId = itemApagar.GetDisplayIdBroker();
+                int displayId = itemApagar.GetDisplayIdToInt();
 
-                var mensagem = String.Format("{0:D3}{1:D3}|", "CLR", Int32.Parse(itemApagar.Location));
+                var mensagem = String.Format("{0:D3}{1:D3}|", "CLR", displayId);
 
-                var buffer = Encoding.ASCII.GetBytes(mensagem);
-                
-                lock (lockSendDataQueue)
-                {
-                    sendDataQueue.Enqueue(buffer.ToArray());
-                }
-                
+                var buffer = System.Text.Encoding.ASCII.GetBytes(mensagem);
+
+                sendDataQueue.Enqueue(buffer.ToArray());
                 ListaLigados.Remove(itemApagar);
+                SendData();
             }
         }
 
-        // insere os displays que devem ser ligados na fila de envio (sendDataQueue)
         public override void displaysOn(IEnumerable<PtlBaseClass> listaAcender)
         {
             foreach (var itemAcender in listaAcender.ToList())
@@ -80,23 +81,32 @@ namespace Otm.Server.Broker.Ptl
 
                 var displayId = itemAcender.GetDisplayIdToInt();
 
+
                 if (itemAcender.Location == Config.MasterDevice)
                 {                    
                     mensagem = String.Format("{0:D3}{1:D3}{2:D6}|", "SHW", displayId, itemAcender.DisplayValue);
                 }
                 else
                 {
-                    mensagem = String.Format("{0:D3}{1:D3}{2:D3}{3:D1}{4:D1}|", "SHW", displayId, Int32.Parse(itemAcender.DisplayValue), 7, 0);
+                    int parsedValue;
+                    if (int.TryParse(itemAcender.DisplayValue, out parsedValue))
+                    {
+                        mensagem = String.Format("{0:D3}{1:D3}{2:D3}{3:D1}{4:D1}|", "SHW", displayId, parsedValue, itemAcender.DisplayColorInt, 1);
+                    }
+                    else
+                    {
+                        mensagem = String.Format("{0:D3}{1:D3}{2:D6}|", "SHW", displayId, itemAcender.DisplayValue);
+                    }
+                    //mensagem = String.Format("{0:D3}{1:D3}{2:D3}{3:D1}{4:D1}|", "SHW", displayId, itemAcender.DisplayValue, itemAcender.DisplayColorInt, 1);
                 }
 
                 var buffer = System.Text.Encoding.ASCII.GetBytes(mensagem);
-                
-                lock (lockSendDataQueue)
-                {
-                    sendDataQueue.Enqueue(buffer.ToArray());
-                }
-                
+
+                sendDataQueue.Enqueue(buffer.ToArray());
+
                 ListaLigados.Add(itemAcender);
+
+                SendData();
             }
         }
 
@@ -140,16 +150,30 @@ namespace Otm.Server.Broker.Ptl
                         var msgBytes = receiveBuffer[primeiraPosRelevante..(primeiraPosRelevante + messageSize)];
                         // Exemploe de msg PRS999888888
                         var message = Encoding.ASCII.GetString(msgBytes);
+                        Logger.Info(message);
                         if (message.StartsWith("PRS")) { 
                             string prefixo = message.Substring(0, 3);
                             string display = message.Substring(3, 3);
                             string value = message.Substring(6, 6);
+                            string endereco = $"{Config.PtlId}:{display}";
+
+                            //var itemApagar = ListaLigados.Where(x => x.Location == endereco).ToList();
+                            //foreach (var item in itemApagar) { 
+                            //    ListaLigados.Remove(item);
+                            //}
+
 
                             var queueName = Config.AmqpQueueToProduce;
 
                             Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
 
-                            var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, $"{Config.PtlId}:{display}", value.TrimStart('0'),DateTime.Now);
+                            var messageToAmqtp = String.Join(',',
+                                Config.AmqpQueueToProduce,
+                                Config.Name,
+                                $"{Config.PtlId}:{display}",
+                                value.All(c => c == '0') ? 0 : value.TrimStart('0'),
+                                DateTime.Now
+                            );
 
                             Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message send: {messageToAmqtp}");
 
@@ -166,6 +190,11 @@ namespace Otm.Server.Broker.Ptl
             }
 
             return received;
+        }
+
+        public override byte[] GetMessagekeepAlive()
+        {
+            return System.Text.Encoding.ASCII.GetBytes("PONG");
         }
     }
 }

@@ -38,9 +38,20 @@ namespace Otm.Server.Device.Ptl
             DtHoraComando = DateTime.Now;
         }
 
+        public PtlBaseClass(Guid id, string location, string displayColor, string displayValue, E_PTLMasterMessage masterMessage = E_PTLMasterMessage.None)
+        {
+            Id = id;
+            Location = location;
+            DisplayColorInt = displayColor;
+            DisplayValue = displayValue;
+            MasterMessage = masterMessage;
+            DtHoraComando = DateTime.Now;
+        }
+
         public Guid Id { get; private set;}
         public string Location { get; private set; }
         public E_DisplayColor DisplayColor { get; private set; }
+        public string DisplayColorInt { get; private set; }
         public string DisplayValue { get; private set; }
         public E_PTLMasterMessage MasterMessage { get; private set; } = E_PTLMasterMessage.None;
         public DateTime DtHoraComando { get; private set; }
