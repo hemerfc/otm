@@ -79,6 +79,21 @@ namespace Otm.Server.Broker.Ptl
                         buf2.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, displayId });
                         buf2.AddRange(displayCode);
                         buf2.Add(0x01);
+                        
+                        
+                        /* TODO: Converter para usar os displays 523
+                        // comando para o display de 5-2-3 digitos
+                        buf2.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, displayId });
+                        
+                        //Data 0-4 (5 primeiros)
+                        //Data 5 Reservado
+                        //Data 6-7 (2 central)
+                        //Data 8 Reservado
+                        //Data 9-11 (3 ultimos)
+                        
+                        //Ex: 10A-25 -> new byte[] { 49, 48, 65, 45, 50, 53, };
+                        buf2.AddRange(displayCode);
+                        */
                     }
                 }
                 else
