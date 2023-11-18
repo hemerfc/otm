@@ -110,18 +110,27 @@ namespace Otm.Server.Broker.Ptl
         }
 
         public void displayOff(IEnumerable<PtlBaseClass> ListaApagar) {
+            Logger.Info("displayOff count:" + ListaApagar.Count());
             foreach (var itemApagar in ListaApagar.ToList())
             {
-                //var buffer = Encoding.UTF8.GetBytes($"-{itemApagar}");
-                var buffer = new List<byte>();
-                byte displayId = itemApagar.GetDisplayIdBroker();
+                Logger.Info("displayOff foreach itemApagar:" + itemApagar.DisplayValue);
+                
+                byte displayId = itemApagar.GetDisplayId();
 
+                Logger.Info("displayOff foreach displayId:" + displayId);
+                
+                var buffer = new List<byte>();
                 // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
                 buffer.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
                 // limpa o display
                 buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
+                
+                lock (lockSendDataQueue)
+                {
+                    Logger.Info("Apagar o display" + displayId);
+                    sendDataQueue.Enqueue(buffer.ToArray());
+                }
 
-                sendDataQueue.Enqueue(buffer.ToArray());
                 ListaLigados.Remove(itemApagar);
             }
         }
@@ -143,11 +152,47 @@ namespace Otm.Server.Broker.Ptl
                                                           displayValue: pententeInfos[2])
                                                                 ).ToList();
 
-            var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Any(x => x.Location == i.Location && x.DisplayValue == i.DisplayValue));
-            var ListaApagar = ListaLigados.Where(x => !ListaPendentes.Any(ligado => ligado.Location == x.Location && ligado.DisplayValue == x.DisplayValue));
+            var listaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
+                    let pententeInfos = rawPendente.Split('|').ToList()
+                    select new PtlBaseClass(id: Guid.NewGuid(),
+                        location: pententeInfos[0],
+                        displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
+                        displayValue: pententeInfos[2])
+                ).ToList();
 
-            displayOff(ListaApagar);
-            displaysOn(ListaAcender);
+            var strListaPendentes = listaPendentes.Aggregate("", (s, x) =>
+                s +
+                " Location: " + x.Location +
+                " DisplayValue: " + x.DisplayValue +
+                " DisplayColor: " + x.DisplayColor + ", ");
+            
+            Logger.Info("listaPendentes" + strListaPendentes);
+
+            var strListaLigados = ListaLigados.Aggregate("", (s, x) =>
+                s +
+                " Location: " + x.Location +
+                " DisplayValue: " + x.DisplayValue +
+                " DisplayColor: " + x.DisplayColor + ", ");
+            
+            Logger.Info("listaLigados" + strListaLigados);
+            
+            var listaApagar = ListaLigados.Where(x1 => !listaPendentes.Any(x2 =>
+                x1.Location == x2.Location
+                && x1.DisplayValue == x2.DisplayValue
+                && x1.DisplayColor == x2.DisplayColor
+            ));
+            
+            var strListaApagar = listaApagar.Aggregate("", (s, x) =>
+                s +
+                " Location: " + x.Location +
+                " DisplayValue: " + x.DisplayValue +
+                " DisplayColor: " + x.DisplayColor + ", ");
+            
+            Logger.Info("listaApagar" + strListaApagar);
+
+
+            displayOff(listaApagar);
+            displaysOn(listaPendentes);
         }
 
         public override bool ReceiveData()
