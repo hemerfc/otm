@@ -174,13 +174,14 @@ namespace Otm.Server.Device.Ptl
                 // criar os comandos pro PTL
 
                 var ListaPendentes = (from rawPendente in ((string)value).Split(';').ToList()
-                                      let pententeInfos = rawPendente.Split('|').ToList()
-                                      select new PtlBaseClass(id: Guid.Parse(pententeInfos[4]),
-                                                                    location: pententeInfos[0],
-                                                                    displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
-                                                                    displayValue: pententeInfos[2],
-                                                                    masterMessage: (E_PTLMasterMessage)int.Parse(pententeInfos[3]))
-                                                                    ).ToList();
+                        let pendenteInfos = rawPendente.Split('|').ToList()
+                        select new PtlBaseClass(id: Guid.Parse(pendenteInfos[4]),
+                            location: pendenteInfos[0],
+                            displayColor: (E_DisplayColor)byte.Parse(pendenteInfos[1]),
+                            displayValue: pendenteInfos[2],
+                            displayModel: pendenteInfos[4],
+                            masterMessage: (E_PTLMasterMessage)int.Parse(pendenteInfos[3]))
+                    ).ToList();
 
                 Logger.Info($"SetTagValue(): PickTolight visualization: '{Config.Name}'. value: '{value}'");
 

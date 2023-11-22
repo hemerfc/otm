@@ -36,7 +36,10 @@ namespace Otm.Server.Broker.Palantir
         }
 
         private ILogger Logger;
-
+        
+        private object consumeLock = new object();
+        object publishLock = new object();
+        
         public IModel AmqpChannel { get; set; }
 
         private BrokerConfig Config;
@@ -245,9 +248,10 @@ namespace Otm.Server.Broker.Palantir
 
                     Logger.Info($"ReceiveData(): Drive: {Config.Name}. Message: {messageStr}");
                     var json = JsonConvert.SerializeObject(new { Body = messageStr });
-
-
-                    AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
+                    lock (publishLock)
+                    {
+                        AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
+                    }
                 }
                 catch (Exception e)
                 {
@@ -308,9 +312,9 @@ namespace Otm.Server.Broker.Palantir
         {
             var sent = false;
 
+            lock (lockSendDataQueue)
+            {
             if (sendDataQueue.Count > 0)
-                lock (lockSendDataQueue)
-                {
                     try
                     {
                         var st = new Stopwatch();
@@ -341,8 +345,8 @@ namespace Otm.Server.Broker.Palantir
 
                         foreach (Match match in matches)
                         {
-                            //Logger.Info($"SendData: {Config.Name}: Message {match}");
                             Match conteudo = Regex.Match(match.ToString(), @"""body"":\s*""([^""]*)""");
+                            Logger.Info($"SendData: {Config.Name}: Message: {message} conteudo {conteudo.Groups[1].Value}");                            
 
                             // Adiciona o byte 2 no início da mensagem
                             byte[] startByte = new byte[] { 2 };
@@ -368,14 +372,14 @@ namespace Otm.Server.Broker.Palantir
                     {
                         Logger.Error($"SendData {Config.Name}: error: {e.Message}");
                     }
-                }
-            else
-            {
-                if (LastSend.AddSeconds(10) < DateTime.Now)
+                else
                 {
-                    var getFwCmd = new byte[] { 2,3 };
-                    client.SendData(getFwCmd);
-                    this.LastSend = DateTime.Now;
+                    if (LastSend.AddSeconds(10) < DateTime.Now)
+                    {
+                        var getFwCmd = new byte[] { 2,3 };
+                        client.SendData(getFwCmd);
+                        this.LastSend = DateTime.Now;
+                    }
                 }
             }
 
@@ -444,14 +448,18 @@ namespace Otm.Server.Broker.Palantir
 
         public void Consumer_Received(object sender, BasicDeliverEventArgs e)
         {
-            var body = e.Body.ToArray();
-            //var message = Encoding.UTF8.GetString();
+            lock (consumeLock)
+            {
+                var body = e.Body.ToArray();
+                
+                lock(lockSendDataQueue)
+                {
+                    sendDataQueue.Enqueue(body);
+                }
 
-            sendDataQueue.Enqueue(body);
-
-            var consumer = (sender as IBasicConsumer).Model;
-            consumer.BasicAck(deliveryTag: e.DeliveryTag, multiple: false);
-
+                var consumer = (sender as IBasicConsumer).Model;
+                consumer.BasicAck(deliveryTag: e.DeliveryTag, multiple: false);
+            }
         }
     }
 }

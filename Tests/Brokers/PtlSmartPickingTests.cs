@@ -69,9 +69,9 @@ namespace Otm.Tests.Brokers
             // Assert
             var expectedList = new List<PtlBaseClass>
             {
-                new PtlBaseClass(Guid.Empty, "004", E_DisplayColor.Verde, 20),
-                new PtlBaseClass(Guid.Empty, "003", E_DisplayColor.Verde, 10),
-                new PtlBaseClass(Guid.Empty, "001", E_DisplayColor.Verde, 30)
+                new PtlBaseClass(Guid.Empty, "004", "", E_DisplayColor.Verde, 20),
+                new PtlBaseClass(Guid.Empty, "003", "", E_DisplayColor.Verde, 10),
+                new PtlBaseClass(Guid.Empty, "001", "", E_DisplayColor.Verde, 30)
             };
 
             throw new NotImplementedException();

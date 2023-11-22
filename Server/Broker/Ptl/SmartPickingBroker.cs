@@ -29,12 +29,13 @@ namespace Otm.Server.Broker.Ptl
             string conteudo = regex.Match(message).Groups[1].Value;
 
             var ListaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
-                                  let pententeInfos = rawPendente.Split('|').ToList()
-                                    select new PtlBaseClass(id: Guid.Parse(pententeInfos[3]),
-                                                            location: pententeInfos[0],
-                                                            displayColor: pententeInfos[1],
-                                                            displayValue: pententeInfos[2])
-                                                                ).ToList();
+                    let pendenteInfos = rawPendente.Split('|').ToList()
+                    select new PtlBaseClass(id: Guid.Parse(pendenteInfos[3]),
+                        location: pendenteInfos[0],
+                        displayColor: pendenteInfos[1],
+                        displayValue: pendenteInfos[2],
+                        displayModel: pendenteInfos[4])
+                ).ToList();
 
                            
             var ListaAcender = ListaPendentes.Where(pendente => !ListaLigados.Any(ligado =>
@@ -66,8 +67,12 @@ namespace Otm.Server.Broker.Ptl
                 var mensagem = String.Format("{0:D3}{1:D3}|", "CLR", displayId);
 
                 var buffer = System.Text.Encoding.ASCII.GetBytes(mensagem);
-
-                sendDataQueue.Enqueue(buffer.ToArray());
+                
+                lock(lockSendDataQueue)
+                {
+                    sendDataQueue.Enqueue(buffer.ToArray());
+                }
+                
                 ListaLigados.Remove(itemApagar);
                 SendData();
             }
@@ -102,7 +107,10 @@ namespace Otm.Server.Broker.Ptl
 
                 var buffer = System.Text.Encoding.ASCII.GetBytes(mensagem);
 
-                sendDataQueue.Enqueue(buffer.ToArray());
+                lock(lockSendDataQueue)
+                {
+                    sendDataQueue.Enqueue(buffer.ToArray());
+                }
 
                 ListaLigados.Add(itemAcender);
 
@@ -112,84 +120,90 @@ namespace Otm.Server.Broker.Ptl
 
         public override bool ReceiveData()
         {
-            var recv = client.GetData();
-            var received = false;
-
-            if (recv != null && recv.Length > 0)
+            lock (ConsumeLock)
             {
-                var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
-                receiveBuffer.CopyTo(tempBuffer, 0);
-                recv.CopyTo(tempBuffer, receiveBuffer.Length);
-                receiveBuffer = tempBuffer;
-            }
+                var recv = client.GetData();
+                var received = false;
 
-            if (receiveBuffer.Length > 0)
-            {
-                var strRcvd = receiveBuffer;
-
-                var stxLcPos = SearchBytes(strRcvd, STX_LC);
-
-                var posicoesRelevantesEncontradas = new List<int>() { stxLcPos }
-                                                            .Where(x => x >= 0)
-                                                            .OrderBy(x => x)
-                                                            .ToList();
-
-                //Se encontrou algo relevante processa, senão zera...
-                if (posicoesRelevantesEncontradas.Count > 0)
+                if (recv != null && recv.Length > 0)
                 {
-                    received = true;
+                    var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
+                    receiveBuffer.CopyTo(tempBuffer, 0);
+                    recv.CopyTo(tempBuffer, receiveBuffer.Length);
+                    receiveBuffer = tempBuffer;
+                }
 
-                    var primeiraPosRelevante = posicoesRelevantesEncontradas.First();
-                    //Filtra o array para remover o lixo do inicio
-                    //receiveBuffer = receiveBuffer[primeiraPosRelevante..];
+                if (receiveBuffer.Length > 0)
+                {
+                    var strRcvd = receiveBuffer;
 
-                    //Se for uma leitura, verifica se ja tem o STX
-                    if (receiveBuffer.Length >= primeiraPosRelevante + messageSize)
+                    var stxLcPos = SearchBytes(strRcvd, STX_LC);
+
+                    var posicoesRelevantesEncontradas = new List<int>() { stxLcPos }
+                        .Where(x => x >= 0)
+                        .OrderBy(x => x)
+                        .ToList();
+
+                    //Se encontrou algo relevante processa, senão zera...
+                    if (posicoesRelevantesEncontradas.Count > 0)
                     {
                         received = true;
-                        var msgBytes = receiveBuffer[primeiraPosRelevante..(primeiraPosRelevante + messageSize)];
-                        // Exemploe de msg PRS999888888
-                        var message = Encoding.ASCII.GetString(msgBytes);
-                        Logger.Info(message);
-                        if (message.StartsWith("PRS")) { 
-                            string prefixo = message.Substring(0, 3);
-                            string display = message.Substring(3, 3);
-                            string value = message.Substring(6, 6);
-                            string endereco = $"{Config.PtlId}:{display}";
 
-                            //var itemApagar = ListaLigados.Where(x => x.Location == endereco).ToList();
-                            //foreach (var item in itemApagar) { 
-                            //    ListaLigados.Remove(item);
-                            //}
+                        var primeiraPosRelevante = posicoesRelevantesEncontradas.First();
+                        //Filtra o array para remover o lixo do inicio
+                        //receiveBuffer = receiveBuffer[primeiraPosRelevante..];
+
+                        //Se for uma leitura, verifica se ja tem o STX
+                        if (receiveBuffer.Length >= primeiraPosRelevante + messageSize)
+                        {
+                            received = true;
+                            var msgBytes = receiveBuffer[primeiraPosRelevante..(primeiraPosRelevante + messageSize)];
+                            // Exemploe de msg PRS999888888
+                            var message = Encoding.ASCII.GetString(msgBytes);
+                            Logger.Info(message);
+                            if (message.StartsWith("PRS"))
+                            {
+                                string prefixo = message.Substring(0, 3);
+                                string display = message.Substring(3, 3);
+                                string value = message.Substring(6, 6);
+                                string endereco = $"{Config.PtlId}:{display}";
+
+                                //var itemApagar = ListaLigados.Where(x => x.Location == endereco).ToList();
+                                //foreach (var item in itemApagar) { 
+                                //    ListaLigados.Remove(item);
+                                //}
 
 
-                            var queueName = Config.AmqpQueueToProduce;
+                                var queueName = Config.AmqpQueueToProduce;
 
-                            Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
+                                Logger.Info(
+                                    $"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
 
-                            var messageToAmqtp = String.Join(',',
-                                Config.AmqpQueueToProduce,
-                                Config.Name,
-                                $"{Config.PtlId}:{display}",
-                                value.All(c => c == '0') ? 0 : value.TrimStart('0'),
-                                DateTime.Now
-                            );
+                                var messageToAmqtp = String.Join(',',
+                                    Config.AmqpQueueToProduce,
+                                    Config.Name,
+                                    $"{Config.PtlId}:{display}",
+                                    value.All(c => c == '0') ? 0 : value.TrimStart('0'),
+                                    DateTime.Now
+                                );
 
-                            Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message send: {messageToAmqtp}");
+                                Logger.Info(
+                                    $"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message send: {messageToAmqtp}");
 
-                            var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
+                                var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
 
-                            AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));                        
+                                AmqpChannel.BasicPublish("", queueName, true, basicProperties,
+                                    Encoding.ASCII.GetBytes(json));
+                            }
+
+                            receiveBuffer = receiveBuffer[(primeiraPosRelevante + messageSize)..];
                         }
-
-                        receiveBuffer = receiveBuffer[(primeiraPosRelevante + messageSize)..];
                     }
+                    else
+                        receiveBuffer = Array.Empty<byte>();
                 }
-                else
-                    receiveBuffer = Array.Empty<byte>();
+                return received;
             }
-
-            return received;
         }
 
         public override byte[] GetMessagekeepAlive()

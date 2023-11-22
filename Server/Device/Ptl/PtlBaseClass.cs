@@ -10,7 +10,7 @@ namespace Otm.Server.Device.Ptl
     {
         private PtlCharDict Dict { get; set; } = new PtlCharDict();
 
-        public PtlBaseClass(Guid id, string location, E_DisplayColor displayColor, float displayValue, E_PTLMasterMessage masterMessage = E_PTLMasterMessage.None)
+        public PtlBaseClass(Guid id, string location, E_DisplayColor displayColor, float displayValue, string displayModel, E_PTLMasterMessage masterMessage = E_PTLMasterMessage.None)
         {
             Id = id;
             Location = location;
@@ -18,8 +18,9 @@ namespace Otm.Server.Device.Ptl
             DisplayValue = displayValue.ToString();
             MasterMessage = masterMessage;
             DtHoraComando = DateTime.Now;
+            DisplayModel = displayModel;
         }
-        public PtlBaseClass(Guid id, string location, E_DisplayColor displayColor, int displayValue, E_PTLMasterMessage masterMessage = E_PTLMasterMessage.None)
+        public PtlBaseClass(Guid id, string location, E_DisplayColor displayColor, int displayValue, string displayModel, E_PTLMasterMessage masterMessage = E_PTLMasterMessage.None)
         {
             Id = id;
             Location = location;
@@ -27,8 +28,9 @@ namespace Otm.Server.Device.Ptl
             DisplayValue = displayValue.ToString();
             MasterMessage = masterMessage;
             DtHoraComando = DateTime.Now;
+            DisplayModel = displayModel;
         }
-        public PtlBaseClass(Guid id, string location, E_DisplayColor displayColor, string displayValue, E_PTLMasterMessage masterMessage = E_PTLMasterMessage.None)
+        public PtlBaseClass(Guid id, string location, E_DisplayColor displayColor, string displayValue, string displayModel, E_PTLMasterMessage masterMessage = E_PTLMasterMessage.None)
         {
             Id = id;
             Location = location;
@@ -36,9 +38,10 @@ namespace Otm.Server.Device.Ptl
             DisplayValue = displayValue;
             MasterMessage = masterMessage;
             DtHoraComando = DateTime.Now;
+            DisplayModel = displayModel;
         }
 
-        public PtlBaseClass(Guid id, string location, string displayColor, string displayValue, E_PTLMasterMessage masterMessage = E_PTLMasterMessage.None)
+        public PtlBaseClass(Guid id, string location, string displayColor, string displayValue, string displayModel, E_PTLMasterMessage masterMessage = E_PTLMasterMessage.None)
         {
             Id = id;
             Location = location;
@@ -46,6 +49,7 @@ namespace Otm.Server.Device.Ptl
             DisplayValue = displayValue;
             MasterMessage = masterMessage;
             DtHoraComando = DateTime.Now;
+            DisplayModel = displayModel;
         }
 
         public Guid Id { get; private set;}
@@ -53,6 +57,7 @@ namespace Otm.Server.Device.Ptl
         public E_DisplayColor DisplayColor { get; private set; }
         public string DisplayColorInt { get; private set; }
         public string DisplayValue { get; private set; }
+        public string DisplayModel { get; private set; }
         public E_PTLMasterMessage MasterMessage { get; private set; } = E_PTLMasterMessage.None;
         public DateTime DtHoraComando { get; private set; }
 

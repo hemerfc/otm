@@ -17,7 +17,7 @@ namespace Otm.Server.Broker.Ptl
         private byte[] ETX_LC = new byte[] { 0x03, 0x03 };       // "\x03\x03";
         private byte[] STX_AT = new byte[] { 0x0f, 0x00, 0x60 }; //"\x0F\x00\x60";
         private byte[] STX_AT_MASTER_DISP12 = new byte[] { 0x14, 0x00, 0x60 }; //"\x2b\x00\x60";
-        private byte[] STX_AT_MASTER_DISP08 = new byte[] { 0x11, 0x00, 0x60 }; //"\x2b\x00\x60";
+        private byte[] STX_AT_MASTER_DISP08 = new byte[] { 0x11, 0x00, 0x60 }; //"\x2b\x00\x60";     
 
         private byte MasterDevice;
         private bool readGateOpen;
@@ -35,92 +35,97 @@ namespace Otm.Server.Broker.Ptl
         {
             foreach (var itemAcender in listaAcender.ToList())
             {
-                byte displayId = itemAcender.GetDisplayId();
-                var displayCode = itemAcender.GetDisplayValueAsByteArray();
-
-                
-
-                //9 Adicionando o pre + pos
-                byte msgLength = (byte)(displayCode.Length + 9);
-
                 var buf = new List<byte>();
 
-                // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
-                buf.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)itemAcender.DisplayColor });
-                //msgBuf.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, 0x01 });
-
-                // "\x11\x00\x60\x66\x00\x00\x00\x64\x11\x4c\x4f\x47\x49\x4e\x20\x4f\x4b" -> LOGIN OK -> MODELO 70C(MESTRE)
-
-                var buf2 = new List<byte>();
-
-                if (itemAcender.Location == Config.MasterDevice)
-                {
-                    // Apaga o display antes de setar um novo valor
-                    // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
-                    buf2.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
-                    // limpa o display
-                    buf2.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
-
-                    //buf2.AddRange(new byte[] { 0x07, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, 0xFC });
-
-                    /// TODO: TRANSFORMAR ISSO EM UMA CONFIGURAÇÃO, POR TIPO DE DISPLAY
-                    if(false) // TIPO DISPLAY 12 DIGITOS
-                    {
-                    // este comando comentado funciona para o display de 12 digitos
-                    // // msgLength = (byte)(msgLength + 1);
-                    // buf2.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x66, 0x00, 0x00, 0x00, displayId, 0x11 });
-                    // buf2.AddRange(displayCode);
-                    // buf2.Add(0x01);
-                    }
-
-                    if (true) // TIPO DISPLAY 8 DIGITOS
-                    {
-                        // comando para o display de 8 digitos
-                        buf2.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, displayId });
-                        buf2.AddRange(displayCode);
-                        buf2.Add(0x01);
-                        
-                        
-                        /* TODO: Converter para usar os displays 523
-                        // comando para o display de 5-2-3 digitos
-                        buf2.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, displayId });
-                        
-                        //Data 0-4 (5 primeiros)
-                        //Data 5 Reservado
-                        //Data 6-7 (2 central)
-                        //Data 8 Reservado
-                        //Data 9-11 (3 ultimos)
-                        
-                        //Ex: 10A-25 -> new byte[] { 49, 48, 65, 45, 50, 53, };
-                        buf2.AddRange(displayCode);
-                        */
-                    }
-                }
-                else
-                {
-                    buf2.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, displayId });
-                    buf2.AddRange(displayCode);
-                    buf2.Add(0x01);
-
-                    if (itemAcender.IsBlinking)
-                    {
-                        buf2.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x00, 0x00, 0x00, 0x11, displayId });
-                        buf2.AddRange(displayCode);
-                        buf2.Add(0x01);
-                    }
-
-                }
-
-                buf.AddRange(buf2);
-
+                AddCommandMessageToBuffer(itemAcender, buf);
+             
                 lock (lockSendDataQueue)
                 {
                     sendDataQueue.Enqueue(buf.ToArray());
                 }
 
                 ListaLigados.Add(itemAcender);
+            }
+        }
 
-                //SendData();
+        private void AddCommandMessageToBuffer(PtlBaseClass itemAcender, List<byte> buf)
+        {
+            byte displayId = itemAcender.GetDisplayId();
+
+            // seta a cor do botão { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
+            buf.AddRange(new byte[]
+                { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)itemAcender.DisplayColor });
+
+            if (itemAcender.Location == Config.MasterDevice)
+            {
+                // Apaga o display antes de setar um novo valor
+                // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
+                buf.AddRange(new byte[]
+                    { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
+                // limpa o display
+                buf.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
+            }
+            
+            /*
+               AT70C        - Display de 12 dígitos com 3 botoes e buzzer
+               AT703        - Display de 3 dígitos com 3 botoes
+               AT50A-3W-523 - 10-digit alphanumerical display e buzzer
+               AT708E       - 8-digit Alphanumerical Picking Tag
+            */
+
+            var displayCode = itemAcender.GetDisplayValueAsByteArray();
+            // comprimento da mensagem
+            byte msgLength;
+            
+            switch (itemAcender.DisplayModel)
+            {
+                case "AT50A-3W-523":
+                    // ex:  10A-25 fica
+                    // 10A na primeira parte (formatado com 5 caracteres)
+                    // e 25 na terceira parte (formatado com tres caracteres), separando por -
+                    var displayCodeParts = itemAcender.DisplayValue.Split('-');
+                    var displayCodePart1 = displayCodeParts[0].PadLeft(5);
+                    var displayCodePart3 = displayCodeParts[1].PadLeft(3);
+
+                    // comando para o display de 5-2-3 digitos
+                    buf.AddRange(new byte[] { 0x14, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, displayId });
+
+                    //Data 0-4 (5 primeiros)
+                    //Data 5 Reservado
+                    //Data 6-7 (2 central)
+                    //Data 8 Reservado
+                    //Data 9-11 (3 ultimos)
+
+                    buf.AddRange(Encoding.ASCII.GetBytes(displayCodePart1));
+                    // 4 espacos em branco entre a primeira e a terceira parte
+                    buf.AddRange(new byte[] { 0x20, 0x20, 0x20, 0x20 });
+                    buf.AddRange(Encoding.ASCII.GetBytes(displayCodePart3));
+
+                    break;
+                case "AT70C":
+                    // este comando comentado funciona para o display de 12 digitos
+                    msgLength = (byte)(displayCode.Length + 9 + 1);
+                    buf.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x66, 0x00, 0x00, 0x00, displayId, 0x11 });
+                    buf.AddRange(displayCode);
+                    buf.Add(0x01);
+                    break;
+                case "AT703":
+                case "AT708E":
+                default:
+                    msgLength = (byte)(displayCode.Length + 9);
+                    // comando para o display de 8 digitos
+                    buf.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, displayId });
+                    buf.AddRange(displayCode);
+                    buf.Add(0x01);
+                    
+                    if (itemAcender.IsBlinking)
+                    {
+                        buf.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x00, 0x00, 0x00, 0x11, displayId });
+                        buf.AddRange(displayCode);
+                        buf.Add(0x01);
+                    }
+
+                    break;
             }
         }
 
@@ -160,19 +165,21 @@ namespace Otm.Server.Broker.Ptl
             string conteudo = regex.Match(message).Groups[1].Value;
 
             var ListaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
-                                  let pententeInfos = rawPendente.Split('|').ToList()
-                                  select new PtlBaseClass(id: Guid.NewGuid(),
-                                                          location: pententeInfos[0],
-                                                          displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
-                                                          displayValue: pententeInfos[2])
-                                                                ).ToList();
+                    let pendenteInfos = rawPendente.Split('|').ToList()
+                    select new PtlBaseClass(id: Guid.NewGuid(),
+                        location: pendenteInfos[0],
+                        displayColor: (E_DisplayColor)byte.Parse(pendenteInfos[1]),
+                        displayValue: pendenteInfos[2],
+                        displayModel: pendenteInfos[4])
+                ).ToList();
 
             var listaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
-                    let pententeInfos = rawPendente.Split('|').ToList()
+                    let pendenteInfos = rawPendente.Split('|').ToList()
                     select new PtlBaseClass(id: Guid.NewGuid(),
-                        location: pententeInfos[0],
-                        displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
-                        displayValue: pententeInfos[2])
+                        location: pendenteInfos[0],
+                        displayColor: (E_DisplayColor)byte.Parse(pendenteInfos[1]),
+                        displayValue: pendenteInfos[2],
+                        displayModel: pendenteInfos[4])
                 ).ToList();
 
             var strListaPendentes = listaPendentes.Aggregate("", (s, x) =>
@@ -205,7 +212,6 @@ namespace Otm.Server.Broker.Ptl
             
             Logger.Info("listaApagar" + strListaApagar);
 
-
             displayOff(listaApagar);
             displaysOn(listaPendentes);
         }
@@ -233,9 +239,8 @@ namespace Otm.Server.Broker.Ptl
                 var stxLcPos = SearchBytes(strRcvd, STX_LC);
                 var etxLcPos = SearchBytes(strRcvd, ETX_LC);
                 var stxAtPos = SearchBytes(strRcvd, STX_AT);
-                var stxAtMasterPos12 = SearchBytes(strRcvd, STX_AT_MASTER_DISP12);
-                var stxAtMasterPos8 = SearchBytes(strRcvd, STX_AT_MASTER_DISP08);
-
+                var stxAtMasterPos12 = SearchBytes(strRcvd, STX_AT_MASTER_DISP12); // 0x14, 0x00, 0x60
+                var stxAtMasterPos8 = SearchBytes(strRcvd, STX_AT_MASTER_DISP08);  // 0x11, 0x00, 0x60
 
                 var posicoesRelevantesEncontradas = new List<int>() { stxLcPos, stxAtPos, stxAtMasterPos12, stxAtMasterPos8 }
                                                             .Where(x => x >= 0)
@@ -363,7 +368,8 @@ namespace Otm.Server.Broker.Ptl
 
                             var subCmd = cmdAT[6];
                             var subNode = cmdAT[7];
-                            var cmdValue = Encoding.ASCII.GetString(cmdAT.Skip(8).Take(6).ToArray());
+                            // var cmdValue = Encoding.ASCII.GetString(cmdAT.Skip(8).Take(6).ToArray());
+                            var cmdValue = Encoding.ASCII.GetString(cmdAT.Skip(17).Take(3).ToArray());
 
                             Logger.Info($"ReceiveData(): Device: '{Config.Name}'. CmdAT: '{cmdAT}' subCmd:{subCmd} subNode:{subNode} cmdValue:{cmdValue}");
 
