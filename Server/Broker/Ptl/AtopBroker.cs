@@ -27,6 +27,8 @@ namespace Otm.Server.Broker.Ptl
         private string cmd_rcvd = "";
         private int cmd_count = 0;
 
+        private readonly bool _printByteArrays = false;
+
         public AtopBroker(BrokerConfig config, ILogger logger) : base(config, logger)
         {
         }
@@ -41,12 +43,19 @@ namespace Otm.Server.Broker.Ptl
              
                 lock (lockSendDataQueue)
                 {
+                    if (_printByteArrays)
+                    {
+                        Logger.Info($"ByteArray displaysOn:\t ByteArray: '{string.Join(", ", buf.ToArray())}'");
+                    }
+
+                    Logger.Info("Acender o display");
                     sendDataQueue.Enqueue(buf.ToArray());
                 }
 
                 ListaLigados.Add(itemAcender);
             }
         }
+        
 
         private void AddCommandMessageToBuffer(PtlBaseClass itemAcender, List<byte> buf)
         {
@@ -101,6 +110,11 @@ namespace Otm.Server.Broker.Ptl
                     buf.AddRange(new byte[] { 0x20, 0x20, 0x20, 0x20 });
                     buf.AddRange(Encoding.ASCII.GetBytes(displayCodePart3));
 
+                    
+                    if (_printByteArrays)
+                    {
+                        Logger.Info($"ByteArray DisplayModel AT50A-3W-523:\t ByteArray: '{string.Join(", ", buf.ToArray())}'");
+                    }
                     break;
                 case "AT70C":
                     // este comando comentado funciona para o display de 12 digitos
@@ -108,6 +122,11 @@ namespace Otm.Server.Broker.Ptl
                     buf.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x66, 0x00, 0x00, 0x00, displayId, 0x11 });
                     buf.AddRange(displayCode);
                     buf.Add(0x01);
+                    
+                    if (_printByteArrays)
+                    {
+                        Logger.Info($"ByteArray DisplayModel AT70C:\t ByteArray: '{string.Join(", ", buf.ToArray())}'");
+                    }
                     break;
                 case "AT703":
                 case "AT708E":
@@ -125,6 +144,10 @@ namespace Otm.Server.Broker.Ptl
                         buf.Add(0x01);
                     }
 
+                    if (_printByteArrays)
+                    {
+                        Logger.Info($"ByteArray DisplayModel Default:\t ByteArray: '{string.Join(", ", buf.ToArray())}'");
+                    }
                     break;
             }
         }
@@ -147,6 +170,11 @@ namespace Otm.Server.Broker.Ptl
                 
                 lock (lockSendDataQueue)
                 {
+                    if (_printByteArrays)
+                    {
+                        Logger.Info($"ByteArray displayOff: \t ByteArray: '{string.Join(", ", buffer)}'");
+                    }
+                    
                     Logger.Info("Apagar o display" + displayId);
                     sendDataQueue.Enqueue(buffer.ToArray());
                 }
