@@ -192,18 +192,9 @@ namespace Otm.Server.Broker.Ptl
             Regex regex = new Regex(@"'(.*?)'");
             string conteudo = regex.Match(message).Groups[1].Value;
 
-            var ListaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
-                    let pendenteInfos = rawPendente.Split('|').ToList()
-                    select new PtlBaseClass(id: Guid.NewGuid(),
-                        location: pendenteInfos[0],
-                        displayColor: (E_DisplayColor)byte.Parse(pendenteInfos[1]),
-                        displayValue: pendenteInfos[2],
-                        displayModel: pendenteInfos[4])
-                ).ToList();
-
             var listaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
                     let pendenteInfos = rawPendente.Split('|').ToList()
-                    select new PtlBaseClass(id: Guid.NewGuid(),
+                    select new PtlBaseClass(id: Guid.Parse(pendenteInfos[3]),
                         location: pendenteInfos[0],
                         displayColor: (E_DisplayColor)byte.Parse(pendenteInfos[1]),
                         displayValue: pendenteInfos[2],
@@ -217,22 +208,29 @@ namespace Otm.Server.Broker.Ptl
                 " DisplayColor: " + x.DisplayColor + ", ");
             
             Logger.Info("listaPendentes" + strListaPendentes);
-
-            var strListaLigados = ListaLigados.Aggregate("", (s, x) =>
+            
+            var ListaAcender = listaPendentes.Where(pendente => !ListaLigados.Any(ligado =>
+                ligado.Location == pendente.Location 
+                && ligado.DisplayValue == pendente.DisplayValue 
+                && ligado.Id == pendente.Id
+            ));
+            
+            var strListaAcender = ListaAcender.Aggregate("", (s, x) =>
                 s +
                 " Location: " + x.Location +
                 " DisplayValue: " + x.DisplayValue +
                 " DisplayColor: " + x.DisplayColor + ", ");
             
-            Logger.Info("listaLigados" + strListaLigados);
+            Logger.Info("listaAcender" + strListaAcender);
             
-            var listaApagar = ListaLigados.Where(x1 => !listaPendentes.Any(x2 =>
-                x1.Location == x2.Location
-                && x1.DisplayValue == x2.DisplayValue
-                && x1.DisplayColor == x2.DisplayColor
+            var ListaApagar = ListaLigados.Where(ligado => !listaPendentes.Any(pendente =>
+                pendente.Location == ligado.Location 
+                && pendente.DisplayValue == ligado.DisplayValue
+                && pendente.Id == ligado.Id
+                || pendente.DisplayColorInt != ligado.DisplayColorInt
             ));
             
-            var strListaApagar = listaApagar.Aggregate("", (s, x) =>
+            var strListaApagar = ListaApagar.Aggregate("", (s, x) =>
                 s +
                 " Location: " + x.Location +
                 " DisplayValue: " + x.DisplayValue +
@@ -240,8 +238,8 @@ namespace Otm.Server.Broker.Ptl
             
             Logger.Info("listaApagar" + strListaApagar);
 
-            displayOff(listaApagar);
-            displaysOn(listaPendentes);
+            displayOff(ListaApagar);
+            displaysOn(ListaAcender);
         }
 
         public override bool ReceiveData()
