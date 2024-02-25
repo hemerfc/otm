@@ -23,6 +23,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Otm.Server.ContextConfig;
+using Otm.Server.ValueObjects.ProtocolPalantir;
 
 namespace Otm.Server.Broker.Palantir
 {
@@ -61,6 +62,8 @@ namespace Otm.Server.Broker.Palantir
         private const int RECONNECT_DELAY = 3000;
 
         public DateTime LastMessageTime { get; set; }
+        
+        public DateTime LastSendK01 { get; set; }
 
         public DateTime LastErrorTime { get; set; }
 
@@ -171,10 +174,13 @@ namespace Otm.Server.Broker.Palantir
         {
             var received = false;
 
+           // 456,2024-02-02<ETX><STX>R01,23,667
             var recv = client.GetData();
+            
             if (recv != null && recv.Length > 0)
             {
                 //Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
+                //<STX>R01,22,456,2024-02-02<ETX><STX>R01,23,667
                 var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
                 receiveBuffer.CopyTo(tempBuffer, 0);
                 recv.CopyTo(tempBuffer, receiveBuffer.Length);
@@ -184,8 +190,6 @@ namespace Otm.Server.Broker.Palantir
             if (receiveBuffer.Length > 0)
             {
                 var strRcvd = receiveBuffer;
-
-                var strRcvd1 = Encoding.ASCII.GetString(strRcvd);
 
                 var (stxPos, etxPos) = GetMessageDelimiters(strRcvd);
 
@@ -213,6 +217,7 @@ namespace Otm.Server.Broker.Palantir
                         // se encontrou apenas um STX em uma posição maior que 0, 
                         if (stxPos > 0)
                         {
+                            
                             receiveBuffer = receiveBuffer[(stxPos)..];
                         }
                         // retorna false para aguardar o restante da mensagem chegar
@@ -222,6 +227,7 @@ namespace Otm.Server.Broker.Palantir
                 else if (etxPos >= 0)
                 {
                     // se encontrou apenas um ETX descarta toda esta parta do buffer
+                    //<STX>R01,23,667
                     receiveBuffer = receiveBuffer[(etxPos + 1)..];
                     // envia true para processar novamente sem sleep..
                     return true;
@@ -236,6 +242,7 @@ namespace Otm.Server.Broker.Palantir
                 {
                     
                     // pega a mensagem do buffer
+                    //<STX>R01,22,456,2024-02-02<ETX><STX>R01,23,667
                     var message = strRcvd[(stxPos + 1)..etxPos];
                     //Descartando a mensagem do buffer pois ja foi processada
                     receiveBuffer = receiveBuffer[(etxPos + 1)..];
@@ -280,6 +287,7 @@ namespace Otm.Server.Broker.Palantir
         /// </summary>
         /// <param name="strRcvd">String Recebida</param>
         /// <returns>retorna uma tupla com a posicao do STX e do ETX, retorna -1 caso não encontrar</returns>
+        /// //<STX>R01,22,456,2024-02-02<ETX><STX>R01,23,667
         private (int stx, int ext) GetMessageDelimiters(byte[] strRcvd)
         {
             int stxPos = -1;
@@ -311,19 +319,16 @@ namespace Otm.Server.Broker.Palantir
             if (sendDataQueue.Count > 0)
                 lock (lockSendDataQueue)
                 {
-                    try
-                    {
-                        var st = new Stopwatch();
-                        st.Start();
-
                         var totalLength = 0;
                         foreach (var it in sendDataQueue)
                         {
                             totalLength += it.Length;
                         }
 
+                        Logger.Info($"SendData: {Config.Name}: totalLength {totalLength}");
                         var obj = new byte[totalLength];
                         var pos = 0;
+                        
                         while (sendDataQueue.Count > 0)
                         {
                             var it = sendDataQueue.Dequeue();
@@ -332,6 +337,7 @@ namespace Otm.Server.Broker.Palantir
                         }
 
                         var message = Encoding.Default.GetString(obj);
+                        Logger.Info($"SendData: {Config.Name}: MessageJson {message}");
 
                         string pattern = @"\{[^{}]+\}";
 
@@ -339,9 +345,10 @@ namespace Otm.Server.Broker.Palantir
 
                         MatchCollection matches = regex.Matches(message);
 
+                        Logger.Info($"SendData: {Config.Name}: MatchCollection {matches}");
                         foreach (Match match in matches)
                         {
-                            //Logger.Info($"SendData: {Config.Name}: Message {match}");
+                            Logger.Info($"SendData: {Config.Name}: Message {match}");
                             Match conteudo = Regex.Match(match.ToString(), @"""body"":\s*""([^""]*)""");
 
                             // Adiciona o byte 2 no início da mensagem
@@ -353,21 +360,13 @@ namespace Otm.Server.Broker.Palantir
                             byte[] messageBytes = messageStart.Concat(endByte).ToArray();
 
 
+                            Logger.Info($"SendData: {Config.Name}: Client {client.Connected}");
                             client.SendData(messageBytes);
-
-                            st.Stop();
-
-                            Logger.Info($"SendData():    Drive: {Config.Name}: Message: {conteudo.Groups[1].Value}");
+                            
+                            Logger.Info($"SendData():    Drive: {Config.Name}: MessageSendToDevice: {conteudo.Groups[1].Value}");
                         }
-
-
-
+                        
                         this.LastSend = DateTime.Now;
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.Error($"SendData {Config.Name}: error: {e.Message}");
-                    }
                 }
             else
             {

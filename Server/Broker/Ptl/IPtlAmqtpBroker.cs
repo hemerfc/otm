@@ -267,41 +267,27 @@ namespace Otm.Server.Broker.Ptl
             if (sendDataQueue.Count > 0)
                 lock (lockSendDataQueue)
                 {
-                    try
+                    var totalLength = 0;
+                    foreach (var it in sendDataQueue)
                     {
-                        var st = new Stopwatch();
-                        st.Start();
-
-                        var totalLength = 0;
-                        foreach (var it in sendDataQueue)
-                        {
-                            totalLength += it.Length;
-                        }
-
-                        var obj = new byte[totalLength];
-                        var pos = 0;
-                        while (sendDataQueue.Count > 0)
-                        {
-                            var it = sendDataQueue.Dequeue();
-                            Array.Copy(it, 0, obj, pos, it.Length);
-                            pos += it.Length;
-                        }
-
-                        var message = Encoding.Default.GetString(obj);
-                        Logger.Info($"V0.1 SendData: {Config.Name}: Message {message}");
-
-                        client.SendData(obj);
-
-                        st.Stop();
-
-                        Logger.Debug($"Dev {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
-
-                        this.LastSend = DateTime.Now;
+                        totalLength += it.Length;
                     }
-                    catch (Exception e)
+
+                    var obj = new byte[totalLength];
+                    var pos = 0;
+                    while (sendDataQueue.Count > 0)
                     {
-                        Logger.Error($"SendData {Config.Name}: error: {e.Message}");
+                        var it = sendDataQueue.Dequeue();
+                        Array.Copy(it, 0, obj, pos, it.Length);
+                        pos += it.Length;
                     }
+
+                    var message = Encoding.Default.GetString(obj);
+                    Logger.Info($"V0.1 SendData: {Config.Name}: Message {message}");
+
+                    client.SendData(obj);
+
+                    this.LastSend = DateTime.Now;
                 }
             else
             {
