@@ -10,6 +10,13 @@
 		<PackageReference Include="NLog.Targets.ElasticSearch" Version="7.7.0" />
 		<PackageReference Include="NLog.Web.AspNetCore" Version="4.14.0" />
 		<PackageReference Include="Npgsql" Version="7.0.1" />
+		<PackageReference Include="OpenTelemetry.Api" Version="1.7.0" />
+		<PackageReference Include="OpenTelemetry.Exporter.Jaeger" Version="1.6.0-rc.1" />
+		<PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.7.0-rc.1" />
+		<PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.7.0" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.7.1" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.7.1" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.7.0-beta.1" />
 		<PackageReference Include="Oracle.ManagedDataAccess.Core" Version="3.21.110" />
 		<PackageReference Include="RabbitMQ.Client" Version="6.2.2" />
 		<PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
