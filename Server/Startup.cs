@@ -104,7 +104,7 @@ namespace Otm.Server
                             b.AddJaegerExporter(e =>
                             {
                                 e.AgentHost = _jaegerHost;
-                                e.AgentPort = Convert.ToInt32(_appConfiguration["Jaeger:Port"]);
+                                e.AgentPort = _jaegerPort;
                             });
                         }
                     )

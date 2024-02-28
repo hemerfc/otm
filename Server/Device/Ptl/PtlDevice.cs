@@ -314,10 +314,10 @@ namespace Otm.Server.Device.Ptl
                             }
                         }
                     }
-                    // wait 100ms
+                    // wait 50ms
                     /// TODO: wait time must be equals the minimum update rate of tags
                     var waitEvent = new ManualResetEvent(false);
-                    waitEvent.WaitOne(100);
+                    waitEvent.WaitOne(50);
 
                     if (Worker.CancellationPending)
                     {

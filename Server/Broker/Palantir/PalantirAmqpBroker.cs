@@ -1,9 +1,10 @@
-﻿using Nest;
+﻿using Jint.Parser;
+using Nest;
+using Newtonsoft.Json;
 using NLog;
 using Otm.Server.Device;
 using Otm.Server.Device.Ptl;
 using Otm.Server.Device.TcpServer;
-using Otm.Server.ContextConfig;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
@@ -17,9 +18,12 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Otm.Server.ContextConfig;
+using Otm.Server.ValueObjects.ProtocolPalantir;
 
 namespace Otm.Server.Broker.Palantir
 {
@@ -42,6 +46,9 @@ namespace Otm.Server.Broker.Palantir
         private byte STX = 0x02;
         private byte ETX = 0x03;
 
+        //private byte[] STX = new byte[] { 0x02 }; 
+        //private byte[] ETX = new byte[] { 0x03 };
+
         public bool Ready { get; set; }
 
         public BackgroundWorker Worker { get; private set; }
@@ -50,11 +57,13 @@ namespace Otm.Server.Broker.Palantir
 
         public bool Enabled { get; set; }
 
-        public bool Connected { get; set; }
+        //public bool Connected { get; set; }
 
         private const int RECONNECT_DELAY = 3000;
 
         public DateTime LastMessageTime { get; set; }
+        
+        public DateTime LastSendK01 { get; set; }
 
         public DateTime LastErrorTime { get; set; }
 
@@ -67,6 +76,10 @@ namespace Otm.Server.Broker.Palantir
         private readonly object lockSendDataQueue = new object();
         private Queue<byte[]> sendDataQueue;
         private IBasicProperties basicProperties;
+
+        private static readonly ActivitySource RegisteredActivity  = new ActivitySource("OTM");
+        
+        public bool Connected { get { return client?.Connected ?? false; } }
 
         public void Init(BrokerConfig config, ILogger logger, ITcpClientAdapter tcpClientAdapter = null)
         {
@@ -81,6 +94,7 @@ namespace Otm.Server.Broker.Palantir
                 new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
                 );
             this.sendDataQueue = new Queue<byte[]>();
+           
         }
 
         public void Init(BrokerConfig config, ILogger logger)
@@ -93,54 +107,88 @@ namespace Otm.Server.Broker.Palantir
             // backgroud worker
             Worker = worker;
 
-            try
+            while (true)
             {
-                if (client.Connected)
+                try
                 {
-                    bool received, sent;
-
-                    do
+                    if (client.Connected && AmqpChannel != null && AmqpChannel.IsOpen)
                     {
-                        received = ReceiveData();
-                        sent = SendData();
-                    } while (received || sent);
+                        bool received, sent;
 
-                    Ready = true;
-                }
-                else
-                {
-                    Ready = false;
-
-                    if (!Connecting)
-                    {
-                        // se ja tiver passado o delay, tenta reconectar
-                        if (LastConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
+                        do
                         {
-                            LastConnectionTry = DateTime.Now;
-                            Connecting = true;
-                            //Verifica se consegue conectar
-                            Connect();
-                            Connecting = false;
+                            using (var activity = RegisteredActivity.StartActivity($"ReceiveData : {Config.Name}"))
+                            {
+                                activity?.SetTag("device", Config.Name);
+                                received = ReceiveData();
+                            }
+
+                            using (var activity = RegisteredActivity.StartActivity($"SendData: {Config.Name}"))
+                            {
+                                activity?.SetTag("device", Config.Name);
+                                sent = SendData();
+                            }
+                        } while (received || sent);
+
+                        Ready = true;
+                    }
+                    else
+                    {
+                        Ready = false;
+
+                        using (var activity = RegisteredActivity.StartActivity($"CreateChannel: {Config.Name}"))
+                        {
+                            activity?.SetTag("device", Config.Name);
+                            this.AmqpChannel = CreateChannel(Config.AmqpHostName,
+                                Config.AmqpPort,
+                                Config.AmqpQueueToConsume,
+                                Config.AmqpQueueToProduce,
+                                new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
+                            );
+                        }
+
+                        if (!Connecting)
+                        {
+                            // se ja tiver passado o delay, tenta reconectar
+                            if (LastConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
+                            {
+                                using (var activity = RegisteredActivity.StartActivity($"Reconnect: {Config.Name}"))
+                                {
+                                    LastConnectionTry = DateTime.Now;
+                                    Connecting = true;
+                                    //Verifica se consegue conectar
+                                    Connect();
+                                    Connecting = false;
+                                }
+                            }
                         }
                     }
+
+                    using (var activity = RegisteredActivity.StartActivity($"waitEvent: {Config.Name}"))
+                    {
+                        activity?.SetTag("device", Config.Name);
+                        // wait 100ms
+                        /// TODO: wait time must be equals the minimum update rate of tags
+                        var waitEvent = new ManualResetEvent(false);
+                        waitEvent.WaitOne(100);
+                    }
+
+                    if (Worker.CancellationPending)
+                    {
+                        using (var activity = RegisteredActivity.StartActivity("stop"))
+                        {
+                            Ready = false;
+                            Stop();
+                        }
+
+                        return;
+                    }
                 }
-
-                // wait 100ms
-                /// TODO: wait time must be equals the minimum update rate of tags
-                var waitEvent = new ManualResetEvent(false);
-                waitEvent.WaitOne(100);
-
-                if (Worker.CancellationPending)
+                catch (Exception ex)
                 {
                     Ready = false;
-                    Stop();
-                    return;
+                    Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
                 }
-            }
-            catch (Exception ex)
-            {
-                Ready = false;
-                Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
             }
         }
 
@@ -153,10 +201,13 @@ namespace Otm.Server.Broker.Palantir
         {
             var received = false;
 
+           // 456,2024-02-02<ETX><STX>R01,23,667
             var recv = client.GetData();
+            
             if (recv != null && recv.Length > 0)
             {
-                Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
+                //Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
+                //<STX>R01,22,456,2024-02-02<ETX><STX>R01,23,667
                 var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
                 receiveBuffer.CopyTo(tempBuffer, 0);
                 recv.CopyTo(tempBuffer, receiveBuffer.Length);
@@ -193,6 +244,7 @@ namespace Otm.Server.Broker.Palantir
                         // se encontrou apenas um STX em uma posição maior que 0, 
                         if (stxPos > 0)
                         {
+                            
                             receiveBuffer = receiveBuffer[(stxPos)..];
                         }
                         // retorna false para aguardar o restante da mensagem chegar
@@ -202,6 +254,7 @@ namespace Otm.Server.Broker.Palantir
                 else if (etxPos >= 0)
                 {
                     // se encontrou apenas um ETX descarta toda esta parta do buffer
+                    //<STX>R01,23,667
                     receiveBuffer = receiveBuffer[(etxPos + 1)..];
                     // envia true para processar novamente sem sleep..
                     return true;
@@ -214,19 +267,23 @@ namespace Otm.Server.Broker.Palantir
                 received = true;
                 try
                 {
+                    
                     // pega a mensagem do buffer
+                    //<STX>R01,22,456,2024-02-02<ETX><STX>R01,23,667
                     var message = strRcvd[(stxPos + 1)..etxPos];
                     //Descartando a mensagem do buffer pois ja foi processada
                     receiveBuffer = receiveBuffer[(etxPos + 1)..];
                     var messageStr = Encoding.ASCII.GetString(message);
                     var messageType = messageStr.Split(",").First();
-                    var queueName = "QF_" + messageType;
+                    var queueName = messageType;
 
-                    Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {messageStr}");
+                    Logger.Info($"ReceiveData(): Drive: {Config.Name}. Message: {messageStr}");
+                    var json = JsonConvert.SerializeObject(new { Body = messageStr });
 
-                    AmqpChannel.BasicPublish("", queueName, true, basicProperties, message);
+
+                    AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
                     throw;
                 }
@@ -236,11 +293,28 @@ namespace Otm.Server.Broker.Palantir
             return received;
         }
 
+        private static int SearchBytes(byte[] haystack, byte[] needle)
+        {
+            var len = needle.Length;
+            var limit = haystack.Length - len;
+            for (var i = 0; i <= limit; i++)
+            {
+                var k = 0;
+                for (; k < len; k++)
+                {
+                    if (needle[k] != haystack[i + k]) break;
+                }
+                if (k == len) return i;
+            }
+            return -1;
+        }
+
         /// <summary>
         /// Varrega o array de bytes e encontra o par de STX e ETX, se tiver dois STX antes de um ETX, desconsidera a primeira parte
         /// </summary>
         /// <param name="strRcvd">String Recebida</param>
         /// <returns>retorna uma tupla com a posicao do STX e do ETX, retorna -1 caso não encontrar</returns>
+        /// //<STX>R01,22,456,2024-02-02<ETX><STX>R01,23,667
         private (int stx, int ext) GetMessageDelimiters(byte[] strRcvd)
         {
             int stxPos = -1;
@@ -265,41 +339,70 @@ namespace Otm.Server.Broker.Palantir
             return (stxPos, extPos);
         }
 
-        private bool SendData()
+        public bool SendData()
         {
             var sent = false;
 
             if (sendDataQueue.Count > 0)
                 lock (lockSendDataQueue)
                 {
-                    var st = new Stopwatch();
-                    st.Start();
+                        var totalLength = 0;
+                        foreach (var it in sendDataQueue)
+                        {
+                            totalLength += it.Length;
+                        }
 
-                    var totalLength = 0;
-                    foreach (var it in sendDataQueue)
-                    {
-                        totalLength += it.Length;
-                    }
+                        Logger.Info($"SendData: {Config.Name}: totalLength {totalLength}");
+                        var obj = new byte[totalLength];
+                        var pos = 0;
+                        
+                        while (sendDataQueue.Count > 0)
+                        {
+                            var it = sendDataQueue.Dequeue();
+                            Array.Copy(it, 0, obj, pos, it.Length);
+                            pos += it.Length;
+                        }
 
-                    var obj = new byte[totalLength];
-                    var pos = 0;
-                    while (sendDataQueue.Count > 0)
-                    {
-                        var it = sendDataQueue.Dequeue();
-                        Array.Copy(it, 0, obj, pos, it.Length);
-                        pos += it.Length;
-                    }
+                        var message = Encoding.Default.GetString(obj);
+                        Logger.Info($"SendData: {Config.Name}: MessageJson {message}");
 
-                    client.SendData(obj);
+                        string pattern = @"\{[^{}]+\}";
 
-                    st.Stop();
+                        Regex regex = new Regex(pattern);
 
-                    Logger.Debug($"Dev {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
+                        MatchCollection matches = regex.Matches(message);
 
-                    this.LastSend = DateTime.Now;
+                        Logger.Info($"SendData: {Config.Name}: MatchCollection {matches}");
+                        foreach (Match match in matches)
+                        {
+                            Logger.Info($"SendData: {Config.Name}: Message {match}");
+                            Match conteudo = Regex.Match(match.ToString(), @"""body"":\s*""([^""]*)""");
+
+                            // Adiciona o byte 2 no início da mensagem
+                            byte[] startByte = new byte[] { 2 };
+                            byte[] messageStart = startByte.Concat(Encoding.Default.GetBytes(conteudo.Groups[1].Value)).ToArray();
+
+                            // Adiciona o byte 3 no final da mensagem
+                            byte[] endByte = new byte[] { 3 };
+                            byte[] messageBytes = messageStart.Concat(endByte).ToArray();
+
+
+                            Logger.Info($"SendData: {Config.Name}: Client {client.Connected}");
+                            client.SendData(messageBytes);
+                            
+                            Logger.Info($"SendData():    Drive: {Config.Name}: MessageSendToDevice: {conteudo.Groups[1].Value}");
+                        }
+                        
+                        this.LastSend = DateTime.Now;
                 }
             else
             {
+                if (LastSend.AddSeconds(10) < DateTime.Now)
+                {
+                    var getFwCmd = new byte[] { 2,3 };
+                    client.SendData(getFwCmd);
+                    this.LastSend = DateTime.Now;
+                }
             }
 
             return sent;

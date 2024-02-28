@@ -1,51 +1,75 @@
-﻿using Jint.Parser;
-using Nest;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using NLog;
 using Otm.Server.Device.Ptl;
-using Otm.Server.Broker.Amqtp;
-using Otm.Server.Device.S7;
-using Otm.Server.ContextConfig;
-using RabbitMQ.Client;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
+using Otm.Server.ContextConfig;
 
 namespace Otm.Server.Broker.Ptl
 {
     public class SmartPickingBroker : IPtlAmqtpBroker
     {
-        public SmartPickingBroker(BrokerConfig config, ILogger logger, IAmqpChannelFactory amqtpFactory) : base(config, logger, amqtpFactory)
+        public SmartPickingBroker(BrokerConfig config, ILogger logger) : base(config, logger)
         {
         }
 
         private byte[] STX_LC = Encoding.ASCII.GetBytes("P");
         private int messageSize = 12;
-        private object processMessageLock = new object();
+
         public override void ProcessMessage(byte[] body) {
-            lock (processMessageLock)
+
+            var message = Encoding.Default.GetString(body);
+
+            Logger.Info($"ProcessMessage(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
+
+            Regex regex = new Regex(@"'(.*?)'");
+            string conteudo = regex.Match(message).Groups[1].Value;
+
+            var ListaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
+                                  let pententeInfos = rawPendente.Split('|').ToList()
+                                    select new PtlBaseClass(id: Guid.Parse(pententeInfos[3]),
+                                                            location: pententeInfos[0],
+                                                            displayColor: pententeInfos[1],
+                                                            displayValue: pententeInfos[2])
+                                                                ).ToList();
+
+                           
+            var ListaAcender = ListaPendentes.Where(pendente => !ListaLigados.Any(ligado =>
+                ligado.Location == pendente.Location 
+                && ligado.DisplayValue == pendente.DisplayValue 
+                && ligado.Id == pendente.Id
+            ));
+
+            //var ListaApagar = ListaLigados.Where(ligado => !ListaPendentes.Any(pendente => pendente.Location == ligado.Location && pendente.DisplayValue == ligado.DisplayValue || pendente.DisplayColorInt != ligado.DisplayColorInt));
+            var ListaApagar = ListaLigados.Where(ligado => !ListaPendentes.Any(pendente =>
+                pendente.Location == ligado.Location 
+                && pendente.DisplayValue == ligado.DisplayValue
+                && pendente.Id == ligado.Id
+                || pendente.DisplayColorInt != ligado.DisplayColorInt
+            ));
+
+            displayOff(ListaApagar);
+
+            displaysOn(ListaAcender);
+
+        }
+
+        public void displayOff(IEnumerable<PtlBaseClass> ListaApagar)
+        {
+            foreach (var itemApagar in ListaApagar.ToList())
             {
-                var message = Encoding.Default.GetString(body);
+                int displayId = itemApagar.GetDisplayIdToInt();
 
-                Regex regex = new Regex(@"'(.*?)'");
-                string conteudo = regex.Match(message).Groups[1].Value;
+                var mensagem = String.Format("{0:D3}{1:D3}|", "CLR", displayId);
 
-                var ListaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
-                                      let pententeInfos = rawPendente.Split('|').ToList()
-                                        select new PtlBaseClass(id: Guid.NewGuid(),
-                                                                location: pententeInfos[0],
-                                                                displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
-                                                                displayValue: pententeInfos[2])
-                                                                    ).ToList();
-                
-                var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Select(x => x.Id).Contains(i.Id));
+                var buffer = System.Text.Encoding.ASCII.GetBytes(mensagem);
 
-                displaysOn(ListaAcender);
-                Thread.Sleep(300);
+                sendDataQueue.Enqueue(buffer.ToArray());
+                ListaLigados.Remove(itemApagar);
+                SendData();
             }
         }
 
@@ -55,13 +79,25 @@ namespace Otm.Server.Broker.Ptl
             {
                 string mensagem;
 
+                var displayId = itemAcender.GetDisplayIdToInt();
+
+
                 if (itemAcender.Location == Config.MasterDevice)
                 {                    
-                    mensagem = String.Format("{0:D3}{1:D3}{2:D6}|", "SHW", Int32.Parse(itemAcender.Location),itemAcender.DisplayValue);
+                    mensagem = String.Format("{0:D3}{1:D3}{2:D6}|", "SHW", displayId, itemAcender.DisplayValue);
                 }
                 else
                 {
-                    mensagem = String.Format("{0:D3}{1:D3}{2:D3}{3:D1}{4:D1}|", "SHW", Int32.Parse(itemAcender.Location), Int32.Parse(itemAcender.DisplayValue), 7, 0);
+                    int parsedValue;
+                    if (int.TryParse(itemAcender.DisplayValue, out parsedValue))
+                    {
+                        mensagem = String.Format("{0:D3}{1:D3}{2:D3}{3:D1}{4:D1}|", "SHW", displayId, parsedValue, itemAcender.DisplayColorInt, 1);
+                    }
+                    else
+                    {
+                        mensagem = String.Format("{0:D3}{1:D3}{2:D6}|", "SHW", displayId, itemAcender.DisplayValue);
+                    }
+                    //mensagem = String.Format("{0:D3}{1:D3}{2:D3}{3:D1}{4:D1}|", "SHW", displayId, itemAcender.DisplayValue, itemAcender.DisplayColorInt, 1);
                 }
 
                 var buffer = System.Text.Encoding.ASCII.GetBytes(mensagem);
@@ -114,19 +150,36 @@ namespace Otm.Server.Broker.Ptl
                         var msgBytes = receiveBuffer[primeiraPosRelevante..(primeiraPosRelevante + messageSize)];
                         // Exemploe de msg PRS999888888
                         var message = Encoding.ASCII.GetString(msgBytes);
+                        Logger.Info(message);
                         if (message.StartsWith("PRS")) { 
                             string prefixo = message.Substring(0, 3);
                             string display = message.Substring(3, 3);
                             string value = message.Substring(6, 6);
+                            string endereco = $"{Config.PtlId}:{display}";
+
+                            //var itemApagar = ListaLigados.Where(x => x.Location == endereco).ToList();
+                            //foreach (var item in itemApagar) { 
+                            //    ListaLigados.Remove(item);
+                            //}
+
 
                             var queueName = Config.AmqpQueueToProduce;
 
                             Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
 
-                            var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, display, value,DateTime.Now);
+                            var messageToAmqtp = String.Join(',',
+                                Config.AmqpQueueToProduce,
+                                Config.Name,
+                                $"{Config.PtlId}:{display}",
+                                value.All(c => c == '0') ? 0 : value.TrimStart('0'),
+                                DateTime.Now
+                            );
+
+                            Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message send: {messageToAmqtp}");
+
                             var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
 
-                            AmqpChannel.Publish(queueName, json);                        
+                            AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));                        
                         }
 
                         receiveBuffer = receiveBuffer[(primeiraPosRelevante + messageSize)..];
@@ -137,6 +190,11 @@ namespace Otm.Server.Broker.Ptl
             }
 
             return received;
+        }
+
+        public override byte[] GetMessagekeepAlive()
+        {
+            return System.Text.Encoding.ASCII.GetBytes("PONG");
         }
     }
 }

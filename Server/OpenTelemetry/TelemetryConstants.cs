@@ -9,9 +9,9 @@ public class TelemetryConstants
     /// The name of the <see cref="ActivitySource"/> that is going to produce our traces and
     /// the <see cref="Meter"/> that is going to produce our metrics.
     /// </summary>
-    public const string MyAppSource = "Mjolnir";
-    public static string ServiceName = "AspNet";
-    public static string ServiceNameSpace = "Mjolnir";
+    public const string MyAppSource = "OTM";
+    public static string ServiceName = "OTM";
+    public static string ServiceNameSpace = "OTM";
     public static string ServiceVersion= "1";
 
     public static readonly ActivitySource DemoTracer = new ActivitySource(MyAppSource);

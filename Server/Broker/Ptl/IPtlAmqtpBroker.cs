@@ -1,18 +1,15 @@
 ﻿using Otm.Server.Device.Ptl;
-using Otm.Server.ContextConfig;
 using Otm.Server.Device.TcpServer;
-using Otm.Server.Broker.Amqtp;
-using System;
-using System.Text;
-using System.Linq;
-using System.Threading;
-using System.Diagnostics;
-using System.ComponentModel;
-using System.Collections.Generic;
-using NLog;
-using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using Elasticsearch.Net;
+using RabbitMQ.Client;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Text;
+using NLog;
+using System;
+using System.Threading;
+using Otm.Server.ContextConfig;
 
 namespace Otm.Server.Broker.Ptl
 {
@@ -20,12 +17,10 @@ namespace Otm.Server.Broker.Ptl
     {
         public ILogger Logger;
 
-        public IAmqpChannelWrapper AmqpChannel { get; set; }
+        public IModel AmqpChannel { get; set; }
 
         public BrokerConfig Config;
         public ITcpClientAdapter client;
-
-        public ConnectionFactory connectionFactory;
 
         private byte STX = 0x02;
         private byte ETX = 0x03;
@@ -47,29 +42,29 @@ namespace Otm.Server.Broker.Ptl
         public DateTime LastErrorTime { get; set; }
 
         public double MessagesPerSecond { get; set; }
-        public bool TcpConnecting { get; private set; }
-        public bool AmpqConnecting { get; private set; }
-        public DateTime LastTcpConnectionTry { get; set; }
-        public DateTime LastAmqpConnectionTry { get; set; }
-        public DateTime LastSend { get; private set; }
-
-        private readonly object lockSendDataQueue = new object();
+        public bool Connecting { get; private set; }
+        public DateTime LastConnectionTry { get; set; }
+        public DateTime LastSend { get; private set; } = DateTime.Now;
+     
+        protected readonly object lockSendDataQueue = new object();
         public Queue<byte[]> sendDataQueue;
+        public IBasicProperties basicProperties;
         public readonly List<PtlBaseClass> ListaLigados = new List<PtlBaseClass>();
         public byte[] receiveBuffer = new byte[0];
+        
+        private static readonly ActivitySource RegisteredActivity = new ActivitySource("OTM");
 
-        public IAmqpChannelFactory AmqtpFactory { get; set; }
-
-        public IPtlAmqtpBroker(BrokerConfig config, ILogger logger, IAmqpChannelFactory amqtpFactory)
+        public IPtlAmqtpBroker(BrokerConfig config, ILogger logger)
         {
             this.Config = config;
             this.Logger = logger;
-            this.AmqtpFactory = amqtpFactory;
         }
 
         public abstract void displaysOn(IEnumerable<PtlBaseClass> listaAcender);
         public abstract void ProcessMessage(byte[] body);
         public abstract bool ReceiveData();
+
+        public abstract byte[] GetMessagekeepAlive();
 
         public void Init(BrokerConfig config, ILogger logger, ITcpClientAdapter tcpClientAdapter = null)
         {
@@ -77,6 +72,12 @@ namespace Otm.Server.Broker.Ptl
             this.Config = config;
 
             this.client = tcpClientAdapter ?? new TcpClientAdapter();
+            this.AmqpChannel = CreateChannel(config.AmqpHostName,
+                config.AmqpPort,
+                Config.AmqpQueueToConsume,
+                Config.AmqpQueueToProduce,
+                new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
+                );
             this.sendDataQueue = new Queue<byte[]>();
         }
 
@@ -90,72 +91,60 @@ namespace Otm.Server.Broker.Ptl
             // backgroud worker
             Worker = worker;
 
-            while (true)
-            {
+            while (true) {
                 try
                 {
-                    if (this.AmqpChannel == null || !this.AmqpChannel.IsOpen)
-                    {
-                        Ready = false;
-
-                        if (!AmpqConnecting)
-                        {
-                            // se ja tiver passado o delay, tenta reconectar
-                            if (LastAmqpConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
-                            {
-                                LastAmqpConnectionTry = DateTime.Now;
-                                AmpqConnecting = true;
-
-                                var factory = new AmqpRabbitChannelFactory();
-                                // tenta conectar
-                                this.AmqpChannel = factory.Create(
-                                    Config.AmqpHostName, 
-                                    Config.AmqpPort,
-                                    Config.AmqpQueueToConsume,
-                                    Config.AmqpQueueToProduce,
-                                    new EventHandler<BasicDeliverEventArgs>(Consumer_Received),
-                                    Logger);
-
-                                AmpqConnecting = false;
-                            }
-                        }
-                    }
-
-                    if (!client.Connected)
-                    {
-                        Ready = false;
-
-                        if (!TcpConnecting)
-                        {
-                            // se ja tiver passado o delay, tenta reconectar
-                            if (LastTcpConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
-                            {
-                                LastTcpConnectionTry = DateTime.Now;
-                                TcpConnecting = true;
-                                // tenta conectar
-                                Connect();
-                                TcpConnecting = false;
-                            }
-                        }
-                    }
-
-                    if (client.Connected && (this.AmqpChannel != null && this.AmqpChannel.IsOpen))
+                    if (client.Connected)
                     {
                         bool received, sent;
 
                         do
                         {
-                            received = ReceiveData();
-                            sent = SendData();
+                            using (var activity = RegisteredActivity.StartActivity($"ReceiveData: {Config.Name}"))
+                            {
+                                activity?.SetTag("device", Config.Name);
+                                received = ReceiveData();
+                            }
+
+                            using (var activity = RegisteredActivity.StartActivity($"SendData: {Config.Name}"))
+                            {
+                                activity?.SetTag("device", Config.Name);
+                                sent = SendData();
+                            }
                         } while (received || sent);
 
                         Ready = true;
                     }
+                    else
+                    {
+                        Ready = false;
 
-                    // wait 50ms
-                    /// TODO: wait time must be equals the minimum update rate of tags
-                    var waitEvent = new ManualResetEvent(false);
-                    waitEvent.WaitOne(50);
+                        if (!Connecting)
+                        {
+                            // se ja tiver passado o delay, tenta reconectar
+                            if (LastConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
+                            {
+                                using (var activity = RegisteredActivity.StartActivity($"Reconnect: {Config.Name}"))
+                                {
+                                    activity?.SetTag("device", Config.Name);
+                                    LastConnectionTry = DateTime.Now;
+                                    Connecting = true;
+                                    //Verifica se consegue conectar
+                                    Connect();
+                                    Connecting = false;
+                                }
+                            }
+                        }
+                    }
+
+                    using (var activity = RegisteredActivity.StartActivity($"WaitOne: {Config.Name}"))
+                    {
+                        activity?.SetTag("device", Config.Name);
+                        // wait 100ms
+                        /// TODO: wait time must be equals the minimum update rate of tags
+                        var waitEvent = new ManualResetEvent(false);
+                        waitEvent.WaitOne(100);
+                    }
 
                     if (Worker.CancellationPending)
                     {
@@ -167,7 +156,7 @@ namespace Otm.Server.Broker.Ptl
                 catch (Exception ex)
                 {
                     Ready = false;
-                    Logger.Error($"Broker {Config.Name}: Update Loop Error {ex}");
+                    Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
                 }
             }
         }
@@ -177,9 +166,79 @@ namespace Otm.Server.Broker.Ptl
             throw new NotImplementedException();
         }
 
-
-        public void Consumer_Received(object sender, BasicDeliverEventArgs e)
+        private IModel CreateChannel(string hostName, int port, string queuesToConsume, string queuesToProduce, EventHandler<BasicDeliverEventArgs> onReceived)
         {
+            ConnectionFactory factory = new ConnectionFactory()
+            {
+                HostName = hostName,
+                Port = port
+            };
+
+            IModel channel = null;
+            const int maxRetries = 7; // Número máximo de tentativas
+            int retryCount = 0;
+
+            while (retryCount < maxRetries)
+            {
+                try
+                {
+                    var connection = factory.CreateConnection();
+                    channel = connection.CreateModel();
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Erro de conexão: {ex.Message}");
+                    retryCount++;
+                    if (retryCount < maxRetries)
+                    {
+                        Logger.Error($"Numero de tentativas {retryCount}");
+                        Thread.Sleep(2000 * retryCount);
+                    }
+                }
+            }
+
+            if (channel == null)
+            {
+                throw new ApplicationException("Não foi possível estabelecer a conexão após várias tentativas.");
+            }
+
+            var consumer = new EventingBasicConsumer(channel);
+
+            basicProperties = channel.CreateBasicProperties();
+            basicProperties.Persistent = true;
+
+            consumer.Received += onReceived;
+
+            var queueNames = queuesToConsume.Split("|");
+            foreach (var queueName in queueNames)
+            {
+                channel.QueueDeclare(queue: queueName,
+                             durable: true,
+                             exclusive: false,
+                             autoDelete: false,
+                             arguments: null);
+
+                channel.BasicConsume(queue: queueName,
+                                     autoAck: false,
+                                     consumer: consumer);
+            }
+
+            queueNames = queuesToProduce.Split("|");
+            foreach (var queueName in queueNames)
+            {
+                channel.QueueDeclare(queue: queueName,
+                             durable: true,
+                             exclusive: false,
+                             autoDelete: false,
+                             arguments: null);
+            }
+
+            return channel;
+        }
+       
+        public void Consumer_Received(object sender, BasicDeliverEventArgs e)
+        {            
             var body = e.Body.ToArray();
             //var message = Encoding.UTF8.GetString();
 
@@ -227,9 +286,6 @@ namespace Otm.Server.Broker.Ptl
             if (sendDataQueue.Count > 0)
                 lock (lockSendDataQueue)
                 {
-                    var st = new Stopwatch();
-                    st.Start();
-
                     var totalLength = 0;
                     foreach (var it in sendDataQueue)
                     {
@@ -246,17 +302,22 @@ namespace Otm.Server.Broker.Ptl
                     }
 
                     var message = Encoding.Default.GetString(obj);
+                    Logger.Info($"V0.1 SendData: {Config.Name}: Message {message}");
 
                     client.SendData(obj);
-
-                    st.Stop();
-
-                    Logger.Debug($"Broker {Config.Name}: Enviado {obj.Length} bytes em {st.ElapsedMilliseconds} ms.");
 
                     this.LastSend = DateTime.Now;
                 }
             else
             {
+                if (LastSend.AddMinutes(15) < DateTime.Now)
+                {
+                    client.Dispose();
+                    Connect();
+                    //var getFwCmd = GetMessagekeepAlive();
+                    //client.SendData(getFwCmd);
+                    this.LastSend = DateTime.Now;
+                }
             }
 
             return sent;
@@ -270,16 +331,16 @@ namespace Otm.Server.Broker.Ptl
 
                 if (client.Connected)
                 {
-                    Logger.Debug($"Broker {Config.Name}: Connected.");
+                    Logger.Debug($"Dev {Config.Name}: Connected.");
                 }
                 else
                 {
-                    Logger.Error($"Broker {Config.Name}: Connection error.");
+                    Logger.Error($"Dev {Config.Name}: Connection error.");
                 }
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, $"Broker {Config.Name}: Connection error.");
+                Logger.Error(ex, $"Dev {Config.Name}: Connection error.");
             }
         }
 

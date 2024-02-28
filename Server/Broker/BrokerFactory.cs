@@ -1,13 +1,9 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using Otm.Server.ContextConfig;
-using Otm.Server.Plugin;
-using Otm.Server.Broker;
+using NLog;
 using Otm.Server.Broker.Palantir;
 using Otm.Server.Broker.Ptl;
-using NLog;
-using Otm.Server.Broker.Amqtp;
 
 namespace Otm.Server.Broker
 {
@@ -38,13 +34,13 @@ namespace Otm.Server.Broker
                             logger.Debug($"Broker {config?.Name}: Created");
                             break;
                         case "ptlSmartPicking":
-                            var ptlSmartPickingBroker = new SmartPickingBroker(config, logger, new AmqpRabbitChannelFactory());
+                            var ptlSmartPickingBroker = new SmartPickingBroker(config, logger);
                             ptlSmartPickingBroker.Init(config, logger);
                             brokers.Add(config.Name, ptlSmartPickingBroker);
                             logger.Debug($"Broker {config?.Name}: Created");
                             break;
                         case "ptlAtop":
-                            var ptlAtopBroker = new AtopBroker(config, logger, new AmqpRabbitChannelFactory());
+                            var ptlAtopBroker = new AtopBroker(config, logger);
                             ptlAtopBroker.Init(config, logger);
                             brokers.Add(config.Name, ptlAtopBroker);
                             logger.Debug($"Broker {config?.Name}: Created");

@@ -19,4 +19,8 @@
 	  <ProjectReference Include="..\..\..\Server\Otm.Server.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="8.0.0" />
+	</ItemGroup>
+
 </Project>
