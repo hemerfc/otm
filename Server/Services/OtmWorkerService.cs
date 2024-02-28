@@ -1,6 +1,7 @@
 using Otm.Server;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +11,12 @@ using Otm.Server.ContextConfig;
 using NLog;
 using Otm.Server.Device.Licensing;
 using System.Net;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using OpenTelemetry;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Otm.Server.OpenTelemetry;
 
 namespace Otm.Server.Services
 {
@@ -19,6 +26,16 @@ namespace Otm.Server.Services
         private readonly ILogger _logger;
         private readonly IStatusService _statusService;
         public readonly OtmContextManager _otmContextManager;
+        private readonly Tracer _tracer;
+        
+        private readonly bool _openTelemetryEnabled = false;
+        private readonly string _jaegerHost = string.Empty;
+        private readonly int _jaegerPort = 0;
+        
+        private readonly IConfiguration _appConfiguration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
 
         public string HostIdentifier { get; }
         public string DeviceIdentifier { get; }
@@ -30,7 +47,7 @@ namespace Otm.Server.Services
         private string licenseKey = "";
         #endregion
 
-        public OtmWorkerService(IStatusService statusService, IConfigService configService)
+        public OtmWorkerService(IStatusService statusService, IConfigService configService, TracerProvider provider)
         {
             _logger = LogManager.GetCurrentClassLogger();
             _statusService = statusService;
@@ -41,13 +58,45 @@ namespace Otm.Server.Services
             //Temporariamente pegando o Ip, deve-se tentar pegar algo imutavel do device
             DeviceIdentifier = Dns.GetHostEntry(HostIdentifier).AddressList[0].ToString();
             // this.licenseKey = (cparts.FirstOrDefault(x => x.Contains("key=")) ?? "").Replace("key=", "").Trim();
-        }
+            
+            var resource = ResourceBuilder.CreateDefault().AddService("OtmWorkerService").Build();
 
+            
+            bool.TryParse(_appConfiguration["OpenTelemetry:IsEnabled"], out _openTelemetryEnabled);
+
+            if (_openTelemetryEnabled)
+            {
+                _jaegerHost = _appConfiguration["Jaeger:Host"];
+                
+                if(!int.TryParse(_appConfiguration["Jaeger:Port"], out _jaegerPort))
+                {
+                    throw new Exception("Invalid Jaeger port");
+                }
+                
+            }
+            
+            using var tracerProvider = Sdk.CreateTracerProviderBuilder()
+                .AddSource(TelemetryConstants.MyAppSource)
+                .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("OtmWorkerService"))
+                .AddJaegerExporter(jaegerOptions =>
+                {
+                    jaegerOptions.AgentHost = _jaegerHost;
+                    jaegerOptions.AgentPort = _jaegerPort;
+                })
+                .Build();
+
+            
+            _tracer = tracerProvider.GetTracer(TelemetryConstants.MyAppSource);
+        }
+        
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.Info("System START!");
+             _logger.Info("System START!");
 
             _otmContextManager.StartAll();
+            
+            using var activity = _tracer.StartSpan("OtmWorkerService.ExecuteAsync");
+
 
             while (!stoppingToken.IsCancellationRequested)
             {
