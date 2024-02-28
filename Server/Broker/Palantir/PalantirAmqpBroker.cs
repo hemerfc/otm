@@ -125,10 +125,10 @@ namespace Otm.Server.Broker.Palantir
                     }
                 }
 
-                // wait 50ms
+                // wait 100ms
                 /// TODO: wait time must be equals the minimum update rate of tags
                 var waitEvent = new ManualResetEvent(false);
-                waitEvent.WaitOne(50);
+                waitEvent.WaitOne(100);
 
                 if (Worker.CancellationPending)
                 {
