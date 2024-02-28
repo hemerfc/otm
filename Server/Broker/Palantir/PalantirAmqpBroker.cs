@@ -431,8 +431,7 @@ namespace Otm.Server.Broker.Palantir
 
         private IModel CreateChannel(string hostName, int port, string queuesToConsume, string queuesToProduce, EventHandler<BasicDeliverEventArgs> onReceived)
         {
-            var factory = new ConnectionFactory() { HostName = hostName, Port = port };
-            var connection = factory.CreateConnection();
+            var connection = RabbitConnectionManager.GetInstance(hostName, port).GetConnection();
             var channel = connection.CreateModel();
             var consumer = new EventingBasicConsumer(channel);
 

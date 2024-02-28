@@ -168,40 +168,44 @@ namespace Otm.Server.Broker.Ptl
 
         private IModel CreateChannel(string hostName, int port, string queuesToConsume, string queuesToProduce, EventHandler<BasicDeliverEventArgs> onReceived)
         {
-            ConnectionFactory factory = new ConnectionFactory()
-            {
-                HostName = hostName,
-                Port = port
-            };
+            //ConnectionFactory factory = new ConnectionFactory()
+           // {
+           //     HostName = hostName,
+           //     Port = port
+           // };
 
             IModel channel = null;
             const int maxRetries = 7; // Número máximo de tentativas
             int retryCount = 0;
 
-            while (retryCount < maxRetries)
-            {
-                try
-                {
-                    var connection = factory.CreateConnection();
-                    channel = connection.CreateModel();
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"Erro de conexão: {ex.Message}");
-                    retryCount++;
-                    if (retryCount < maxRetries)
-                    {
-                        Logger.Error($"Numero de tentativas {retryCount}");
-                        Thread.Sleep(2000 * retryCount);
-                    }
-                }
-            }
+            // while (retryCount < maxRetries)
+            // {
+            //     try
+            //     {
+            //         //var connection = factory.CreateConnection();
+            //         var connection = RabbitConnectionManager.GetInstance(hostName, port).GetConnection();
+            //         channel = connection.CreateModel();
+            //         break;
+            //     }
+            //     catch (Exception ex)
+            //     {
+            //         Logger.Error($"Erro de conexão: {ex.Message}");
+            //         retryCount++;
+            //         if (retryCount < maxRetries)
+            //         {
+            //             Logger.Error($"Numero de tentativas {retryCount}");
+            //             Thread.Sleep(2000 * retryCount);
+            //         }
+            //     }
+            // }
+            
+            var connection = RabbitConnectionManager.GetInstance(hostName, port).GetConnection();
+            channel = connection.CreateModel();
 
-            if (channel == null)
-            {
-                throw new ApplicationException("Não foi possível estabelecer a conexão após várias tentativas.");
-            }
+            // if (channel == null)
+            // {
+            //     throw new ApplicationException("Não foi possível estabelecer a conexão após várias tentativas.");
+            // }
 
             var consumer = new EventingBasicConsumer(channel);
 
