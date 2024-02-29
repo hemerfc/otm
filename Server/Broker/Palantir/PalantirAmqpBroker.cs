@@ -23,7 +23,6 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Otm.Server.ContextConfig;
-using Otm.Server.ValueObjects.ProtocolPalantir;
 
 namespace Otm.Server.Broker.Palantir
 {
@@ -87,14 +86,8 @@ namespace Otm.Server.Broker.Palantir
             this.Config = config;
 
             this.client = tcpClientAdapter ?? new TcpClientAdapter();
-            this.AmqpChannel = CreateChannel(config.AmqpHostName,
-                config.AmqpPort,
-                Config.AmqpQueueToConsume,
-                Config.AmqpQueueToProduce,
-                new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
-                );
             this.sendDataQueue = new Queue<byte[]>();
-           
+            
         }
 
         public void Init(BrokerConfig config, ILogger logger)
@@ -106,13 +99,19 @@ namespace Otm.Server.Broker.Palantir
         {
             // backgroud worker
             Worker = worker;
-
+            Ready = false;
+            
             while (true)
             {
                 try
-                {
-                    if (client.Connected && AmqpChannel != null && AmqpChannel.IsOpen)
+                {                        
+                    if ( (client?.Connected??false)==false || (AmqpChannel?.IsOpen??false)==false)
                     {
+                        Ready = false;
+                    } 
+                    
+                    if (Ready)
+                    {   
                         bool received, sent;
 
                         do
@@ -129,49 +128,51 @@ namespace Otm.Server.Broker.Palantir
                                 sent = SendData();
                             }
                         } while (received || sent);
-
-                        Ready = true;
                     }
                     else
                     {
                         Ready = false;
-
-                        using (var activity = RegisteredActivity.StartActivity($"CreateChannel: {Config.Name}"))
-                        {
-                            activity?.SetTag("device", Config.Name);
-                            this.AmqpChannel = CreateChannel(Config.AmqpHostName,
-                                Config.AmqpPort,
-                                Config.AmqpQueueToConsume,
-                                Config.AmqpQueueToProduce,
-                                new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
-                            );
-                        }
 
                         if (!Connecting)
                         {
                             // se ja tiver passado o delay, tenta reconectar
                             if (LastConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
                             {
+                                LastConnectionTry = DateTime.Now;
+                                Connecting = true;
+                                
                                 using (var activity = RegisteredActivity.StartActivity($"Reconnect: {Config.Name}"))
                                 {
-                                    LastConnectionTry = DateTime.Now;
-                                    Connecting = true;
+                                    activity?.SetTag("device", Config.Name);
+                                    
+                                    Logger.Error($"Dev {Config.Name}: Reconnect to PLC");
                                     //Verifica se consegue conectar
                                     Connect();
-                                    Connecting = false;
                                 }
+                                
+                                using (var activity = RegisteredActivity.StartActivity($"CreateChannel: {Config.Name}"))
+                                {
+                                    activity?.SetTag("device", Config.Name);
+                                    Logger.Error($"Dev {Config.Name}: CreateChannel");
+                                    
+                                    this.AmqpChannel = CreateChannel(Config.AmqpHostName,
+                                        Config.AmqpPort,
+                                        Config.AmqpQueueToConsume,
+                                        Config.AmqpQueueToProduce,
+                                        new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
+                                    );
+                                }
+                                
+                                Connecting = false;
+                                Ready = false;
                             }
                         }
                     }
 
-                    using (var activity = RegisteredActivity.StartActivity($"waitEvent: {Config.Name}"))
-                    {
-                        activity?.SetTag("device", Config.Name);
-                        // wait 100ms
-                        /// TODO: wait time must be equals the minimum update rate of tags
-                        var waitEvent = new ManualResetEvent(false);
-                        waitEvent.WaitOne(100);
-                    }
+                    // wait 100ms
+                    /// TODO: wait time must be equals the minimum update rate of tags
+                    var waitEvent = new ManualResetEvent(false);
+                    waitEvent.WaitOne(100);
 
                     if (Worker.CancellationPending)
                     {
@@ -187,6 +188,7 @@ namespace Otm.Server.Broker.Palantir
                 catch (Exception ex)
                 {
                     Ready = false;
+                    Connecting = false;
                     Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
                 }
             }
@@ -346,54 +348,54 @@ namespace Otm.Server.Broker.Palantir
             if (sendDataQueue.Count > 0)
                 lock (lockSendDataQueue)
                 {
-                        var totalLength = 0;
-                        foreach (var it in sendDataQueue)
-                        {
-                            totalLength += it.Length;
-                        }
+                    Logger.Info($"SendData: {Config.Name}: sendDataQueue.Count  {sendDataQueue.Count }");
+                    
+                    var totalLength = 0;
+                    foreach (var it in sendDataQueue)
+                    {
+                        totalLength += it.Length;
+                    }
 
-                        Logger.Info($"SendData: {Config.Name}: totalLength {totalLength}");
-                        var obj = new byte[totalLength];
-                        var pos = 0;
+                    var obj = new byte[totalLength];
+                    var pos = 0;
+                    
+                    while (sendDataQueue.Count > 0)
+                    {
+                        var it = sendDataQueue.Dequeue();
+                        Array.Copy(it, 0, obj, pos, it.Length);
+                        pos += it.Length;
+                    }
+
+                    var message = Encoding.Default.GetString(obj);
+                    Logger.Info($"SendData: {Config.Name}: MessageJson {message}");
+
+                    string pattern = @"\{[^{}]+\}";
+
+                    Regex regex = new Regex(pattern);
+
+                    MatchCollection matches = regex.Matches(message);
+
+                    Logger.Info($"SendData: {Config.Name}: MatchCollection {matches}");
+                    foreach (Match match in matches)
+                    {
+                        Logger.Info($"SendData: {Config.Name}: Message {match}");
+                        Match conteudo = Regex.Match(match.ToString(), @"""body"":\s*""([^""]*)""");
+
+                        // Adiciona o byte 2 no início da mensagem
+                        byte[] startByte = new byte[] { 2 };
+                        byte[] messageStart = startByte.Concat(Encoding.Default.GetBytes(conteudo.Groups[1].Value)).ToArray();
+
+                        // Adiciona o byte 3 no final da mensagem
+                        byte[] endByte = new byte[] { 3 };
+                        byte[] messageBytes = messageStart.Concat(endByte).ToArray();
+
+                        Logger.Info($"SendData: {Config.Name}: Client {client.Connected}");
+                        client.SendData(messageBytes);
                         
-                        while (sendDataQueue.Count > 0)
-                        {
-                            var it = sendDataQueue.Dequeue();
-                            Array.Copy(it, 0, obj, pos, it.Length);
-                            pos += it.Length;
-                        }
-
-                        var message = Encoding.Default.GetString(obj);
-                        Logger.Info($"SendData: {Config.Name}: MessageJson {message}");
-
-                        string pattern = @"\{[^{}]+\}";
-
-                        Regex regex = new Regex(pattern);
-
-                        MatchCollection matches = regex.Matches(message);
-
-                        Logger.Info($"SendData: {Config.Name}: MatchCollection {matches}");
-                        foreach (Match match in matches)
-                        {
-                            Logger.Info($"SendData: {Config.Name}: Message {match}");
-                            Match conteudo = Regex.Match(match.ToString(), @"""body"":\s*""([^""]*)""");
-
-                            // Adiciona o byte 2 no início da mensagem
-                            byte[] startByte = new byte[] { 2 };
-                            byte[] messageStart = startByte.Concat(Encoding.Default.GetBytes(conteudo.Groups[1].Value)).ToArray();
-
-                            // Adiciona o byte 3 no final da mensagem
-                            byte[] endByte = new byte[] { 3 };
-                            byte[] messageBytes = messageStart.Concat(endByte).ToArray();
-
-
-                            Logger.Info($"SendData: {Config.Name}: Client {client.Connected}");
-                            client.SendData(messageBytes);
-                            
-                            Logger.Info($"SendData():    Drive: {Config.Name}: MessageSendToDevice: {conteudo.Groups[1].Value}");
-                        }
-                        
-                        this.LastSend = DateTime.Now;
+                        Logger.Info($"SendData():    Drive: {Config.Name}: MessageSendToDevice: {conteudo.Groups[1].Value}");
+                    }
+                    
+                    this.LastSend = DateTime.Now;
                 }
             else
             {
@@ -412,6 +414,7 @@ namespace Otm.Server.Broker.Palantir
         {
             try
             {
+                this.client = new TcpClientAdapter();
                 client.Connect(Config.SocketHostName, Config.SocketPort);
 
                 if (client.Connected)
@@ -472,7 +475,10 @@ namespace Otm.Server.Broker.Palantir
             var body = e.Body.ToArray();
             //var message = Encoding.UTF8.GetString();
 
-            sendDataQueue.Enqueue(body);
+            lock (lockSendDataQueue)
+            {
+                sendDataQueue.Enqueue(body);
+            }
 
             var consumer = (sender as IBasicConsumer).Model;
             consumer.BasicAck(deliveryTag: e.DeliveryTag, multiple: false);
