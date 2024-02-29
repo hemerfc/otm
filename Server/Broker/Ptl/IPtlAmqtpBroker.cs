@@ -8,6 +8,8 @@ using System.Diagnostics;
 using System.Text;
 using NLog;
 using System;
+using System.Net;
+using System.Net.NetworkInformation;
 using System.Threading;
 using Otm.Server.ContextConfig;
 
@@ -15,6 +17,7 @@ namespace Otm.Server.Broker.Ptl
 {
     public abstract class IPtlAmqtpBroker : IBroker
     {
+        public Ping pinger;
         public ILogger Logger;
 
         public IModel AmqpChannel { get; set; }
@@ -58,6 +61,7 @@ namespace Otm.Server.Broker.Ptl
         {
             this.Config = config;
             this.Logger = logger;
+            CreatePinger();
         }
 
         public abstract void displaysOn(IEnumerable<PtlBaseClass> listaAcender);
@@ -136,16 +140,30 @@ namespace Otm.Server.Broker.Ptl
                             }
                         }
                     }
-
-                    using (var activity = RegisteredActivity.StartActivity($"WaitOne: {Config.Name}"))
+                    
+                    if (LastSend.AddSeconds(10) < DateTime.Now)
                     {
-                        activity?.SetTag("device", Config.Name);
-                        // wait 100ms
-                        /// TODO: wait time must be equals the minimum update rate of tags
-                        var waitEvent = new ManualResetEvent(false);
-                        waitEvent.WaitOne(100);
+                        if (PingError > 3)
+                        {
+                            PingError = 0;
+                            client.Dispose();
+                            Connect();
+                        }
+                        else
+                        {
+                            pinger.SendAsync(Config.SocketHostName, 1000, null);
+                        }
+                        
+                        this.LastSend = DateTime.Now;
+                        //var getFwCmd = GetMessagekeepAlive();
+                        //client.SendData(getFwCmd);
                     }
-
+                    
+                    // wait 100ms
+                    /// TODO: wait time must be equals the minimum update rate of tags
+                    var waitEvent = new ManualResetEvent(false);
+                    waitEvent.WaitOne(100);
+                        
                     if (Worker.CancellationPending)
                     {
                         Ready = false;
@@ -288,6 +306,7 @@ namespace Otm.Server.Broker.Ptl
             var sent = false;
 
             if (sendDataQueue.Count > 0)
+            {
                 lock (lockSendDataQueue)
                 {
                     var totalLength = 0;
@@ -309,18 +328,6 @@ namespace Otm.Server.Broker.Ptl
                     Logger.Info($"V0.1 SendData: {Config.Name}: Message {message}");
 
                     client.SendData(obj);
-
-                    this.LastSend = DateTime.Now;
-                }
-            else
-            {
-                if (LastSend.AddMinutes(15) < DateTime.Now)
-                {
-                    client.Dispose();
-                    Connect();
-                    //var getFwCmd = GetMessagekeepAlive();
-                    //client.SendData(getFwCmd);
-                    this.LastSend = DateTime.Now;
                 }
             }
 
@@ -362,6 +369,64 @@ namespace Otm.Server.Broker.Ptl
                 if (k == len) return i;
             }
             return -1;
+        }
+        
+        public void CreatePinger()
+        {
+            pinger = new Ping();
+            pinger.PingCompleted += PingCompletedCallback;
+        }
+
+        private void PingCompletedCallback(object sender, PingCompletedEventArgs e)
+        {
+            if (e.Cancelled)
+            {
+                Logger.Info($"Dev {Config.Name}: Ping canceled.");
+                return;
+            }
+
+            if (e.Error != null)
+            {
+                Logger.Error($"Dev {Config.Name}: Ping failed: {e.Error.Message}");
+                return;
+            }
+
+            var reply = e.Reply;
+            if (reply.Status == IPStatus.Success)
+            {
+                PingError = 0;
+                Logger.Info($"Ping to {reply.Address} successful. Roundtrip time: {reply.RoundtripTime} ms");
+            }
+            else
+            {
+                PingError += 1;
+                Logger.Error($"Ping to {reply.Address} failed. Status: {reply.Status}");
+            }
+        }
+
+        public int PingError { get; set; }
+
+        public static bool PingTest(IPAddress ipaddress)
+        {
+            try
+            {
+                var pinger = new Ping();
+                PingReply reply = pinger.SendAsync(
+            }
+            catch (PingException)
+            {
+                // Discard PingExceptions and return false;
+                
+            }
+            finally
+            {
+                if (pinger != null)
+                {
+                    pinger.Dispose();
+                }
+            }
+
+            return pingable;
         }
     }
 }
