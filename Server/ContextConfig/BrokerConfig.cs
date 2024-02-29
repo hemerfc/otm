@@ -5,7 +5,8 @@ namespace Otm.Server.ContextConfig
 {
     public class BrokerConfig
     {
-        public string PtlId;
+        public string PtlId { get; set; }
+        
         public Guid Id { get; set; }
         public string Name { get; set; }
         public string Driver { get; set; }

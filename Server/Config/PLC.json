@@ -1,18 +1,18 @@
 ﻿{
   "Enabled": true,
-  "Name": "PLC",
-  "LogName": "PLC01",
+  "Name": "PLC01",
+  "LogName": "Logger1",
   "Brokers": [
     {
       "Id": "8e820806-ae93-49be-95db-74c5c268c4b6",
       "Name": "PLC01",
       "Origin": "PLC01",
       "Driver": "pl",
-      "SocketHostName": "127.0.0.1",
+      "SocketHostName": "192.168.2.68",
       "SocketPort": 4444,
       "MasterDevice": "001",
       "PtlId": "001",
-      "AmqpHostName": "127.0.0.1",
+      "AmqpHostName": "192.168.2.68",
       "AmqpPort": 5672,
       "AmqpQueueToProduce": "R01|K01|P01",
       "AmqpQueueToConsume": "PLC01_R02|PLC01_K02|PLC01_K03"

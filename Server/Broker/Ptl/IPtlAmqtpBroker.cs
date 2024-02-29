@@ -55,6 +55,8 @@ namespace Otm.Server.Broker.Ptl
         public readonly List<PtlBaseClass> ListaLigados = new List<PtlBaseClass>();
         public byte[] receiveBuffer = new byte[0];
         
+        private int PingError { get; set; }
+        
         private static readonly ActivitySource RegisteredActivity = new ActivitySource("OTM");
 
         public IPtlAmqtpBroker(BrokerConfig config, ILogger logger)
@@ -94,11 +96,21 @@ namespace Otm.Server.Broker.Ptl
         {
             // backgroud worker
             Worker = worker;
+            Ready = false;
 
             while (true) {
                 try
                 {
-                    if (client.Connected)
+                    if ( (client?.Connected??false)==false || (AmqpChannel?.IsOpen??false)==false)
+                    {
+                        Ready = false;
+                    }
+                    else
+                    {
+                        Ready = true;
+                    }
+                    
+                    if (Ready)
                     {
                         bool received, sent;
 
@@ -116,8 +128,7 @@ namespace Otm.Server.Broker.Ptl
                                 sent = SendData();
                             }
                         } while (received || sent);
-
-                        Ready = true;
+                        
                     }
                     else
                     {
@@ -128,22 +139,29 @@ namespace Otm.Server.Broker.Ptl
                             // se ja tiver passado o delay, tenta reconectar
                             if (LastConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
                             {
-                                using (var activity = RegisteredActivity.StartActivity($"Reconnect: {Config.Name}"))
+                                if ((client?.Connected ?? false) == false)
                                 {
-                                    activity?.SetTag("device", Config.Name);
-                                    LastConnectionTry = DateTime.Now;
-                                    Connecting = true;
-                                    //Verifica se consegue conectar
-                                    Connect();
-                                    Connecting = false;
+                                    using (var activity = RegisteredActivity.StartActivity($"Reconnect: {Config.Name}"))
+                                    {
+                                        activity?.SetTag("device", Config.Name);
+                                        
+                                        Connecting = true;
+                                        //Verifica se consegue conectar
+                                        Connect();
+                                        Connecting = false;
+                                    }
                                 }
+                                LastConnectionTry = DateTime.Now;
                             }
+                            
+                            Connecting = false;
+                            Ready = false;
                         }
                     }
                     
-                    if (LastSend.AddSeconds(10) < DateTime.Now)
+                    if (LastSend.AddSeconds(5) < DateTime.Now)
                     {
-                        if (PingError > 3)
+                        if (PingError > 1)
                         {
                             PingError = 0;
                             client.Dispose();
@@ -174,7 +192,10 @@ namespace Otm.Server.Broker.Ptl
                 catch (Exception ex)
                 {
                     Ready = false;
+                    Connecting = false;
                     Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
+                    var waitEvent = new ManualResetEvent(false);
+                    waitEvent.WaitOne(5000);
                 }
             }
         }
@@ -395,7 +416,6 @@ namespace Otm.Server.Broker.Ptl
             if (reply.Status == IPStatus.Success)
             {
                 PingError = 0;
-                Logger.Info($"Ping to {reply.Address} successful. Roundtrip time: {reply.RoundtripTime} ms");
             }
             else
             {
@@ -404,29 +424,6 @@ namespace Otm.Server.Broker.Ptl
             }
         }
 
-        public int PingError { get; set; }
-
-        public static bool PingTest(IPAddress ipaddress)
-        {
-            try
-            {
-                var pinger = new Ping();
-                PingReply reply = pinger.SendAsync(
-            }
-            catch (PingException)
-            {
-                // Discard PingExceptions and return false;
-                
-            }
-            finally
-            {
-                if (pinger != null)
-                {
-                    pinger.Dispose();
-                }
-            }
-
-            return pingable;
-        }
+        
     }
 }

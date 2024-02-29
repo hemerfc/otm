@@ -157,7 +157,7 @@ namespace Otm.Server.Broker.Palantir
                                     }
                                 }
 
-                                if ((AmqpChannel?.IsOpen ?? false) == false)
+                                if (AmqpChannel == null)
                                 {
                                     using (var activity = RegisteredActivity.StartActivity($"CreateChannel: {Config.Name}"))
                                     {
@@ -200,6 +200,8 @@ namespace Otm.Server.Broker.Palantir
                     Ready = false;
                     Connecting = false;
                     Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
+                    var waitEvent = new ManualResetEvent(false);
+                    waitEvent.WaitOne(5000);
                 }
             }
         }

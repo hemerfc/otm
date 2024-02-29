@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Threading;
 using RabbitMQ.Client;
@@ -37,35 +38,41 @@ public sealed class RabbitConnectionManager
     {
         using (var activity = RegisteredActivity.StartActivity($"CreateConnection : {hostName}"))
         {
-            ConnectionFactory factory = new ConnectionFactory()
+            while (true)
             {
-                HostName = hostName,
-                Port = port
-            };
-            Connection = factory.CreateConnection();
+                try
+                {
+                    ConnectionFactory factory = new ConnectionFactory()
+                    {
+                        HostName = hostName,
+                        Port = port
+                    };
+                    Connection = factory.CreateConnection();
+                    if (Connection != null && Connection.IsOpen)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        Connection = null;
+                        var waitEvent = new ManualResetEvent(false);
+                        waitEvent.WaitOne(1000);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Connection = null;
+                    var waitEvent = new ManualResetEvent(false);
+                    waitEvent.WaitOne(1000);
+                }
+                
+            }
+
         }
     }
     
     public IConnection GetConnection()
     {
-        using (var activity = RegisteredActivity.StartActivity($"GetConnection : {HostName}"))
-        {
-            if (Connection.IsOpen)
-                return Connection;
-
-            lock (connectionLock)
-            {
-                if (!Connection.IsOpen)
-                {
-                    CreateConnection(HostName, Port);
-
-                    // wait 100ms
-                    var waitEvent = new ManualResetEvent(false);
-                    waitEvent.WaitOne(100);
-                }
-
-                return Connection;
-            }
-        }
+        return Connection;
     }
 }
