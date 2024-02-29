@@ -108,7 +108,11 @@ namespace Otm.Server.Broker.Palantir
                     if ( (client?.Connected??false)==false || (AmqpChannel?.IsOpen??false)==false)
                     {
                         Ready = false;
-                    } 
+                    }
+                    else
+                    {
+                        Ready = true;
+                    }
                     
                     if (Ready)
                     {   
@@ -140,27 +144,33 @@ namespace Otm.Server.Broker.Palantir
                             {
                                 LastConnectionTry = DateTime.Now;
                                 Connecting = true;
-                                
-                                using (var activity = RegisteredActivity.StartActivity($"Reconnect: {Config.Name}"))
+
+                                if ((client?.Connected??false)==false)
                                 {
-                                    activity?.SetTag("device", Config.Name);
+                                    using (var activity = RegisteredActivity.StartActivity($"Reconnect: {Config.Name}"))
+                                    {
+                                        activity?.SetTag("device", Config.Name);
                                     
-                                    Logger.Error($"Dev {Config.Name}: Reconnect to PLC");
-                                    //Verifica se consegue conectar
-                                    Connect();
+                                        Logger.Error($"Dev {Config.Name}: Reconnect to PLC");
+                                        //Verifica se consegue conectar
+                                        Connect();
+                                    }
                                 }
-                                
-                                using (var activity = RegisteredActivity.StartActivity($"CreateChannel: {Config.Name}"))
+
+                                if ((AmqpChannel?.IsOpen ?? false) == false)
                                 {
-                                    activity?.SetTag("device", Config.Name);
-                                    Logger.Error($"Dev {Config.Name}: CreateChannel");
+                                    using (var activity = RegisteredActivity.StartActivity($"CreateChannel: {Config.Name}"))
+                                    {
+                                        activity?.SetTag("device", Config.Name);
+                                        Logger.Error($"Dev {Config.Name}: CreateChannel");
                                     
-                                    this.AmqpChannel = CreateChannel(Config.AmqpHostName,
-                                        Config.AmqpPort,
-                                        Config.AmqpQueueToConsume,
-                                        Config.AmqpQueueToProduce,
-                                        new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
-                                    );
+                                        this.AmqpChannel = CreateChannel(Config.AmqpHostName,
+                                            Config.AmqpPort,
+                                            Config.AmqpQueueToConsume,
+                                            Config.AmqpQueueToProduce,
+                                            new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
+                                        );
+                                    }
                                 }
                                 
                                 Connecting = false;
