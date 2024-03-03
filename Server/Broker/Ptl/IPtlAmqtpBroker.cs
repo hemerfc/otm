@@ -63,7 +63,7 @@ namespace Otm.Server.Broker.Ptl
         {
             this.Config = config;
             this.Logger = logger;
-            CreatePinger();
+            // CreatePinger();
         }
 
         public abstract void displaysOn(IEnumerable<PtlBaseClass> listaAcender);
@@ -129,6 +129,7 @@ namespace Otm.Server.Broker.Ptl
                             }
                         } while (received || sent);
                         
+                        SendPing();
                     }
                     else
                     {
@@ -159,6 +160,7 @@ namespace Otm.Server.Broker.Ptl
                         }
                     }
                     
+                    /*
                     if (LastSend.AddSeconds(5) < DateTime.Now)
                     {
                         if (PingError > 1)
@@ -175,7 +177,7 @@ namespace Otm.Server.Broker.Ptl
                         this.LastSend = DateTime.Now;
                         //var getFwCmd = GetMessagekeepAlive();
                         //client.SendData(getFwCmd);
-                    }
+                    }*/
                     
                     // wait 100ms
                     /// TODO: wait time must be equals the minimum update rate of tags
@@ -391,7 +393,10 @@ namespace Otm.Server.Broker.Ptl
             }
             return -1;
         }
-        
+
+        public abstract void SendPing();
+
+        /*
         public void CreatePinger()
         {
             pinger = new Ping();
@@ -423,7 +428,8 @@ namespace Otm.Server.Broker.Ptl
                 Logger.Error($"Ping to {reply.Address} failed. Status: {reply.Status}");
             }
         }
+        */
 
-        
+
     }
 }

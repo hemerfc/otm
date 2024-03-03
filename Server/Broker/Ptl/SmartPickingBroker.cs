@@ -3,6 +3,7 @@ using NLog;
 using Otm.Server.Device.Ptl;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -16,8 +17,16 @@ namespace Otm.Server.Broker.Ptl
         {
         }
 
-        private byte[] STX_LC = Encoding.ASCII.GetBytes("P");
+        private byte[] PRS_START = Encoding.ASCII.GetBytes("P");
+        private byte[] PONG_START = Encoding.ASCII.GetBytes("A");
+        
+        private byte[] pongChars = Encoding.ASCII.GetBytes("ACKPONG|PING");
+        private byte[] prsChars = Encoding.ASCII.GetBytes("PRS");
+        
         private int messageSize = 12;
+        private int PRS_SIZE = 13;
+        private int PONG_SIZE = 12;
+        public DateTime LastReceive { get; set; }
 
         public override void ProcessMessage(byte[] body) {
 
@@ -114,7 +123,15 @@ namespace Otm.Server.Broker.Ptl
         {
             var recv = client.GetData();
             var received = false;
+            
+            // verifica se recebeu algo nos ultimos 5 segundos
+            if (LastReceive.AddSeconds(5) < DateTime.Now)
+            {
+                // se nao recebeu, desconecta
+                client.Dispose();
+            }
 
+            // se recebeu algo, adiciona ao buffer
             if (recv != null && recv.Length > 0)
             {
                 var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
@@ -125,9 +142,38 @@ namespace Otm.Server.Broker.Ptl
 
             if (receiveBuffer.Length > 0)
             {
+                if (receiveBuffer.Length >= PRS_SIZE)
+                {
+                    var prsPos = SearchBytes(receiveBuffer, prsChars);
+
+                    // se nao tem PRS no buffer, verifica se tem PONG, retira do buffer e retorna false
+                    if (prsPos < 0)
+                    {
+                        
+                        if (receiveBuffer.Length >= PONG_SIZE)
+                        {
+                            var pongPos = SearchBytes(receiveBuffer, pongChars);
+                    
+                            if (pongPos >= 0)
+                            {
+                                // remove do receiveBuffer
+                                receiveBuffer = receiveBuffer[(pongPos + PONG_SIZE-1)..];
+                            }
+                        }
+                        
+                        return false;
+                    }
+
+                }
+                
+
+
+
+                LastReceive = DateTime.Now;
+                
                 var strRcvd = receiveBuffer;
 
-                var stxLcPos = SearchBytes(strRcvd, STX_LC);
+                var stxLcPos = SearchBytes(strRcvd, PRS_START);
 
                 var posicoesRelevantesEncontradas = new List<int>() { stxLcPos }
                                                             .Where(x => x >= 0)
@@ -192,6 +238,27 @@ namespace Otm.Server.Broker.Ptl
             return received;
         }
 
+
+
+        public DateTime LastPingSend { get; set; }
+        /// <summary>
+        /// Envio de ping para o controlador se não tiver enviado um ping a menos de 2 segundos
+        /// </summary>
+        public override void SendPing()
+        {
+            // se já enviou um ping a menos de 2 segundos, não envia outro
+            if (LastPingSend.AddSeconds(2) > DateTime.Now)
+                return;
+            
+            // envia um ping para o controlador
+            var pingMsg = "PING|";
+            var bytes = Encoding.ASCII.GetBytes(pingMsg);
+            client.SendData(bytes);
+            LastPingSend = DateTime.Now;
+        }
+        
+        
+        
         public override byte[] GetMessagekeepAlive()
         {
             return System.Text.Encoding.ASCII.GetBytes("PONG");
