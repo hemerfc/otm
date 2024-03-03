@@ -20,13 +20,12 @@ namespace Otm.Server.Broker.Ptl
         private byte[] PRS_START = Encoding.ASCII.GetBytes("P");
         private byte[] PONG_START = Encoding.ASCII.GetBytes("A");
         
-        private byte[] pongChars = Encoding.ASCII.GetBytes("ACKPONG|PING");
+        private byte[] pongChars = Encoding.ASCII.GetBytes("ACKPING|PONG");
         private byte[] prsChars = Encoding.ASCII.GetBytes("PRS");
         
         private int messageSize = 12;
         private int PRS_SIZE = 13;
         private int PONG_SIZE = 12;
-        public DateTime LastReceive { get; set; }
 
         public override void ProcessMessage(byte[] body) {
 
@@ -100,7 +99,7 @@ namespace Otm.Server.Broker.Ptl
                     int parsedValue;
                     if (int.TryParse(itemAcender.DisplayValue, out parsedValue))
                     {
-                        mensagem = String.Format("{0:D3}{1:D3}{2:D3}{3:D1}{4:D1}|", "SHW", displayId, parsedValue, itemAcender.DisplayColorInt, 1);
+                        mensagem = String.Format("{0:D3}{1:D3}{2:D3}{3:D1}{4:D1}|", "SHW", displayId, parsedValue, itemAcender.DisplayColorInt, Config.EnablePtlEdit);
                     }
                     else
                     {
@@ -125,7 +124,8 @@ namespace Otm.Server.Broker.Ptl
             var received = false;
             
             // verifica se recebeu algo nos ultimos 5 segundos
-            if (LastReceive.AddSeconds(5) < DateTime.Now)
+            var now = DateTime.Now;
+            if (LastReceive.AddSeconds(5) < now )
             {
                 // se nao recebeu, desconecta
                 Logger.Info("ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Timeout de recebimento. Desconectando...");
@@ -137,6 +137,8 @@ namespace Otm.Server.Broker.Ptl
             // se recebeu algo, adiciona ao buffer
             if (recv != null && recv.Length > 0)
             {
+                LastReceive = DateTime.Now;
+                
                 var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
                 receiveBuffer.CopyTo(tempBuffer, 0);
                 recv.CopyTo(tempBuffer, receiveBuffer.Length);
@@ -147,39 +149,37 @@ namespace Otm.Server.Broker.Ptl
             {
                 var message2 = Encoding.ASCII.GetString(receiveBuffer);
                 Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message2}");
+                
+                
+                if (receiveBuffer.Length >= PONG_SIZE)
+                {
+                    var pongPos = SearchBytes(receiveBuffer, pongChars);
+                    
+                    if (pongPos >= 0)
+                    {
+                        // remove do receiveBuffer
+                        Logger.Info("ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. PONG recebido");
+                        
+                        var beginBuffer = receiveBuffer[..pongPos];
+                        var endBuffer = receiveBuffer[(pongPos + PONG_SIZE)..];
+                        receiveBuffer = beginBuffer.Concat(endBuffer).ToArray();
+                    }
+                }
+                
                 if (receiveBuffer.Length >= PRS_SIZE)
                 {
                     var prsPos = SearchBytes(receiveBuffer, prsChars);
 
-                    // se nao tem PRS no buffer, verifica se tem PONG, retira do buffer e retorna false
+                    // se nao tem PRS no buffer
                     if (prsPos < 0)
                     {
-                        
-                        if (receiveBuffer.Length >= PONG_SIZE)
-                        {
-                            var pongPos = SearchBytes(receiveBuffer, pongChars);
-                    
-                            if (pongPos >= 0)
-                            {
-                                // remove do receiveBuffer
-                                Logger.Info("ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. PONG recebido");
-                                receiveBuffer = receiveBuffer[(pongPos + PONG_SIZE-1)..];
-                            }
-                        }
-                        
                         return false;
                     }
-
                 }
-                
-
-
-
-                LastReceive = DateTime.Now;
                 
                 var strRcvd = receiveBuffer;
 
-                var stxLcPos = SearchBytes(strRcvd, PRS_START);
+                var stxLcPos = SearchBytes(strRcvd, prsChars);
 
                 var posicoesRelevantesEncontradas = new List<int>() { stxLcPos }
                                                             .Where(x => x >= 0)
@@ -253,20 +253,19 @@ namespace Otm.Server.Broker.Ptl
         public override void SendPing()
         {
             // se já enviou um ping a menos de 2 segundos, não envia outro
-            if (LastPingSend.AddSeconds(2) > DateTime.Now)
+            var now = DateTime.Now;
+            if (LastPingSend.AddSeconds(2) > now)
                 return;
             
-            if (client != null && client.Connected)
+            if (client == null || !client.Connected)
                 return;
             
             // envia um ping para o controlador
             var pingMsg = "PING|";
             var bytes = Encoding.ASCII.GetBytes(pingMsg);
             Logger.Info($"LastPingSend(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. PING enviado");
-
-
-            client.SendData(bytes);
             LastPingSend = DateTime.Now;
+            client.SendData(bytes);
         }
         
         

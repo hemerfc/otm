@@ -43,6 +43,8 @@ namespace Otm.Server.Broker.Ptl
         public DateTime LastMessageTime { get; set; }
 
         public DateTime LastErrorTime { get; set; }
+        
+        public DateTime LastReceive { get; set; }
 
         public double MessagesPerSecond { get; set; }
         public bool Connecting { get; private set; }
@@ -97,7 +99,8 @@ namespace Otm.Server.Broker.Ptl
             // backgroud worker
             Worker = worker;
             Ready = false;
-
+            LastReceive = DateTime.Now;
+            
             while (true) {
                 try
                 {
@@ -369,6 +372,7 @@ namespace Otm.Server.Broker.Ptl
         {
             try
             {
+                Logger.Debug($"Dev {Config.Name}: Connecting to {Config.SocketHostName}:{Config.SocketPort}...");
                 client.Connect(Config.SocketHostName, Config.SocketPort);
 
                 if (client.Connected)
@@ -379,6 +383,8 @@ namespace Otm.Server.Broker.Ptl
                 {
                     Logger.Error($"Dev {Config.Name}: Connection error.");
                 }
+                
+                LastReceive = DateTime.Now;
             }
             catch (Exception ex)
             {
