@@ -112,7 +112,7 @@ namespace Otm.Server.Broker.Ptl
                     
                     if (Ready)
                     {
-                        bool received, sent;
+                        bool received = false, sent = false;
 
                         do
                         {
@@ -122,14 +122,22 @@ namespace Otm.Server.Broker.Ptl
                                 received = ReceiveData();
                             }
 
-                            using (var activity = RegisteredActivity.StartActivity($"SendData: {Config.Name}"))
+                            if ((client?.Connected ?? false) == true)
                             {
-                                activity?.SetTag("device", Config.Name);
-                                sent = SendData();
+                                using (var activity = RegisteredActivity.StartActivity($"SendData: {Config.Name}"))
+                                {
+                                    activity?.SetTag("device", Config.Name);
+                                    sent = SendData();
+                                }
                             }
+
+
                         } while (received || sent);
+                        if ((client?.Connected ?? false) == true)
+                        {
+                            SendPing();
+                        }
                         
-                        SendPing();
                     }
                     else
                     {

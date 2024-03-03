@@ -128,7 +128,10 @@ namespace Otm.Server.Broker.Ptl
             if (LastReceive.AddSeconds(5) < DateTime.Now)
             {
                 // se nao recebeu, desconecta
+                Logger.Info("ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Timeout de recebimento. Desconectando...");
                 client.Dispose();
+                LastPingSend = DateTime.Now;
+                return false;
             }
 
             // se recebeu algo, adiciona ao buffer
@@ -142,6 +145,8 @@ namespace Otm.Server.Broker.Ptl
 
             if (receiveBuffer.Length > 0)
             {
+                var message2 = Encoding.ASCII.GetString(receiveBuffer);
+                Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message2}");
                 if (receiveBuffer.Length >= PRS_SIZE)
                 {
                     var prsPos = SearchBytes(receiveBuffer, prsChars);
@@ -157,6 +162,7 @@ namespace Otm.Server.Broker.Ptl
                             if (pongPos >= 0)
                             {
                                 // remove do receiveBuffer
+                                Logger.Info("ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. PONG recebido");
                                 receiveBuffer = receiveBuffer[(pongPos + PONG_SIZE-1)..];
                             }
                         }
@@ -250,9 +256,15 @@ namespace Otm.Server.Broker.Ptl
             if (LastPingSend.AddSeconds(2) > DateTime.Now)
                 return;
             
+            if (client != null && client.Connected)
+                return;
+            
             // envia um ping para o controlador
             var pingMsg = "PING|";
             var bytes = Encoding.ASCII.GetBytes(pingMsg);
+            Logger.Info($"LastPingSend(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. PING enviado");
+
+
             client.SendData(bytes);
             LastPingSend = DateTime.Now;
         }
