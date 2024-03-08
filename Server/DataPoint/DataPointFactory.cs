@@ -75,6 +75,10 @@ namespace Otm.Server.DataPoint
                     datapoint = new ScriptDataPoint(dpConfig);
                     logger.Info($"DataPoint {dpConfig.Name}: Created");
                     break;
+                case "rabbit":
+                    datapoint = new RabbitMqDataPoint(dpConfig, logger);
+                    logger.Info($"DataPoint {dpConfig.Name}: Created");
+                    break;
                 default:
                     var ex = new Exception("Invalid DataPointDriver in config. Driver:" + dpConfig.Driver);
                     ex.Data.Add("field", "Driver");
