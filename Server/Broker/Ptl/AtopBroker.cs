@@ -309,15 +309,14 @@ namespace Otm.Server.Broker.Ptl
 
             return received;
         }
-
         
         public override void SendPing()
         {
         }
         
-        public override byte[] GetMessagekeepAlive()
-        {
-            return new byte[] { 0x07, 0x00, 0x60, 0x00, 0x00, 0x00, 0x09 };
-        }
+        // public override byte[] GetMessagekeepAlive()
+        // {
+        //     return new byte[] { 0x07, 0x00, 0x60, 0x00, 0x00, 0x00, 0x09 };
+        // }
     }
 }

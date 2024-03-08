@@ -13,7 +13,7 @@ COPY ["Otm.Server.csproj", "Server/"]
 #COPY ["Client/Otm.Client.csproj", "Client/"]
 #COPY ["Client.Api/Otm.Client.Api.csproj", "Client.Api/"]
 RUN dotnet restore "Server/Otm.Server.csproj"
-COPY . .
+COPY . ./Server/
 WORKDIR "/src/Server"
 RUN dotnet build "Otm.Server.csproj" -c Release -o /app/build
 

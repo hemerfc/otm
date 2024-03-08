@@ -72,8 +72,6 @@ namespace Otm.Server.Broker.Ptl
         public abstract void ProcessMessage(byte[] body);
         public abstract bool ReceiveData();
 
-        public abstract byte[] GetMessagekeepAlive();
-
         public void Init(BrokerConfig config, ILogger logger, ITcpClientAdapter tcpClientAdapter = null)
         {
             this.Logger = logger;
@@ -171,25 +169,6 @@ namespace Otm.Server.Broker.Ptl
                         }
                     }
                     
-                    /*
-                    if (LastSend.AddSeconds(5) < DateTime.Now)
-                    {
-                        if (PingError > 1)
-                        {
-                            PingError = 0;
-                            client.Dispose();
-                            Connect();
-                        }
-                        else
-                        {
-                            pinger.SendAsync(Config.SocketHostName, 1000, null);
-                        }
-                        
-                        this.LastSend = DateTime.Now;
-                        //var getFwCmd = GetMessagekeepAlive();
-                        //client.SendData(getFwCmd);
-                    }*/
-                    
                     // wait 100ms
                     /// TODO: wait time must be equals the minimum update rate of tags
                     var waitEvent = new ManualResetEvent(false);
@@ -220,44 +199,12 @@ namespace Otm.Server.Broker.Ptl
 
         private IModel CreateChannel(string hostName, int port, string queuesToConsume, string queuesToProduce, EventHandler<BasicDeliverEventArgs> onReceived)
         {
-            //ConnectionFactory factory = new ConnectionFactory()
-           // {
-           //     HostName = hostName,
-           //     Port = port
-           // };
-
             IModel channel = null;
             const int maxRetries = 7; // Número máximo de tentativas
             int retryCount = 0;
 
-            // while (retryCount < maxRetries)
-            // {
-            //     try
-            //     {
-            //         //var connection = factory.CreateConnection();
-            //         var connection = RabbitConnectionManager.GetInstance(hostName, port).GetConnection();
-            //         channel = connection.CreateModel();
-            //         break;
-            //     }
-            //     catch (Exception ex)
-            //     {
-            //         Logger.Error($"Erro de conexão: {ex.Message}");
-            //         retryCount++;
-            //         if (retryCount < maxRetries)
-            //         {
-            //             Logger.Error($"Numero de tentativas {retryCount}");
-            //             Thread.Sleep(2000 * retryCount);
-            //         }
-            //     }
-            // }
-            
             var connection = RabbitConnectionManager.GetInstance(hostName, port).GetConnection();
             channel = connection.CreateModel();
-
-            // if (channel == null)
-            // {
-            //     throw new ApplicationException("Não foi possível estabelecer a conexão após várias tentativas.");
-            // }
 
             var consumer = new EventingBasicConsumer(channel);
 
@@ -296,9 +243,6 @@ namespace Otm.Server.Broker.Ptl
         public void Consumer_Received(object sender, BasicDeliverEventArgs e)
         {            
             var body = e.Body.ToArray();
-            //var message = Encoding.UTF8.GetString();
-
-            //sendDataQueue.Enqueue(body);
 
             var consumer = (sender as IBasicConsumer).Model;
             consumer.BasicAck(deliveryTag: e.DeliveryTag, multiple: false);
@@ -359,9 +303,10 @@ namespace Otm.Server.Broker.Ptl
                     }
 
                     var message = Encoding.Default.GetString(obj);
-                    Logger.Info($"V0.1 SendData: {Config.Name}: Message {message}");
+                    Logger.Info($"SendData: {Config.Name}: Message {message}");
 
                     client.SendData(obj);
+                    sent = true;
                 }
             }
 
@@ -409,41 +354,6 @@ namespace Otm.Server.Broker.Ptl
         }
 
         public abstract void SendPing();
-
-        /*
-        public void CreatePinger()
-        {
-            pinger = new Ping();
-            pinger.PingCompleted += PingCompletedCallback;
-        }
-
-        private void PingCompletedCallback(object sender, PingCompletedEventArgs e)
-        {
-            if (e.Cancelled)
-            {
-                Logger.Info($"Dev {Config.Name}: Ping canceled.");
-                return;
-            }
-
-            if (e.Error != null)
-            {
-                Logger.Error($"Dev {Config.Name}: Ping failed: {e.Error.Message}");
-                return;
-            }
-
-            var reply = e.Reply;
-            if (reply.Status == IPStatus.Success)
-            {
-                PingError = 0;
-            }
-            else
-            {
-                PingError += 1;
-                Logger.Error($"Ping to {reply.Address} failed. Status: {reply.Status}");
-            }
-        }
-        */
-
 
     }
 }

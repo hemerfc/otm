@@ -7,6 +7,7 @@ using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Otm.Server.ContextConfig;
 
 namespace Otm.Server.Broker.Ptl
@@ -128,7 +129,7 @@ namespace Otm.Server.Broker.Ptl
             if (LastReceive.AddSeconds(5) < now )
             {
                 // se nao recebeu, desconecta
-                Logger.Info("ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Timeout de recebimento. Desconectando...");
+                Logger.Info("ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Ping sem Pong ;( Desconectando...");
                 client.Dispose();
                 LastPingSend = DateTime.Now;
                 return false;
@@ -147,19 +148,13 @@ namespace Otm.Server.Broker.Ptl
 
             if (receiveBuffer.Length > 0)
             {
-                var message2 = Encoding.ASCII.GetString(receiveBuffer);
-                Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message2}");
-                
-                
                 if (receiveBuffer.Length >= PONG_SIZE)
                 {
                     var pongPos = SearchBytes(receiveBuffer, pongChars);
                     
                     if (pongPos >= 0)
                     {
-                        // remove do receiveBuffer
-                        Logger.Info("ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. PONG recebido");
-                        
+                        // remove O PONG do receiveBuffer
                         var beginBuffer = receiveBuffer[..pongPos];
                         var endBuffer = receiveBuffer[(pongPos + PONG_SIZE)..];
                         receiveBuffer = beginBuffer.Concat(endBuffer).ToArray();
@@ -192,8 +187,6 @@ namespace Otm.Server.Broker.Ptl
                     received = true;
 
                     var primeiraPosRelevante = posicoesRelevantesEncontradas.First();
-                    //Filtra o array para remover o lixo do inicio
-                    //receiveBuffer = receiveBuffer[primeiraPosRelevante..];
 
                     //Se for uma leitura, verifica se ja tem o STX
                     if (receiveBuffer.Length >= primeiraPosRelevante + messageSize)
@@ -208,12 +201,6 @@ namespace Otm.Server.Broker.Ptl
                             string display = message.Substring(3, 3);
                             string value = message.Substring(6, 6);
                             string endereco = $"{Config.PtlId}:{display}";
-
-                            //var itemApagar = ListaLigados.Where(x => x.Location == endereco).ToList();
-                            //foreach (var item in itemApagar) { 
-                            //    ListaLigados.Remove(item);
-                            //}
-
 
                             var queueName = Config.AmqpQueueToProduce;
 
@@ -231,7 +218,11 @@ namespace Otm.Server.Broker.Ptl
 
                             var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
 
-                            AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));                        
+                            AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
+                            
+                            /// TODO: wait time must be equals the minimum update rate of tags
+                            var waitEvent = new ManualResetEvent(false);
+                            waitEvent.WaitOne(1000);
                         }
 
                         receiveBuffer = receiveBuffer[(primeiraPosRelevante + messageSize)..];
@@ -243,9 +234,7 @@ namespace Otm.Server.Broker.Ptl
 
             return received;
         }
-
-
-
+        
         public DateTime LastPingSend { get; set; }
         /// <summary>
         /// Envio de ping para o controlador se não tiver enviado um ping a menos de 2 segundos
@@ -263,16 +252,8 @@ namespace Otm.Server.Broker.Ptl
             // envia um ping para o controlador
             var pingMsg = "PING|";
             var bytes = Encoding.ASCII.GetBytes(pingMsg);
-            Logger.Info($"LastPingSend(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. PING enviado");
             LastPingSend = DateTime.Now;
             client.SendData(bytes);
-        }
-        
-        
-        
-        public override byte[] GetMessagekeepAlive()
-        {
-            return System.Text.Encoding.ASCII.GetBytes("PONG");
         }
     }
 }
