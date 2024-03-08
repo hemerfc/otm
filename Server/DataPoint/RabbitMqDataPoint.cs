@@ -39,6 +39,7 @@ namespace Otm.Server.DataPoint
                 var port = configDict["port"];
                 var user = configDict["user"];
                 var password = configDict["password"];
+                var queueName = configDict["queue"];
                 
                 var factory = new ConnectionFactory
                 {
@@ -51,6 +52,13 @@ namespace Otm.Server.DataPoint
                 var channel = connection.CreateModel();
                 var basicProperties = channel.CreateBasicProperties();
                 basicProperties.Persistent = true;
+                
+                channel.QueueDeclare(queue: queueName,
+                    durable: true,
+                    exclusive: false,
+                    autoDelete: false,
+                    arguments: null);
+                
               
                 return (connection,channel, basicProperties);
             }
