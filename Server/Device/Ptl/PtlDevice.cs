@@ -179,7 +179,8 @@ namespace Otm.Server.Device.Ptl
                                                                     location: pententeInfos[0],
                                                                     displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
                                                                     displayValue: pententeInfos[2],
-                                                                    masterMessage: (E_PTLMasterMessage)int.Parse(pententeInfos[3]))
+                                                                    displayModel: pententeInfos[3],
+                                                                    masterMessage: (E_PTLMasterMessage)int.Parse(pententeInfos[4]))
                                                                     ).ToList();
 
                 Logger.Info($"SetTagValue(): PickTolight visualization: '{Config.Name}'. value: '{value}'");
