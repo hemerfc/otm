@@ -210,6 +210,7 @@ namespace Otm.Server.Broker.Ptl
             var ListaAcender = listaPendentes.Where(pendente => !ListaLigados.Any(ligado =>
                 ligado.Location == pendente.Location 
                 && ligado.DisplayValue == pendente.DisplayValue 
+                && ligado.DisplayColor == pendente.DisplayColor
                 && ligado.Id == pendente.Id
             ));
             
