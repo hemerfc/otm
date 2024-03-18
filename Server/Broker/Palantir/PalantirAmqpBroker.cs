@@ -68,7 +68,7 @@ namespace Otm.Server.Broker.Palantir
         public DateTime LastErrorTime { get; set; }
 
         public double MessagesPerSecond { get; set; }
-        public bool Connecting { get; private set; }
+        public bool ClientConnecting { get; private set; }
         public DateTime LastConnectionTry { get; set; }
         public DateTime LastSend { get; private set; }
 
@@ -108,41 +108,70 @@ namespace Otm.Server.Broker.Palantir
             {
                 try
                 {
-                    if (client.Connected && AmqpChannel != null && AmqpChannel.IsOpen)
+                    if(Ready) 
                     {
+                        if (client == null || client?.Connected == false)
+                        {
+                            throw new Exception("Client is null!");
+                        }
+                        
+                        if (client.Connected == false)
+                        {
+                            throw new Exception("Client is not connected!");
+                        }
+                        
+                        if(AmqpChannel == null && AmqpChannel?.IsOpen == false)
+                        {
+                            ClientConnecting = false;
+                            throw new Exception("AmqpChannel is null!");
+                        }
+                        
+                        if(AmqpChannel.IsOpen == false)
+                        {
+                            ClientConnecting = false;
+                            throw new Exception("AmqpChannel is not connected!");
+                        }
+                        
                         bool received, sent;
-
                         do
                         {
                             received = ReceiveData();
                             sent = SendData();
                         } while (received || sent);
 
-                        Ready = true;
                     }
                     else
                     {
                         Ready = false;
 
-                        this.AmqpChannel = CreateChannel(Config.AmqpHostName,
-                            Config.AmqpPort,
-                            Config.AmqpQueueToConsume,
-                            Config.AmqpQueueToProduce,
-                            new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
-                        );
-
-                        if (!Connecting)
+                        if (LastConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
                         {
                             // se ja tiver passado o delay, tenta reconectar
-                            if (LastConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
+                            LastConnectionTry = DateTime.Now;
+                            
+                            if (AmqpChannel == null)
                             {
-                                LastConnectionTry = DateTime.Now;
-                                Connecting = true;
-                                //Verifica se consegue conectar
-                                Connect();
-                                Connecting = false;
+                                Logger.Info($"Dev {Config.Name}: Recriando o Channel.");
+                                this.AmqpChannel = CreateChannel(Config.AmqpHostName,
+                                    Config.AmqpPort,
+                                    Config.AmqpQueueToConsume,
+                                    Config.AmqpQueueToProduce,
+                                    new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
+                                );
                             }
+
+                            if (!ClientConnecting)
+                            {
+                                ClientConnecting = true;
+                                //Verifica se consegue conectar
+                                Logger.Info($"Dev {Config.Name}: Recriando e conectando o client.");
+                                Connect();
+                                ClientConnecting = false;
+                            }
+
+                            Ready = (client.Connected && AmqpChannel.IsOpen);
                         }
+                        
                     }
 
                     // wait 50ms
@@ -159,6 +188,7 @@ namespace Otm.Server.Broker.Palantir
                 }
                 catch (Exception ex)
                 {
+                    ClientConnecting = false;
                     Ready = false;
                     Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
                 }
