@@ -23,7 +23,6 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Otm.Server.ContextConfig;
-using Otm.Server.ValueObjects.ProtocolPalantir;
 
 namespace Otm.Server.Broker.Palantir
 {
