@@ -140,11 +140,23 @@ namespace Otm.Server.Broker.Ptl
 
         public override bool ReceiveData()
         {
+            // verifica se recebeu algo nos ultimos 5 segundos
+            var now = DateTime.Now;
+            if (LastReceive.AddSeconds(120) < now )
+            {
+                // se nao recebeu, desconecta
+                Logger.Info("ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Ping sem Pong ;( Desconectando...");
+                client.Dispose();
+                LastPingSend = DateTime.Now;
+                return false;
+            }            
+            
             var received = false;
-
             var recv = client.GetData();
             if (recv != null && recv.Length > 0)
             {
+                LastReceive = DateTime.Now;
+                
                 Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
                 var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
                 receiveBuffer.CopyTo(tempBuffer, 0);
@@ -310,13 +322,25 @@ namespace Otm.Server.Broker.Ptl
             return received;
         }
         
+
+        public DateTime LastPingSend { get; set; }
+        /// <summary>
+        /// Envio de ping para o controlador se não tiver enviado um ping a menos de 2 segundos
+        /// </summary>
         public override void SendPing()
         {
+            // se já enviou um ping a menos de 2 segundos, não envia outro
+            var now = DateTime.Now;
+            if (LastPingSend.AddSeconds(60) > now)
+                return;
+            
+            if (client == null || !client.Connected)
+                return;
+            
+            // envia um ping para o controlador
+            var getFwCmd = new byte[] { 0x07, 0x00, 0x60, 0x00, 0x00, 0x00, 0x09 };
+            LastPingSend = DateTime.Now;
+            client.SendData(getFwCmd);
         }
-        
-        // public override byte[] GetMessagekeepAlive()
-        // {
-        //     return new byte[] { 0x07, 0x00, 0x60, 0x00, 0x00, 0x00, 0x09 };
-        // }
     }
 }

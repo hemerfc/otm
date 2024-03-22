@@ -317,6 +317,9 @@ namespace Otm.Server.Broker.Ptl
         {
             try
             {
+                // limpar a lista de ligados para religar apos a reconexao
+                ListaLigados.Clear();
+                
                 Logger.Debug($"Dev {Config.Name}: Connecting to {Config.SocketHostName}:{Config.SocketPort}...");
                 client.Connect(Config.SocketHostName, Config.SocketPort);
 

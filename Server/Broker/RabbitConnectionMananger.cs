@@ -47,6 +47,7 @@ public sealed class RabbitConnectionManager
                         HostName = hostName,
                         Port = port
                     };
+                    factory.ClientProvidedName = "OTM";
                     Connection = factory.CreateConnection();
                     if (Connection != null && Connection.IsOpen)
                     {

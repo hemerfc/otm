@@ -120,10 +120,7 @@ namespace Otm.Server.Broker.Ptl
         }
 
         public override bool ReceiveData()
-        {
-            var recv = client.GetData();
-            var received = false;
-            
+        {   
             // verifica se recebeu algo nos ultimos 5 segundos
             var now = DateTime.Now;
             if (LastReceive.AddSeconds(5) < now )
@@ -134,7 +131,10 @@ namespace Otm.Server.Broker.Ptl
                 LastPingSend = DateTime.Now;
                 return false;
             }
-
+            
+            var recv = client.GetData();
+            var received = false;
+            
             // se recebeu algo, adiciona ao buffer
             if (recv != null && recv.Length > 0)
             {
