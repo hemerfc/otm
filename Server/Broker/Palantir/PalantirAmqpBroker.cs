@@ -299,6 +299,7 @@ namespace Otm.Server.Broker.Palantir
                 }
                 catch (Exception e)
                 {
+                    Logger.Error($"ReceiveData(): Drive: {Config.Name}. Error: {e.ToString()}");
                     throw;
                 }
 

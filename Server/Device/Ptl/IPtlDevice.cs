@@ -184,15 +184,14 @@ namespace Otm.Server.Device.Ptl
                                                                     location: pententeInfos[0],
                                                                     displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
                                                                     displayValue: pententeInfos[2],
-                                                                    masterMessage: (E_PTLMasterMessage)int.Parse(pententeInfos[3]))
+                                                                    displayModel: pententeInfos[3],
+                                                                    masterMessage: (E_PTLMasterMessage)int.Parse(pententeInfos[4]))
                                                                     ).ToList();
 
                 //Monta a lista do que é novo                                
                 var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Select(x => x.Id).Contains(i.Id));
                 //Monsta a lista do que foi removido ou se for mensagem de 30 segundos atras
                 var ListaApagar = ListaLigados.Where(i => !ListaPendentes.Select(x => x.Id).Contains(i.Id));
-
-
 
                 lock (lockSendDataQueue)
                 {

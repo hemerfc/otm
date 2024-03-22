@@ -42,7 +42,8 @@ namespace Otm.Server.Broker.Ptl
                                     select new PtlBaseClass(id: Guid.Parse(pententeInfos[3]),
                                                             location: pententeInfos[0],
                                                             displayColor: pententeInfos[1],
-                                                            displayValue: pententeInfos[2])
+                                                            displayValue: pententeInfos[2],
+                                                            displayModel: pententeInfos[4])
                                                                 ).ToList();
 
                            
