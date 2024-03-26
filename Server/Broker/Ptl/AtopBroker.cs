@@ -198,8 +198,10 @@ namespace Otm.Server.Broker.Ptl
                         displayColor: (E_DisplayColor)byte.Parse(pendenteInfos[1]),
                         displayValue: pendenteInfos[2],
                         displayModel: pendenteInfos[4])
-                ).ToList();
-
+                )
+                .OrderBy(x => x.Location)
+                .ToList();
+            
             var strListaPendentes = listaPendentes.Aggregate("", (s, x) =>
                 s +
                 " Location: " + x.Location +
@@ -208,10 +210,18 @@ namespace Otm.Server.Broker.Ptl
             
             Logger.Info("listaPendentes" + strListaPendentes);
             
+            var strListaLigados = ListaLigados.Aggregate("", (s, x) =>
+                s +
+                " Location: " + x.Location +
+                " DisplayValue: " + x.DisplayValue +
+                " DisplayColor: " + x.DisplayColor + ", ");
+            
+            Logger.Info("ListaLigados" + strListaLigados);
+            
             var ListaAcender = listaPendentes.Where(pendente => !ListaLigados.Any(ligado =>
                 ligado.Location == pendente.Location 
                 && ligado.DisplayValue == pendente.DisplayValue 
-                && ligado.DisplayColor == pendente.DisplayColor
+                && ((int)ligado.DisplayColor) == ((int)pendente.DisplayColor)
                 && ligado.Id == pendente.Id
             ));
             
@@ -227,7 +237,7 @@ namespace Otm.Server.Broker.Ptl
                 pendente.Location == ligado.Location 
                 && pendente.DisplayValue == ligado.DisplayValue
                 && pendente.Id == ligado.Id
-                || pendente.DisplayColorInt != ligado.DisplayColorInt
+                && ((int)ligado.DisplayColor) == ((int)pendente.DisplayColor)
             ));
             
             var strListaApagar = ListaApagar.Aggregate("", (s, x) =>
@@ -310,11 +320,13 @@ namespace Otm.Server.Broker.Ptl
                                 Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
                                 
                                 Logger.Info($"messageToAmqtp DEBUG -> {Config.AmqpQueueToProduce} | {Config.Name} | {Config.PtlId} | {cmdDevice} | {cmdValue} | {(cmdValue.All(c => c == '0') ? 0 : cmdValue.TrimStart('0'))}");
-                            
+
+                                var displayId = $"{Config.PtlId}:{cmdDevice}";
+                                
                                 var messageToAmqtp = String.Join(',',
                                     Config.AmqpQueueToProduce,
                                     Config.Name,
-                                    $"{Config.PtlId}:{cmdDevice}",
+                                    displayId,
                                     cmdValue.All(c => c == '0') ? 0 : cmdValue.TrimStart('0'),
                                     DateTime.Now
                                 );
@@ -322,6 +334,12 @@ namespace Otm.Server.Broker.Ptl
 
                                 AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
 
+                                // TODO: REMOVER ESTE DISPLAY DA LISTA DE LIGADOS
+                                var display = ListaLigados.SingleOrDefault(x => x.Location == displayId);
+
+                                if (display != null)
+                                    ListaLigados.Remove(display);
+                                
                                 readGateOpen = false;
 
                             }
@@ -362,10 +380,12 @@ namespace Otm.Server.Broker.Ptl
                                 Logger.Info($"ReceiveData() AT: Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {cmdAT}");
                                 Logger.Info($"messageToAmqtp AT DEBUG -> {Config.AmqpQueueToProduce} | {Config.Name} | {Config.PtlId} | {subNode.ToString().PadLeft(3, '0')} | {cmdValue} | {(cmdValue.All(c => c == '0') ? 0 : cmdValue.TrimStart('0'))}");
                                 
+                                var displayId = $"{Config.PtlId}:{subNode.ToString().PadLeft(3, '0')}";
+                                
                                 var messageToAmqtp = String.Join(',',
                                     Config.AmqpQueueToProduce,
                                     Config.Name,
-                                    $"{Config.PtlId}:{subNode.ToString().PadLeft(3, '0')}",
+                                    displayId,
                                     cmdValue.All(c => c == '0') ? 0 : cmdValue.TrimStart('0'),
                                     DateTime.Now
                                 );
@@ -373,6 +393,12 @@ namespace Otm.Server.Broker.Ptl
                                 var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
 
                                 AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
+                                
+                                // TODO: REMOVER ESTE DISPLAY DA LISTA DE LIGADOS
+                                var display = ListaLigados.SingleOrDefault(x => x.Location == displayId);
+
+                                if (display != null)
+                                    ListaLigados.Remove(display);
                             }
 
                             //Limpando o buffer que ja foi processado
@@ -411,10 +437,12 @@ namespace Otm.Server.Broker.Ptl
                             
                             Logger.Info($"messageToAmqtp AT MASTER -> {Config.AmqpQueueToProduce} | {Config.Name} | {Config.PtlId} | {(subNode.ToString().PadLeft(3, '0'))} | {cmdValue} | {(cmdValue.All(c => c == '0') ? 0 : cmdValue.TrimStart('0'))}");
                             
+                            var displayId = $"{Config.PtlId}:{(subNode.ToString().PadLeft(3, '0'))}";
+                            
                             var messageToAmqtp = String.Join(',',
                                 Config.AmqpQueueToProduce,
                                 Config.Name,
-                                $"{Config.PtlId}:{(subNode.ToString().PadLeft(3, '0'))}",
+                                displayId,
                                 cmdValue.All(c => c == '0') ? 0 : cmdValue.TrimStart('0'),
                                 DateTime.Now
                             );
@@ -423,6 +451,11 @@ namespace Otm.Server.Broker.Ptl
 
                             AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
 
+                            // TODO: REMOVER ESTE DISPLAY DA LISTA DE LIGADOS
+                            var display = ListaLigados.SingleOrDefault(x => x.Location == displayId);
+
+                            if (display != null)
+                                ListaLigados.Remove(display);
 
                             //Limpando o buffer que ja foi processado
                             //received = true;
