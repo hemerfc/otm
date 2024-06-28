@@ -48,7 +48,24 @@ namespace Otm.Server.Broker.Palantir
         //private byte[] STX = new byte[] { 0x02 }; 
         //private byte[] ETX = new byte[] { 0x03 };
 
-        public bool Ready { get; set; }
+        
+        
+        
+        private bool PlcReady { get; set; }
+        private DateTime LastPlcConnectionTry { get; set; }
+        private DateTime LastPlcReceivedData { get; set; }
+        private bool PlcConnecting { get; set; }
+        
+        private bool RabbitMqReady { get; set; }
+        private DateTime LastRabbitConnectionTry { get; set; }
+        private bool RabbitMqConnecting { get; set; }
+        
+        
+        //necessario implementar o Ready por conta da interface
+        public bool Ready => RabbitMqReady && PlcReady;
+        
+        
+        
 
         public BackgroundWorker Worker { get; private set; }
 
@@ -59,6 +76,7 @@ namespace Otm.Server.Broker.Palantir
         //public bool Connected { get; set; }
 
         private const int RECONNECT_DELAY = 3000;
+        private const int KEEP_ALIVE_TIMEOUT = 10000;
 
         public DateTime LastMessageTime { get; set; }
         
@@ -67,8 +85,8 @@ namespace Otm.Server.Broker.Palantir
         public DateTime LastErrorTime { get; set; }
 
         public double MessagesPerSecond { get; set; }
-        public bool ClientConnecting { get; private set; }
-        public DateTime LastConnectionTry { get; set; }
+        //public bool ClientConnecting { get; private set; }
+        //public DateTime LastConnectionTry { get; set; }
         public DateTime LastSend { get; private set; }
 
         private byte[] receiveBuffer = new byte[0];
@@ -82,6 +100,7 @@ namespace Otm.Server.Broker.Palantir
         {
             this.Logger = logger;
             this.Config = config;
+            this.Name = config.Name;
 
             this.client = tcpClientAdapter ?? new TcpClientAdapter();
             this.AmqpChannel = CreateChannel(config.AmqpHostName,
@@ -107,30 +126,62 @@ namespace Otm.Server.Broker.Palantir
             {
                 try
                 {
-                    if(Ready) 
+                    #region PlcReady
+                    if(PlcConnecting)
+                        continue;
+                        
+                    if (!PlcReady)
                     {
-                        if (client == null || client?.Connected == false)
-                        {
-                            throw new Exception("Client is null!");
-                        }
+                        //Logger.Info($"Dev {Config.Name}: PLC not ready.");
+                        ReconnectPlc();
+                        continue;
+                    }
+                    
+                    if (client == null || client?.Connected == false)
+                    {
+                        PlcReady = false;
+                        throw new Exception("Client is null!");
+                    }
+                    
+                    if (client?.Connected == false)
+                    {
+                        PlcReady = false;
+                        throw new Exception("Client is not connected!");
+                    }
                         
-                        if (client.Connected == false)
-                        {
-                            throw new Exception("Client is not connected!");
-                        }
+                    #endregion
+
+                    
+                    #region RabbitMqReady
+                    
+                    
+                    if(RabbitMqConnecting)
+                        continue;
+                    
+                    if (!RabbitMqReady)
+                    {
+                        ReconnectRabbit();
+                        //Logger.Info($"Dev {Config.Name}: RabbitMq not ready.");
+                        continue;
+                    }
+                    
+                    if(AmqpChannel == null && AmqpChannel?.IsOpen == false)
+                    {
+                        RabbitMqReady = false;
+                        throw new Exception("AmqpChannel is null!");
+                    }
                         
-                        if(AmqpChannel == null && AmqpChannel?.IsOpen == false)
-                        {
-                            ClientConnecting = false;
-                            throw new Exception("AmqpChannel is null!");
-                        }
-                        
-                        if(AmqpChannel.IsOpen == false)
-                        {
-                            ClientConnecting = false;
-                            throw new Exception("AmqpChannel is not connected!");
-                        }
-                        
+                    if(AmqpChannel.IsOpen == false)
+                    {
+                        RabbitMqReady = false;
+                        throw new Exception("AmqpChannel is not connected!");
+                    }
+                    
+                    
+                    #endregion
+                    
+                    if(PlcReady && RabbitMqReady)
+                    {
                         bool received, sent;
                         do
                         {
@@ -138,39 +189,12 @@ namespace Otm.Server.Broker.Palantir
                             sent = SendData();
                         } while (received || sent);
 
-                    }
-                    else
-                    {
-                        Ready = false;
-
-                        if (LastConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
+                        if (LastPlcReceivedData.AddMilliseconds(KEEP_ALIVE_TIMEOUT) < DateTime.Now)
                         {
-                            // se ja tiver passado o delay, tenta reconectar
-                            LastConnectionTry = DateTime.Now;
-                            
-                            if (AmqpChannel == null)
-                            {
-                                Logger.Info($"Dev {Config.Name}: Recriando o Channel.");
-                                this.AmqpChannel = CreateChannel(Config.AmqpHostName,
-                                    Config.AmqpPort,
-                                    Config.AmqpQueueToConsume,
-                                    Config.AmqpQueueToProduce,
-                                    new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
-                                );
-                            }
-
-                            if (!ClientConnecting)
-                            {
-                                ClientConnecting = true;
-                                //Verifica se consegue conectar
-                                Logger.Info($"Dev {Config.Name}: Recriando e conectando o client.");
-                                Connect();
-                                ClientConnecting = false;
-                            }
-
-                            Ready = (client.Connected && AmqpChannel.IsOpen);
+                            LastPlcReceivedData = DateTime.Now;
+                            Logger.Warn($"Dev {Config.Name}: KEEP_ALIVE_TIMEOUT. Setting PlcReady to false...");
+                            PlcReady = false;
                         }
-                        
                     }
 
                     // wait 50ms
@@ -180,24 +204,93 @@ namespace Otm.Server.Broker.Palantir
 
                     if (Worker.CancellationPending)
                     {
-                        Ready = false;
+                        RabbitMqReady = false;
+                        PlcReady = false;
                         Stop();
                         return;
                     }
                 }
                 catch (Exception ex)
                 {
-                    ClientConnecting = false;
-                    Ready = false;
+                    PlcReady = false;
+                    RabbitMqReady = false;
                     Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
                 }
             }
         }
 
+        private void ReconnectRabbit()
+        {
+            RabbitMqConnecting = true;
+            try
+            {
+                if (LastRabbitConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
+                {
+                    LastRabbitConnectionTry = DateTime.Now;
+                
+                    //if (AmqpChannel == null)
+                    //{
+                    Logger.Info($"Dev {Config.Name}: Reconnecting to RabbitMq.");
+                    this.AmqpChannel = CreateChannel(Config.AmqpHostName,
+                        Config.AmqpPort,
+                        Config.AmqpQueueToConsume,
+                        Config.AmqpQueueToProduce,
+                        new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
+                    );
+                    //}
+                    RabbitMqReady = AmqpChannel.IsOpen;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Dev {Config.Name}: Error ReconnectRabbit: {ex}");
+                RabbitMqReady = false;
+            }
+            
+            
+            RabbitMqConnecting = false;
+        }
+
+        private void ReconnectPlc()
+        {
+            try
+            {
+                if (LastPlcConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
+                {
+                    LastPlcConnectionTry = DateTime.Now;
+                    
+                    PlcConnecting = true;
+                    if (client == null)
+                    {
+                        client = new TcpClientAdapter();
+                    }
+
+                    if (client.Connected == false)
+                    {
+                        Logger.Info($"Dev {Config.Name}: Reconnecting to PLC.");
+                        Connect();
+                    }
+                    
+                    PlcReady = client.Connected;
+                    Logger.Info($"Dev {Config.Name}: PlcReady: {PlcReady}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Dev {Config.Name}: Error ReconnectPlc: {ex}");
+                PlcReady = false;
+            }
+            
+            PlcConnecting = false;
+        }
+        
+        
+
         public void Stop()
         {
             throw new NotImplementedException();
         }
+
 
         private bool ReceiveData()
         {
@@ -214,6 +307,8 @@ namespace Otm.Server.Broker.Palantir
                 receiveBuffer.CopyTo(tempBuffer, 0);
                 recv.CopyTo(tempBuffer, receiveBuffer.Length);
                 receiveBuffer = tempBuffer;
+
+                LastPlcReceivedData = DateTime.Now;
             }
 
             if (receiveBuffer.Length > 0)
@@ -414,6 +509,8 @@ namespace Otm.Server.Broker.Palantir
         {
             try
             {
+                
+                Logger.Debug($"Dev {Config.Name}: Conecting to '{Config.SocketHostName}:{Config.SocketPort}'.");
                 client.Connect(Config.SocketHostName, Config.SocketPort);
 
                 if (client.Connected)
