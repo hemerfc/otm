@@ -148,7 +148,7 @@ namespace Otm.Server
                     }
                 };
 
-                worker.RunWorkerCompleted += (object o, RunWorkerCompletedEventArgs args) => Logger.Info($"Object {name} Stoped");
+                worker.RunWorkerCompleted += (object o, RunWorkerCompletedEventArgs args) => Logger.Info($"Object '{name}' Stoped");
 
                 worker.RunWorkerAsync();
             }
