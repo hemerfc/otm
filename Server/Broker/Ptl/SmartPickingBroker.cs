@@ -43,7 +43,8 @@ namespace Otm.Server.Broker.Ptl
                                                             location: pententeInfos[0],
                                                             displayColor: pententeInfos[1],
                                                             displayValue: pententeInfos[2],
-                                                            displayModel: pententeInfos[4])
+                                                            displayModel: pententeInfos[4],
+                                                            station:pententeInfos[5])
                                                                 ).ToList();
 
                            
@@ -203,8 +204,10 @@ namespace Otm.Server.Broker.Ptl
                             string value = message.Substring(6, 6);
                             string endereco = $"{Config.PtlId}:{display}";
 
-                            var queueName = Config.AmqpQueueToProduce;
-
+                            //var queueName = Config.AmqpQueueToProduce;
+                            var DisplayLigado = ListaLigados.FirstOrDefault(x => x.Location == endereco).Station;
+                            var queueName = $"{DisplayLigado}_{Config.AmqpQueueToProduce}";
+                            
                             Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
 
                             var messageToAmqtp = String.Join(',',
@@ -222,8 +225,8 @@ namespace Otm.Server.Broker.Ptl
                             AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
                             
                             /// TODO: wait time must be equals the minimum update rate of tags
-                            var waitEvent = new ManualResetEvent(false);
-                            waitEvent.WaitOne(1000);
+                            // var waitEvent = new ManualResetEvent(false);
+                            // waitEvent.WaitOne(1000);
                         }
 
                         receiveBuffer = receiveBuffer[(primeiraPosRelevante + messageSize)..];

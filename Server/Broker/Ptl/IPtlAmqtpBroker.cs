@@ -59,7 +59,7 @@ namespace Otm.Server.Broker.Ptl
         
         private int PingError { get; set; }
         
-        private static readonly ActivitySource RegisteredActivity = new ActivitySource("OTM");
+        //private static readonly ActivitySource RegisteredActivity = new ActivitySource("OTM");
 
         public IPtlAmqtpBroker(BrokerConfig config, ILogger logger)
         {
@@ -117,19 +117,19 @@ namespace Otm.Server.Broker.Ptl
 
                         do
                         {
-                            using (var activity = RegisteredActivity.StartActivity($"ReceiveData: {Config.Name}"))
-                            {
-                                activity?.SetTag("device", Config.Name);
+                            //using (var activity = RegisteredActivity.StartActivity($"ReceiveData: {Config.Name}"))
+                            //{
+                               // activity?.SetTag("device", Config.Name);
                                 received = ReceiveData();
-                            }
+                            //}
 
                             if ((client?.Connected ?? false) == true)
                             {
-                                using (var activity = RegisteredActivity.StartActivity($"SendData: {Config.Name}"))
-                                {
-                                    activity?.SetTag("device", Config.Name);
+                                //using (var activity = RegisteredActivity.StartActivity($"SendData: {Config.Name}"))
+                                //{
+                                //    activity?.SetTag("device", Config.Name);
                                     sent = SendData();
-                                }
+                                //}
                             }
 
 
@@ -151,15 +151,15 @@ namespace Otm.Server.Broker.Ptl
                             {
                                 if ((client?.Connected ?? false) == false)
                                 {
-                                    using (var activity = RegisteredActivity.StartActivity($"Reconnect: {Config.Name}"))
-                                    {
-                                        activity?.SetTag("device", Config.Name);
+                                    //using (var activity = RegisteredActivity.StartActivity($"Reconnect: {Config.Name}"))
+                                    //{
+                                        //activity?.SetTag("device", Config.Name);
                                         
                                         Connecting = true;
                                         //Verifica se consegue conectar
                                         Connect();
                                         Connecting = false;
-                                    }
+                                    //}
                                 }
                                 LastConnectionTry = DateTime.Now;
                             }

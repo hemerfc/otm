@@ -50,9 +50,8 @@
 	  <Content Update="Config\PTL01.json">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </Content>
-	  <Content Update="Configs\PLCLux.json">
-	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	  </Content>
+	  <Content Remove="Configs\PLCLux.json" />
+	  <Content Remove="Configs\PLC.json" />
 	</ItemGroup>
 
     <ItemGroup>

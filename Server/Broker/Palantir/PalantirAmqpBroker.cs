@@ -76,7 +76,7 @@ namespace Otm.Server.Broker.Palantir
         private Queue<byte[]> sendDataQueue;
         private IBasicProperties basicProperties;
 
-        private static readonly ActivitySource RegisteredActivity  = new ActivitySource("OTM");
+        //private static readonly ActivitySource RegisteredActivity  = new ActivitySource("OTM");
         
         public bool Connected { get { return client?.Connected ?? false; } }
 
@@ -120,17 +120,17 @@ namespace Otm.Server.Broker.Palantir
 
                         do
                         {
-                            using (var activity = RegisteredActivity.StartActivity($"ReceiveData : {Config.Name}"))
-                            {
-                                activity?.SetTag("device", Config.Name);
+                            //using (var activity = RegisteredActivity.StartActivity($"ReceiveData : {Config.Name}"))
+                           // {
+                                //activity?.SetTag("device", Config.Name);
                                 received = ReceiveData();
-                            }
+                           // }
 
-                            using (var activity = RegisteredActivity.StartActivity($"SendData: {Config.Name}"))
-                            {
-                                activity?.SetTag("device", Config.Name);
+                            //using (var activity = RegisteredActivity.StartActivity($"SendData: {Config.Name}"))
+                            //{
+                                //activity?.SetTag("device", Config.Name);
                                 sent = SendData();
-                            }
+                            //}
                         } while (received || sent);
                     }
                     else
@@ -147,21 +147,21 @@ namespace Otm.Server.Broker.Palantir
 
                                 if ((client?.Connected??false)==false)
                                 {
-                                    using (var activity = RegisteredActivity.StartActivity($"Reconnect: {Config.Name}"))
-                                    {
-                                        activity?.SetTag("device", Config.Name);
+                                    //using (var activity = RegisteredActivity.StartActivity($"Reconnect: {Config.Name}"))
+                                    //{
+                                        //activity?.SetTag("device", Config.Name);
                                     
                                         Logger.Error($"Dev {Config.Name}: Reconnect to PLC");
                                         //Verifica se consegue conectar
                                         Connect();
-                                    }
+                                    //}
                                 }
 
                                 if (AmqpChannel == null)
                                 {
-                                    using (var activity = RegisteredActivity.StartActivity($"CreateChannel: {Config.Name}"))
-                                    {
-                                        activity?.SetTag("device", Config.Name);
+                                    //using (var activity = RegisteredActivity.StartActivity($"CreateChannel: {Config.Name}"))
+                                    //{
+                                        //activity?.SetTag("device", Config.Name);
                                         Logger.Error($"Dev {Config.Name}: CreateChannel");
                                     
                                         this.AmqpChannel = CreateChannel(Config.AmqpHostName,
@@ -170,7 +170,7 @@ namespace Otm.Server.Broker.Palantir
                                             Config.AmqpQueueToProduce,
                                             new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
                                         );
-                                    }
+                                    //}
                                 }
                                 
                                 Connecting = false;
@@ -186,11 +186,11 @@ namespace Otm.Server.Broker.Palantir
 
                     if (Worker.CancellationPending)
                     {
-                        using (var activity = RegisteredActivity.StartActivity("stop"))
-                        {
+                        //using (var activity = RegisteredActivity.StartActivity("stop"))
+                        //{
                             Ready = false;
                             Stop();
-                        }
+                        //}
 
                         return;
                     }
@@ -288,13 +288,15 @@ namespace Otm.Server.Broker.Palantir
                     //Descartando a mensagem do buffer pois ja foi processada
                     receiveBuffer = receiveBuffer[(etxPos + 1)..];
                     var messageStr = Encoding.ASCII.GetString(message);
-                    var messageType = messageStr.Split(",").First();
-                    var queueName = messageType;
+                    var splitMessage = messageStr.Split(",");
+                    var messageType = splitMessage[0];
+                    //var queueName = splitMessage[1];
+
+                    var queueName = $"{splitMessage[1]}_{splitMessage[0]}";
 
                     Logger.Info($"ReceiveData(): Drive: {Config.Name}. Message: {messageStr}");
                     var json = JsonConvert.SerializeObject(new { Body = messageStr });
-
-
+                    
                     AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
                 }
                 catch (Exception e)

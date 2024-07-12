@@ -13,7 +13,7 @@ public sealed class RabbitConnectionManager
     private static  IConnection Connection { get; set; }
     private static string HostName { get; set; }
     private static int Port { get; set; }
-    private static readonly ActivitySource RegisteredActivity  = new ActivitySource("OTM");
+    //private static readonly ActivitySource RegisteredActivity  = new ActivitySource("OTM");
     
     RabbitConnectionManager(string hostName, int port)
     {
@@ -36,8 +36,8 @@ public sealed class RabbitConnectionManager
     
     private void CreateConnection(string hostName, int port)
     {
-        using (var activity = RegisteredActivity.StartActivity($"CreateConnection : {hostName}"))
-        {
+        //using (var activity = RegisteredActivity.StartActivity($"CreateConnection : {hostName}"))
+        //{
             while (true)
             {
                 try
@@ -68,7 +68,7 @@ public sealed class RabbitConnectionManager
                 
             }
 
-        }
+        //}
     }
     
     public IConnection GetConnection()

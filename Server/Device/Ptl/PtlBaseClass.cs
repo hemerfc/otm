@@ -30,7 +30,7 @@ namespace Otm.Server.Device.Ptl
             DtHoraComando = DateTime.Now;
             DisplayModel = displayModel;
         }
-        public PtlBaseClass(Guid id, string location, E_DisplayColor displayColor, string displayValue, string displayModel, E_PTLMasterMessage masterMessage = E_PTLMasterMessage.None)
+        public PtlBaseClass(Guid id, string location, E_DisplayColor displayColor, string displayValue, string displayModel, E_PTLMasterMessage masterMessage = E_PTLMasterMessage.None, string station = "")
         {
             Id = id;
             Location = location;
@@ -39,9 +39,10 @@ namespace Otm.Server.Device.Ptl
             MasterMessage = masterMessage;
             DtHoraComando = DateTime.Now;
             DisplayModel = displayModel;
+            Station = station;
         }
 
-        public PtlBaseClass(Guid id, string location, string displayColor, string displayValue, string displayModel, E_PTLMasterMessage masterMessage = E_PTLMasterMessage.None)
+        public PtlBaseClass(Guid id, string location, string displayColor, string displayValue, string displayModel, E_PTLMasterMessage masterMessage = E_PTLMasterMessage.None, string station = "")
         {
             Id = id;
             Location = location;
@@ -50,6 +51,7 @@ namespace Otm.Server.Device.Ptl
             MasterMessage = masterMessage;
             DtHoraComando = DateTime.Now;
             DisplayModel = displayModel;
+            Station = station;
         }
 
         public Guid Id { get; private set;}
@@ -60,6 +62,8 @@ namespace Otm.Server.Device.Ptl
         public string DisplayModel { get; private set; }
         public E_PTLMasterMessage MasterMessage { get; private set; } = E_PTLMasterMessage.None;
         public DateTime DtHoraComando { get; private set; }
+        
+        public string Station { get; set; }
 
 
         public E_PtlMessageType MessageType => MasterMessage.MessageType();
