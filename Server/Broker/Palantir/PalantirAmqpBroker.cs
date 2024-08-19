@@ -446,6 +446,12 @@ namespace Otm.Server.Broker.Palantir
                         var totalLength = 0;
                         foreach (var it in sendDataQueue)
                         {
+                            if (it == null)
+                            {
+                                Logger.Error($"SendData: {Config.Name}: it was NULL");
+                                continue;
+                            }
+
                             totalLength += it.Length;
                         }
 
@@ -570,8 +576,10 @@ namespace Otm.Server.Broker.Palantir
         public void Consumer_Received(object sender, BasicDeliverEventArgs e)
         {
             var body = e.Body.ToArray();
+            
             //var message = Encoding.UTF8.GetString();
-
+            
+            
             sendDataQueue.Enqueue(body);
 
             var consumer = (sender as IBasicConsumer).Model;
