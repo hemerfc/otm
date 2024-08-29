@@ -125,7 +125,7 @@ namespace Otm.Server.Broker.Ptl
                     // wait 50ms
                     /// TODO: wait time must be equals the minimum update rate of tags
                     var waitEvent = new ManualResetEvent(false);
-                    waitEvent.WaitOne(50);
+                    waitEvent.WaitOne(100);
 
                     if (Worker.CancellationPending)
                     {
@@ -149,11 +149,11 @@ namespace Otm.Server.Broker.Ptl
 
         private IModel CreateChannel(string hostName, int port, string queuesToConsume, string queuesToProduce, EventHandler<BasicDeliverEventArgs> onReceived)
         {
-            ConnectionFactory factory = new ConnectionFactory()
-            {
-                HostName = hostName,
-                Port = port
-            };
+            //ConnectionFactory factory = new ConnectionFactory()
+            //{
+            //    HostName = hostName,
+            //    Port = port
+            //};
 
             IModel channel = null;
             const int maxRetries = 7; // Número máximo de tentativas
@@ -163,7 +163,9 @@ namespace Otm.Server.Broker.Ptl
             {
                 try
                 {
-                    var connection = factory.CreateConnection();
+                    //var connection = factory.CreateConnection();
+                    var connection = RabbitConnectionManager.GetInstance(hostName, port).GetConnection();
+                    
                     channel = connection.CreateModel();
                     break;
                 }

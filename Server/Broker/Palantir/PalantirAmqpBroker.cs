@@ -23,7 +23,6 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Otm.Server.ContextConfig;
-using Otm.Server.ValueObjects.ProtocolPalantir;
 
 namespace Otm.Server.Broker.Palantir
 {
@@ -123,32 +122,37 @@ namespace Otm.Server.Broker.Palantir
                     else
                     {
                         Ready = false;
-
-                        this.AmqpChannel = CreateChannel(Config.AmqpHostName,
-                            Config.AmqpPort,
-                            Config.AmqpQueueToConsume,
-                            Config.AmqpQueueToProduce,
-                            new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
-                        );
-
-                        if (!Connecting)
+                        
+                        if (AmqpChannel == null || !AmqpChannel.IsOpen)
                         {
-                            // se ja tiver passado o delay, tenta reconectar
-                            if (LastConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
+                            this.AmqpChannel = CreateChannel(Config.AmqpHostName,
+                                Config.AmqpPort,
+                                Config.AmqpQueueToConsume,
+                                Config.AmqpQueueToProduce,
+                                new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
+                            );
+                        }
+
+                        if (!client.Connected)
+                        {
+                            if (!Connecting)
                             {
-                                LastConnectionTry = DateTime.Now;
-                                Connecting = true;
-                                //Verifica se consegue conectar
-                                Connect();
-                                Connecting = false;
+                                // se ja tiver passado o delay, tenta reconectar
+                                if (LastConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
+                                {
+                                    LastConnectionTry = DateTime.Now;
+                                    Connecting = true;
+                                    //Verifica se consegue conectar
+                                    Connect();
+                                    Connecting = false;
+                                }
                             }
                         }
                     }
 
-                    // wait 50ms
-                    /// TODO: wait time must be equals the minimum update rate of tags
+                    // wait 100ms
                     var waitEvent = new ManualResetEvent(false);
-                    waitEvent.WaitOne(50);
+                    waitEvent.WaitOne(100);
 
                     if (Worker.CancellationPending)
                     {
@@ -404,8 +408,9 @@ namespace Otm.Server.Broker.Palantir
 
         private IModel CreateChannel(string hostName, int port, string queuesToConsume, string queuesToProduce, EventHandler<BasicDeliverEventArgs> onReceived)
         {
-            var factory = new ConnectionFactory() { HostName = hostName, Port = port };
-            var connection = factory.CreateConnection();
+            //var factory = new ConnectionFactory() { HostName = hostName, Port = port };
+            //var connection = factory.CreateConnection();
+            var connection = RabbitConnectionManager.GetInstance(hostName, port).GetConnection();
             var channel = connection.CreateModel();
             var consumer = new EventingBasicConsumer(channel);
 
