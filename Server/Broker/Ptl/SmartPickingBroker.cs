@@ -192,6 +192,10 @@ namespace Otm.Server.Broker.Ptl
             return received;
         }
 
+        public override void Loop()
+        {
+        }
+
         public override byte[] GetMessagekeepAlive()
         {
             return System.Text.Encoding.ASCII.GetBytes("PONG");

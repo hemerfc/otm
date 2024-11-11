@@ -26,6 +26,7 @@ namespace Otm.Server.Broker.Ptl
 
         private string cmd_rcvd = "";
         private int cmd_count = 0;
+        private DateTime? TurnedOnByBroadcastAt = null;
 
         public AtopBroker(BrokerConfig config, ILogger logger) : base(config, logger)
         {
@@ -113,6 +114,33 @@ namespace Otm.Server.Broker.Ptl
                 ListaLigados.Remove(itemApagar);
             }
         }
+        
+        public void displayTurnOnBroadcast() 
+        {
+            var buffer = new List<byte>();
+            byte displayId = 252;
+
+            // altera todos para verde
+            buffer.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Verde });
+            // limpa o display
+            buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
+
+            sendDataQueue.Enqueue(buffer.ToArray());
+
+            TurnedOnByBroadcastAt = DateTime.Now;
+        }
+        
+        public void displayTurnOffBroadcast() 
+        {
+            var buffer = new List<byte>();
+            byte displayId = 252;
+            
+            buffer.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
+            // limpa o display
+            buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
+
+            sendDataQueue.Enqueue(buffer.ToArray());
+        }
 
         public override void ProcessMessage(byte[] body)
         {
@@ -133,8 +161,22 @@ namespace Otm.Server.Broker.Ptl
 
             var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Any(x => x.Location == i.Location && x.DisplayValue == i.DisplayValue));
             var ListaApagar = ListaLigados.Where(x => !ListaPendentes.Any(ligado => ligado.Location == x.Location && ligado.DisplayValue == x.DisplayValue));
-
+            
+            if (TurnedOnByBroadcastAt != null)
+            {
+                displayTurnOffBroadcast();
+                TurnedOnByBroadcastAt = null;
+            }
+            
             displayOff(ListaApagar);
+            
+            var ptlFimMessage = ListaPendentes.FirstOrDefault(x => x.DisplayValue == "FIM");
+            if (ptlFimMessage != null)
+            {
+                Logger.Info($"ProcessMessage(): FIM recebido para : '{ptlFimMessage.Location}' ");
+                displayTurnOnBroadcast();
+            }
+
             displaysOn(ListaAcender);
         }
 

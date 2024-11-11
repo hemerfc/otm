@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Text;
 using NLog;
 using System;
+using System.Linq.Expressions;
 using System.Threading;
 using Otm.Server.ContextConfig;
 
@@ -100,9 +101,11 @@ namespace Otm.Server.Broker.Ptl
                         {
                             received = ReceiveData();
                             sent = SendData();
-                        } while (received || sent);
+                            } while (received || sent);
 
-                        Ready = true;
+                            Loop();
+                        
+                            Ready = true;
                     }
                     else
                     {
