@@ -366,12 +366,13 @@ namespace Otm.Server.Broker.Palantir
                 {
                     
                     // pega a mensagem do buffer
-                    //<STX>R01,22,456,2024-02-02<ETX><STX>R01,23,667
+                    //<STX>R01,PLC01,22,456,2024-02-02<ETX><STX>R01,23,667
+                    //<STX>P01,EST01,22,456,2024-02-02<ETX><STX>R01,23,667
                     var message = strRcvd[(stxPos + 1)..etxPos];
                     //Descartando a mensagem do buffer pois ja foi processada
                     receiveBuffer = receiveBuffer[(etxPos + 1)..];
                     var messageStr = Encoding.ASCII.GetString(message);
-                    var messageType = messageStr.Split(",").First();
+                    var messageType = messageStr.Split(",")[1];
                     var queueName = messageType;
 
                     Logger.Info($"ReceiveData(): Drive: {Config.Name}. Message: {messageStr}");

@@ -163,7 +163,10 @@ namespace Otm.Server.Broker.Ptl
                             //}
 
 
-                            var queueName = Config.AmqpQueueToProduce;
+                            //var queueName = Config.AmqpQueueToProduce;
+                            var displayPr = $"{Config.PtlId}:{display}";
+                            var ligado = ListaLigados.FirstOrDefault(x => x.Location == displayPr);
+                            var queueName = Config.Stations.FirstOrDefault(x => x.Color == ligado?.DisplayColor.ToString())?.Name ?? "error";
 
                             Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
 
@@ -190,10 +193,6 @@ namespace Otm.Server.Broker.Ptl
             }
 
             return received;
-        }
-
-        public override void Loop()
-        {
         }
 
         public override byte[] GetMessagekeepAlive()

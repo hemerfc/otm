@@ -103,7 +103,7 @@ namespace Otm.Server.Broker.Ptl
             {
                 //var buffer = Encoding.UTF8.GetBytes($"-{itemApagar}");
                 var buffer = new List<byte>();
-                byte displayId = itemApagar.GetDisplayIdBroker();
+                byte displayId = itemApagar.GetDisplayId();
 
                 // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
                 buffer.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
@@ -160,7 +160,10 @@ namespace Otm.Server.Broker.Ptl
                                                                 ).ToList();
 
             var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Any(x => x.Location == i.Location && x.DisplayValue == i.DisplayValue));
-            var ListaApagar = ListaLigados.Where(x => !ListaPendentes.Any(ligado => ligado.Location == x.Location && ligado.DisplayValue == x.DisplayValue));
+            var ListaApagar = ListaLigados.Where(x => !ListaPendentes.Any(ligado => 
+                ligado.Location == x.Location 
+                && ligado.DisplayValue == x.DisplayValue
+                || x.DisplayColor != ligado.DisplayColor));
             
             if (TurnedOnByBroadcastAt != null)
             {
@@ -244,11 +247,15 @@ namespace Otm.Server.Broker.Ptl
                                 cmd_count++;
                                 //received = true;
 
-                                var queueName = Config.AmqpQueueToProduce;
-
+                                //var queueName = Config.AmqpQueueToProduce;
+                                
+                                var display = $"{Config.PtlId}:{cmdDevice.ToString().PadLeft(3, '0')}";
+                                var ligado = ListaLigados.FirstOrDefault(x => x.Location == display);
+                                var queueName = Config.Stations.FirstOrDefault(x => x.Color == ligado?.DisplayColor.ToString())?.Name ?? "error";
+                                
                                 Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
 
-                                var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, $"{Config.PtlId}:{cmdDevice.ToString().PadLeft(3, '0')}", cmdValue, DateTime.Now);
+                                var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, display, cmdValue, DateTime.Now);
                                 var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
 
                                 AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
@@ -326,19 +333,18 @@ namespace Otm.Server.Broker.Ptl
                             cmd_rcvd = sendCMD;
                             cmd_count++;
                             //received = true;
-
-                            var queueName = Config.AmqpQueueToProduce;
-
+                            
+                            var display = $"{Config.PtlId}:{subNode.ToString().PadLeft(3, '0')}";
+                            var ligado = ListaLigados.FirstOrDefault(x => x.Location == display);
+                            var queueName = Config.Stations.FirstOrDefault(x => x.Color == ligado?.DisplayColor.ToString())?.Name ?? "error";
+                                
                             Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {cmdAT}");
 
-                            var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, $"{Config.PtlId}:{subNode.ToString().PadLeft(3, '0')}", cmdValue.Trim(), DateTime.Now);
+                            var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, display, cmdValue, DateTime.Now);
                             var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
 
                             AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
-
-
-                            //Limpando o buffer que ja foi processado
-                            //received = true;
+                            
                             receiveBuffer = receiveBuffer[(posMaster + len)..];
                         }
                     }

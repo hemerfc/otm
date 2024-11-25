@@ -102,8 +102,6 @@ namespace Otm.Server.Broker.Ptl
                             received = ReceiveData();
                             sent = SendData();
                             } while (received || sent);
-
-                            Loop();
                         
                             Ready = true;
                     }

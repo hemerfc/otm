@@ -5,7 +5,7 @@ namespace Otm.Server.ContextConfig
 {
     public class BrokerConfig
     {
-        public string PtlId;
+        public string PtlId { get; set; }
         public Guid Id { get; set; }
         public string Name { get; set; }
         public string Driver { get; set; }
@@ -22,6 +22,7 @@ namespace Otm.Server.ContextConfig
 
         public List<BrokerMessageTypeConfig> MessageTypes { get; set; }
         public string ContextName { get; set; }
+        public List<Station> Stations { get; set; }
 
 
     }
