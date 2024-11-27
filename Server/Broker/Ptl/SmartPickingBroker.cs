@@ -200,9 +200,11 @@ namespace Otm.Server.Broker.Ptl
                             string prefixo = message.Substring(0, 3);
                             string display = message.Substring(3, 3);
                             string value = message.Substring(6, 6);
-                            string endereco = $"{Config.PtlId}:{display}";
 
-                            var queueName = Config.AmqpQueueToProduce;
+                            //var queueName = Config.AmqpQueueToProduce;
+                            var displayPr = $"{Config.PtlId}:{display}";
+                            var ligado = ListaLigados.FirstOrDefault(x => x.Location == displayPr);
+                            var queueName = Config.Stations.FirstOrDefault(x => x.Color == ligado?.DisplayColorInt.ToString())?.Name ?? "error";
 
                             Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
 

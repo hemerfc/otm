@@ -24,7 +24,8 @@ namespace Otm.Server.ContextConfig
         public List<BrokerMessageTypeConfig> MessageTypes { get; set; }
         public string ContextName { get; set; }
 
-        public bool EnablePtlEdit { get; set; }
+        public int EnablePtlEdit { get; set; }
+        public List<Station> Stations { get; set; }
 
     }
 }
