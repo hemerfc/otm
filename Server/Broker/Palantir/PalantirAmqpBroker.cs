@@ -578,11 +578,12 @@ namespace Otm.Server.Broker.Palantir
         {
             var body = e.Body.ToArray();
             
-            //var message = Encoding.UTF8.GetString();
+            // lock para evitar concorrencia na fila
+            lock (lockSendDataQueue)
+            {
+                sendDataQueue.Enqueue(body);
+            }
             
-            
-            sendDataQueue.Enqueue(body);
-
             var consumer = (sender as IBasicConsumer).Model;
             consumer.BasicAck(deliveryTag: e.DeliveryTag, multiple: false);
 
