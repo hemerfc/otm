@@ -10,9 +10,6 @@ EXPOSE 5001
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
 COPY ["Server/Otm.Server.csproj", "Server/"]
-COPY ["Shared/Otm.Shared.csproj", "Shared/"]
-#COPY ["Client/Otm.Client.csproj", "Client/"]
-#COPY ["Client.Api/Otm.Client.Api.csproj", "Client.Api/"]
 RUN dotnet restore "Server/Otm.Server.csproj"
 COPY . .
 WORKDIR "/src/Server"

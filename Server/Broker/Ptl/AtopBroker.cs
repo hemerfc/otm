@@ -255,7 +255,7 @@ namespace Otm.Server.Broker.Ptl
                                 
                                 Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
 
-                                var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, display, cmdValue, DateTime.Now);
+                                var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, queueName, display, cmdValue, DateTime.Now);
                                 var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
 
                                 AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
