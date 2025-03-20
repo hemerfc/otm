@@ -53,10 +53,11 @@ namespace Otm.Server.Broker.Ptl
                 // "\x11\x00\x60\x66\x00\x00\x00\x64\x11\x4c\x4f\x47\x49\x4e\x20\x4f\x4b" -> LOGIN OK -> MODELO 70C(MESTRE)
 
                 var buf2 = new List<byte>();
+                
+                var masterDevice = Config.Stations.FirstOrDefault(x => x.MasterDevice == itemAcender.Location);
 
-                if (itemAcender.Location == Config.MasterDevice)
+                if (masterDevice != null)
                 {
-
                     // Apaga o display antes de setar um novo valor
                     // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
                     buf2.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
@@ -153,32 +154,61 @@ namespace Otm.Server.Broker.Ptl
 
             var ListaPendentes = (from rawPendente in (conteudo).Split(',').ToList()
                                   let pententeInfos = rawPendente.Split('|').ToList()
-                                  select new PtlBaseClass(id: Guid.NewGuid(),
+                                  select new PtlBaseClass(id: Guid.Parse(pententeInfos[3]),
                                                           location: pententeInfos[0],
                                                           displayColor: (E_DisplayColor)byte.Parse(pententeInfos[1]),
                                                           displayValue: pententeInfos[2])
                                                                 ).ToList();
 
-            var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Any(x => x.Location == i.Location && x.DisplayValue == i.DisplayValue));
-            var ListaApagar = ListaLigados.Where(x => !ListaPendentes.Any(ligado => 
-                ligado.Location == x.Location 
-                && ligado.DisplayValue == x.DisplayValue
-                || x.DisplayColor != ligado.DisplayColor));
+            // var ListaAcender = ListaPendentes.Where(i => !ListaLigados.Any(x => 
+            //     x.Location == i.Location 
+            //     && x.DisplayValue == i.DisplayValue
+            //     && x.Id == i.Id
+            // ));
+            //
+            // var ListaApagar = ListaLigados.Where(x => !ListaPendentes.Any(ligado => 
+            //     ligado.Location == x.Location 
+            //     && ligado.DisplayValue == x.DisplayValue
+            //     && ligado.Id == x.Id
+            //     || x.DisplayColor != ligado.DisplayColor));
             
-            if (TurnedOnByBroadcastAt != null)
+            var ListaAcender = ListaPendentes.Where(pendente => !ListaLigados.Any(ligado =>
+                ligado.Location == pendente.Location 
+                && ligado.DisplayValue == pendente.DisplayValue 
+                && ligado.Id == pendente.Id
+            ));
+
+            var ListaApagar = ListaLigados.Where(ligado => !ListaPendentes.Any(pendente =>
+                pendente.Location == ligado.Location 
+                && pendente.DisplayValue == ligado.DisplayValue
+                && pendente.Id == ligado.Id
+                || pendente.DisplayColor != ligado.DisplayColor
+            ));
+
+            foreach (var acender in ListaAcender)
             {
-                displayTurnOffBroadcast();
-                TurnedOnByBroadcastAt = null;
+                Logger.Info($"ProcessMessage(): acender display: '{acender.Location}' cor: '{acender.DisplayColor}'");
             }
+
+            foreach (var apagar in ListaApagar)
+            {
+                Logger.Info($"ProcessMessage(): apagar display: '{apagar.Location}' cor: '{apagar.DisplayColor}'");
+            }
+            
+            // if (TurnedOnByBroadcastAt != null)
+            // {
+            //     displayTurnOffBroadcast();
+            //     TurnedOnByBroadcastAt = null;
+            // }
             
             displayOff(ListaApagar);
             
-            var ptlFimMessage = ListaPendentes.FirstOrDefault(x => x.DisplayValue == "FIM");
-            if (ptlFimMessage != null)
-            {
-                Logger.Info($"ProcessMessage(): FIM recebido para : '{ptlFimMessage.Location}' ");
-                displayTurnOnBroadcast();
-            }
+            // var ptlFimMessage = ListaPendentes.FirstOrDefault(x => x.DisplayValue == "FIM");
+            // if (ptlFimMessage != null)
+            // {
+            //     Logger.Info($"ProcessMessage(): FIM recebido para : '{ptlFimMessage.Location}' ");
+            //     displayTurnOnBroadcast();
+            // }
 
             displaysOn(ListaAcender);
         }
@@ -190,7 +220,7 @@ namespace Otm.Server.Broker.Ptl
             var recv = client.GetData();
             if (recv != null && recv.Length > 0)
             {
-                Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
+                //Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
                 var tempBuffer = new byte[receiveBuffer.Length + recv.Length];
                 receiveBuffer.CopyTo(tempBuffer, 0);
                 recv.CopyTo(tempBuffer, receiveBuffer.Length);
@@ -253,7 +283,7 @@ namespace Otm.Server.Broker.Ptl
                                 var ligado = ListaLigados.FirstOrDefault(x => x.Location == display);
                                 var queueName = Config.Stations.FirstOrDefault(x => x.Color == ligado?.DisplayColor.ToString())?.Name ?? "error";
                                 
-                                Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {message}");
+                                Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}' Station: '{queueName}'. Message received: {message}");
 
                                 var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, queueName, display, cmdValue, DateTime.Now);
                                 var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
@@ -294,12 +324,14 @@ namespace Otm.Server.Broker.Ptl
                                 cmd_rcvd = sendCMD;
                                 cmd_count++;
                                 received = true;
+                                
+                                var display = $"{Config.PtlId}:{subNode.ToString().PadLeft(3, '0')}";
+                                var ligado = ListaLigados.FirstOrDefault(x => x.Location == display);
+                                var queueName = Config.Stations.FirstOrDefault(x => x.Color == ligado?.DisplayColor.ToString())?.Name ?? "error";;
 
-                                var queueName = Config.AmqpQueueToProduce;
+                                Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Station: '{queueName}' . Message received: {cmdAT}");
 
-                                Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Message received: {cmdAT}");
-
-                                var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, Config.Name, $"{Config.PtlId}:{subNode.ToString().PadLeft(3, '0')}", cmdValue.Trim(), DateTime.Now);
+                                var messageToAmqtp = String.Join(',', Config.AmqpQueueToProduce, queueName, $"{Config.PtlId}:{subNode.ToString().PadLeft(3, '0')}", cmdValue.Trim(), DateTime.Now);
                                 var json = JsonConvert.SerializeObject(new { Body = messageToAmqtp });
 
                                 AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
@@ -326,7 +358,7 @@ namespace Otm.Server.Broker.Ptl
                             var subNode = cmdAT[7];
                             var cmdValue = Encoding.ASCII.GetString(cmdAT.Skip(8).Take(6).ToArray());
 
-                            Logger.Info($"ReceiveData(): Device: '{Config.Name}'. CmdAT: '{cmdAT}' subCmd:{subCmd} subNode:{subNode} cmdValue:{cmdValue}");
+                            //Logger.Info($"ReceiveData(): Device: '{Config.Name}'. CmdAT: '{cmdAT}' subCmd:{subCmd} subNode:{subNode} cmdValue:{cmdValue}");
 
                             var sendCMD = $"{Config.Name}|AT|{subNode:000}|{cmdValue}";
                             // ptl01|AT|001|000001
