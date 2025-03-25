@@ -238,7 +238,6 @@ namespace Otm.Server.Device.TcpServer
                 //byte[] buffer = System.Text.Encoding.ASCII.GetBytes("true");
                 byte[] buffer = System.Text.Encoding.ASCII.GetBytes($"{0x02}{0x63}{0x03}");
                 client.Client.Send(new byte[] { 0x02, 0x63, 0x03 });
-                Thread.Sleep(1000);
             }
             catch (Exception e)
             {
@@ -275,11 +274,11 @@ namespace Otm.Server.Device.TcpServer
             {
                 try
                 {
-                    
                     if (client.Connected)
                     {
                         SendData();
-                        GetData();
+                        GetData();                
+                        Thread.Sleep(10);
                     }
                     else
                     {
