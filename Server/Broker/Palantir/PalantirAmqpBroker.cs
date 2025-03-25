@@ -372,13 +372,9 @@ namespace Otm.Server.Broker.Palantir
                     //Descartando a mensagem do buffer pois ja foi processada
                     receiveBuffer = receiveBuffer[(etxPos + 1)..];
                     var messageStr = Encoding.ASCII.GetString(message);
-                    
-                    
                     var messageType = messageStr.Split(",")[0];
                     var messageOrigem = messageStr.Split(",")[1];
-                    
-                    
-                    
+
                     var queueName = messageOrigem;
                     
                     //Caso a mensagem seja do próprio drive, o nome da fila é o nome do drive + o tipo da mensagem para evitar conflitos de nomes de filas
@@ -390,6 +386,7 @@ namespace Otm.Server.Broker.Palantir
                     Logger.Info($"ReceiveData(): Drive: {Config.Name}. Message: {messageStr}");
                     var json = JsonConvert.SerializeObject(new { Body = messageStr });
 
+                    Logger.Info($"BasicPublish(): queueName: {queueName}. Message: {messageStr}");
 
                     AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
                 }
