@@ -23,7 +23,6 @@ namespace Otm.Server.ContextConfig
         public List<BrokerMessageTypeConfig> MessageTypes { get; set; }
         public string ContextName { get; set; }
         public List<Station> Stations { get; set; }
-
-
+        public bool QueueLegacyFormat { get; set; } = false;
     }
 }

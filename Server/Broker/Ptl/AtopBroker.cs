@@ -195,20 +195,20 @@ namespace Otm.Server.Broker.Ptl
                 Logger.Info($"ProcessMessage(): apagar display: '{apagar.Location}' cor: '{apagar.DisplayColor}'");
             }
             
-            // if (TurnedOnByBroadcastAt != null)
-            // {
-            //     displayTurnOffBroadcast();
-            //     TurnedOnByBroadcastAt = null;
-            // }
+            if (TurnedOnByBroadcastAt != null)
+            {
+                displayTurnOffBroadcast();
+                TurnedOnByBroadcastAt = null;
+            }
             
             displayOff(ListaApagar);
             
-            // var ptlFimMessage = ListaPendentes.FirstOrDefault(x => x.DisplayValue == "FIM");
-            // if (ptlFimMessage != null)
-            // {
-            //     Logger.Info($"ProcessMessage(): FIM recebido para : '{ptlFimMessage.Location}' ");
-            //     displayTurnOnBroadcast();
-            // }
+            var ptlFimMessage = ListaPendentes.FirstOrDefault(x => x.DisplayValue == "FIM");
+            if (ptlFimMessage != null)
+            {
+                Logger.Info($"ProcessMessage(): FIM recebido para : '{ptlFimMessage.Location}' ");
+                displayTurnOnBroadcast();
+            }
 
             displaysOn(ListaAcender);
         }
