@@ -38,9 +38,7 @@ namespace Otm.Server.Broker.Ptl
             {
                 byte displayId = itemAcender.GetDisplayId();
                 var displayCode = itemAcender.GetDisplayValueAsByteArray();
-
                 
-
                 //9 Adicionando o pre + pos
                 byte msgLength = (byte)(displayCode.Length + 9);
 
@@ -59,17 +57,16 @@ namespace Otm.Server.Broker.Ptl
                 if (masterDevice != null)
                 {
                     // Apaga o display antes de setar um novo valor
-                    // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
-                    buf2.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
-                    // limpa o display
-                    buf2.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
-
-                    //buf2.AddRange(new byte[] { 0x07, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, 0xFC });
-
-                    //msgLength = (byte)(msgLength + 1);
+                    // // set color { 0x00 -vermelho, 0x01 - verde, 0x02 - laranja, 0x03 - led off}
+                    // buf2.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
+                    // // limpa o display
+                    // buf2.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
+                    //
+                    // //buf2.AddRange(new byte[] { 0x07, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, 0xFC });
+                    //
+                    
                     buf2.AddRange(new byte[] { msgLength, 0x00, 0x60, 0x66, 0x00, 0x00, 0x00, displayId, 0x11 });
                     buf2.AddRange(displayCode);
-                    buf2.Add(0x01);
                 }
                 else
                 {
@@ -111,7 +108,10 @@ namespace Otm.Server.Broker.Ptl
                 // limpa o display
                 buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
 
-                sendDataQueue.Enqueue(buffer.ToArray());
+                lock (lockSendDataQueue)
+                {
+                    sendDataQueue.Enqueue(buffer.ToArray());
+                }
                 ListaLigados.Remove(itemApagar);
             }
         }
@@ -120,14 +120,21 @@ namespace Otm.Server.Broker.Ptl
         {
             var buffer = new List<byte>();
             byte displayId = 252;
+            
+            Logger.Debug($"displayTurnOnBroadcast(): . displayId: '{displayId}'");
 
             // altera todos para verde
             buffer.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Verde });
             // limpa o display
             buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
 
-            sendDataQueue.Enqueue(buffer.ToArray());
-
+            
+            Logger.Debug($"displayTurnOnBroadcast(): . buffer: '{buffer}'");
+            
+            lock (lockSendDataQueue)
+            {
+                sendDataQueue.Enqueue(buffer.ToArray());
+            }
             TurnedOnByBroadcastAt = DateTime.Now;
         }
         
@@ -136,11 +143,18 @@ namespace Otm.Server.Broker.Ptl
             var buffer = new List<byte>();
             byte displayId = 252;
             
+            Logger.Debug($"displayTurnOffBroadcast(): displayId: '{displayId}'");
+            
             buffer.AddRange(new byte[] { 0x0A, 0x00, 0x60, 0x00, 0x00, 0x00, 0x1f, displayId, 0x00, (byte)E_DisplayColor.Off });
             // limpa o display
             buffer.AddRange(new byte[] { 0x08, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, displayId });
+            
+            Logger.Debug($"displayTurnOffBroadcast(): . buffer: '{buffer}'");
 
-            sendDataQueue.Enqueue(buffer.ToArray());
+            lock (lockSendDataQueue)
+            {
+                sendDataQueue.Enqueue(buffer.ToArray());
+            }
         }
 
         public override void ProcessMessage(byte[] body)
@@ -184,31 +198,36 @@ namespace Otm.Server.Broker.Ptl
                 && pendente.Id == ligado.Id
                 || pendente.DisplayColor != ligado.DisplayColor
             ));
-
-            foreach (var acender in ListaAcender)
+            
+            foreach (var ligado in ListaLigados)
             {
-                Logger.Info($"ProcessMessage(): acender display: '{acender.Location}' cor: '{acender.DisplayColor}'");
-            }
-
-            foreach (var apagar in ListaApagar)
-            {
-                Logger.Info($"ProcessMessage(): apagar display: '{apagar.Location}' cor: '{apagar.DisplayColor}'");
+                Logger.Info($"ProcessMessage(): ligado display: '{ligado.Location}' cor: '{ligado.DisplayColor}' valor: '{ligado.DisplayValue}'");
             }
             
-            if (TurnedOnByBroadcastAt != null)
+            foreach (var apagar in ListaApagar)
             {
-                displayTurnOffBroadcast();
-                TurnedOnByBroadcastAt = null;
+                Logger.Info($"ProcessMessage(): apagar display: '{apagar.Location}' cor: '{apagar.DisplayColor}' valor: '{apagar.DisplayValue}'");
             }
+
+            // foreach (var acender in ListaAcender)
+            // {
+            //     Logger.Info($"ProcessMessage(): acender display: '{acender.Location}' cor: '{acender.DisplayColor}' valor: '{acender.DisplayValue}'");
+            // }
+            
+            // if (TurnedOnByBroadcastAt != null)
+            // {
+            //     displayTurnOffBroadcast();
+            //     TurnedOnByBroadcastAt = null;
+            // }
             
             displayOff(ListaApagar);
             
-            var ptlFimMessage = ListaPendentes.FirstOrDefault(x => x.DisplayValue == "FIM");
-            if (ptlFimMessage != null)
-            {
-                Logger.Info($"ProcessMessage(): FIM recebido para : '{ptlFimMessage.Location}' ");
-                displayTurnOnBroadcast();
-            }
+            // var ptlFimMessage = ListaPendentes.FirstOrDefault(x => x.DisplayValue == "FIM");
+            // if (ptlFimMessage != null)
+            // {
+            //     Logger.Info($"ProcessMessage(): FIM recebido para : '{ptlFimMessage.Location}' ");
+            //     displayTurnOnBroadcast();
+            // }
 
             displaysOn(ListaAcender);
         }

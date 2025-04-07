@@ -284,6 +284,7 @@ namespace Otm.Server.Broker.Ptl
                     }
 
                     var message = Encoding.Default.GetString(obj);
+                    //Logger.Debug($"SendData() Dev {Config.Name}: Sending {message}");
 
                     client.SendData(obj);
 
