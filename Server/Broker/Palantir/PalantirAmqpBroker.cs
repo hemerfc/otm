@@ -23,6 +23,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Otm.Server.ContextConfig;
+using OTel.Activities;
 
 namespace Otm.Server.Broker.Palantir
 {
@@ -360,11 +361,14 @@ namespace Otm.Server.Broker.Palantir
                 else if (receiveBuffer.Length > 0)
                     receiveBuffer = Array.Empty<byte>();
 
+                using var activityAutomation = AutomationProcess.ActivitySource.StartActivity("Automation message");
+                using var activity = OtmReceiver.ActivitySource.StartActivity("Publish message");
+
                 // envia true para processar novamente sem sleep..
                 received = true;
                 try
                 {
-                    
+
                     // pega a mensagem do buffer
                     //<STX>R01,PLC01,22,456,2024-02-02<ETX><STX>R01,23,667
                     //<STX>P01,EST01,22,456,2024-02-02<ETX><STX>R01,23,667
@@ -396,11 +400,16 @@ namespace Otm.Server.Broker.Palantir
                     Logger.Info($"ReceiveData(): Drive: {Config.Name}. Message: {messageStr}");
                     var json = JsonConvert.SerializeObject(new { Body = messageStr });
 
+                    OtmReceiver.ConsumedMessages.Add(1);
+                    activity?.SetTag("message.queue", queueName);
+                    activity?.SetTag("message.drive", Config.Name);
+                    activity?.SetTag("message.body", messageStr);
 
                     AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
                 }
                 catch (Exception e)
                 {
+                    activity?.SetStatus(ActivityStatusCode.Error, e.Message);
                     throw;
                 }
 
