@@ -1,0 +1,3 @@
+[submodule "OTel"]
+	path = OTel
+	url = git@github.com:aguia-sistemas/OTel.git

@@ -27,7 +27,7 @@
 	</ItemGroup>
 
 	<PropertyGroup> 
-		<TargetFramework>net7.0</TargetFramework>
+		<TargetFramework>net9.0</TargetFramework>
 		<UserSecretsId>a372e9ee-0ac8-4e44-a6fc-f8a94734c4c7</UserSecretsId>
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 	</PropertyGroup>
@@ -40,8 +40,11 @@
 	</ItemGroup>
 
     <ItemGroup>
-        <Content Update="wwwroot\**" 
-                 CopyToOutputDirectory="PreserveNewest" />
+        <Content Update="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\OTel\OTel.csproj" />
     </ItemGroup>
 
 	<!--
