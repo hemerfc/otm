@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using System.Linq;
 using Otm.Server.ContextConfig;
 using Otm.Server.Services;
+using OTel;
 
 namespace Otm.Server
 {
@@ -48,7 +49,7 @@ namespace Otm.Server
 
             services.AddSingleton<OtmWorkerService>();
             services.AddHostedService(provider => provider.GetService<OtmWorkerService>());
-
+            services.AddOTel();
             //services.AddHostedService<OtmWorkerService>();
         }
 

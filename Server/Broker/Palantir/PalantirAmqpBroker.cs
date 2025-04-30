@@ -24,6 +24,8 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Otm.Server.ContextConfig;
 using OTel.Activities;
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
 
 namespace Otm.Server.Broker.Palantir
 {
@@ -96,6 +98,7 @@ namespace Otm.Server.Broker.Palantir
         private IBasicProperties basicProperties;
 
         public bool Connected { get { return client?.Connected ?? false; } }
+        private static readonly TextMapPropagator Propagator = Propagators.DefaultTextMapPropagator;
 
         public void Init(BrokerConfig config, ILogger logger, ITcpClientAdapter tcpClientAdapter = null)
         {
@@ -361,8 +364,8 @@ namespace Otm.Server.Broker.Palantir
                 else if (receiveBuffer.Length > 0)
                     receiveBuffer = Array.Empty<byte>();
 
-                using var activityAutomation = AutomationProcess.ActivitySource.StartActivity("Automation message");
-                using var activity = OtmReceiver.ActivitySource.StartActivity("Publish message");
+                // using var activityAutomation = AutomationProcess.ActivitySource.StartActivity("Automation message");
+                using var activityReceiver = OtmReceiver.ActivitySource.StartActivity("Publish message");
 
                 // envia true para processar novamente sem sleep..
                 received = true;
@@ -401,15 +404,15 @@ namespace Otm.Server.Broker.Palantir
                     var json = JsonConvert.SerializeObject(new { Body = messageStr });
 
                     OtmReceiver.ConsumedMessages.Add(1);
-                    activity?.SetTag("message.queue", queueName);
-                    activity?.SetTag("message.drive", Config.Name);
-                    activity?.SetTag("message.body", messageStr);
+                    activityReceiver?.SetTag("message.queue", queueName);
+                    activityReceiver?.SetTag("message.drive", Config.Name);
+                    activityReceiver?.SetTag("message.body", messageStr);
 
                     AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
                 }
                 catch (Exception e)
                 {
-                    activity?.SetStatus(ActivityStatusCode.Error, e.Message);
+                    activityReceiver?.SetStatus(ActivityStatusCode.Error, e.Message);
                     throw;
                 }
 
