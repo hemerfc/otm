@@ -49,7 +49,7 @@ namespace Otm.Server
 
             services.AddSingleton<OtmWorkerService>();
             services.AddHostedService(provider => provider.GetService<OtmWorkerService>());
-            services.AddOTel();
+            services.AddOTel("OTM");
             //services.AddHostedService<OtmWorkerService>();
         }
 

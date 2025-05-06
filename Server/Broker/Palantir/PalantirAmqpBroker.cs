@@ -365,8 +365,8 @@ namespace Otm.Server.Broker.Palantir
                     receiveBuffer = Array.Empty<byte>();
 
                 // using var activityAutomation = AutomationProcess.ActivitySource.StartActivity("Automation message");
-                using var activityReceiver = OtmReceiver.ActivitySource.StartActivity("Publish message");
-
+                using var activityReceiver = OtmReceiver.ActivitySource.StartActivity("Publish message", ActivityKind.Producer);
+                
                 // envia true para processar novamente sem sleep..
                 received = true;
                 try
@@ -403,6 +403,22 @@ namespace Otm.Server.Broker.Palantir
                     Logger.Info($"ReceiveData(): Drive: {Config.Name}. Message: {messageStr}");
                     var json = JsonConvert.SerializeObject(new { Body = messageStr });
 
+                    basicProperties.Headers = new Dictionary<string, object>
+                    {
+                        ["publish_timestamp"] = DateTime.UtcNow.Ticks
+                    };
+
+                    if (Activity.Current != null)
+                    {
+                        Propagators.DefaultTextMapPropagator.Inject(
+                            new PropagationContext(Activity.Current.Context, Baggage.Current),
+                            basicProperties.Headers,
+                            (headers, key, value) =>
+                            {
+                                headers[key] = Encoding.UTF8.GetBytes(value);
+                            });
+                    }
+        
                     OtmReceiver.ConsumedMessages.Add(1);
                     activityReceiver?.SetTag("message.queue", queueName);
                     activityReceiver?.SetTag("message.drive", Config.Name);
