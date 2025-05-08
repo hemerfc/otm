@@ -365,7 +365,7 @@ namespace Otm.Server.Broker.Palantir
                     receiveBuffer = Array.Empty<byte>();
 
                 using var activityReceiver = OtmReceiver.ActivitySource.StartActivity("Publish message", ActivityKind.Producer);
-                
+
                 // envia true para processar novamente sem sleep..
                 received = true;
                 try
@@ -402,22 +402,8 @@ namespace Otm.Server.Broker.Palantir
                     Logger.Info($"ReceiveData(): Drive: {Config.Name}. Message: {messageStr}");
                     var json = JsonConvert.SerializeObject(new { Body = messageStr });
 
-                    basicProperties.Headers = new Dictionary<string, object>
-                    {
-                        ["publish_timestamp"] = DateTime.UtcNow.Ticks
-                    };
-
-                    if (Activity.Current != null)
-                    {
-                        Propagators.DefaultTextMapPropagator.Inject(
-                            new PropagationContext(Activity.Current.Context, Baggage.Current),
-                            basicProperties.Headers,
-                            (headers, key, value) =>
-                            {
-                                headers[key] = Encoding.UTF8.GetBytes(value);
-                            });
-                    }
-        
+                    basicProperties.Headers = new Dictionary<string, object>{};
+                    OTelContextManager.Inject(basicProperties.Headers);
                     OtmReceiver.ConsumedMessages.Add(1);
                     activityReceiver?.SetTag("message.queue", queueName);
                     activityReceiver?.SetTag("message.drive", Config.Name);
@@ -623,22 +609,10 @@ namespace Otm.Server.Broker.Palantir
         {
             var body = e.Body.ToArray();
 
-            var propagationContext = Propagators.DefaultTextMapPropagator.Extract(
-                default,
-                e.BasicProperties.Headers,
-                (headers, key) =>
-                {
-                    if (headers.TryGetValue(key, out var value) && value is byte[] bytes)
-                    {
-                        return [Encoding.UTF8.GetString(bytes)];
-                    }
-                    return [];
-                });
-
             using var activityReceiver = OtmReceiver.ActivitySource.StartActivity(
                 "Send to drive", 
                 ActivityKind.Consumer,
-                propagationContext.ActivityContext);
+                OTelContextManager.Extract(e.BasicProperties.Headers));
 
             // lock para evitar concorrencia na fila
             lock (lockSendDataQueue)
