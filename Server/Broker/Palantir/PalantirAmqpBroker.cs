@@ -364,7 +364,6 @@ namespace Otm.Server.Broker.Palantir
                 else if (receiveBuffer.Length > 0)
                     receiveBuffer = Array.Empty<byte>();
 
-                // using var activityAutomation = AutomationProcess.ActivitySource.StartActivity("Automation message");
                 using var activityReceiver = OtmReceiver.ActivitySource.StartActivity("Publish message", ActivityKind.Producer);
                 
                 // envia true para processar novamente sem sleep..
@@ -623,7 +622,24 @@ namespace Otm.Server.Broker.Palantir
         public void Consumer_Received(object sender, BasicDeliverEventArgs e)
         {
             var body = e.Body.ToArray();
-            
+
+            var propagationContext = Propagators.DefaultTextMapPropagator.Extract(
+                default,
+                e.BasicProperties.Headers,
+                (headers, key) =>
+                {
+                    if (headers.TryGetValue(key, out var value) && value is byte[] bytes)
+                    {
+                        return [Encoding.UTF8.GetString(bytes)];
+                    }
+                    return [];
+                });
+
+            using var activityReceiver = OtmReceiver.ActivitySource.StartActivity(
+                "Send to drive", 
+                ActivityKind.Consumer,
+                propagationContext.ActivityContext);
+
             // lock para evitar concorrencia na fila
             lock (lockSendDataQueue)
             {
