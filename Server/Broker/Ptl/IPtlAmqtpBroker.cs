@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
 using NLog;
+using NLog.Fluent;
 using System;
 using System.Linq.Expressions;
 using System.Threading;
@@ -25,9 +26,7 @@ namespace Otm.Server.Broker.Ptl
 
         private byte STX = 0x02;
         private byte ETX = 0x03;
-
-        public bool Ready { get; set; }
-
+        
         public BackgroundWorker Worker { get; private set; }
 
         public string Name { get; set; }
@@ -43,9 +42,20 @@ namespace Otm.Server.Broker.Ptl
         public DateTime LastErrorTime { get; set; }
 
         public double MessagesPerSecond { get; set; }
-        public bool Connecting { get; private set; }
-        public DateTime LastConnectionTry { get; set; }
         public DateTime LastSend { get; private set; } = DateTime.Now;
+        
+        private bool PtlReady { get; set; }
+        
+        private DateTime LastPtlConnectionTry { get; set; }
+        private DateTime LastPtlReceivedData { get; set; }
+        private bool PtlConnecting { get; set; }
+        
+        private bool RabbitMqReady { get; set; }
+        private DateTime LastRabbitConnectionTry { get; set; }
+        private bool RabbitMqConnecting { get; set; }
+        
+        private const int KEEP_ALIVE_TIMEOUT = 10000;
+        public bool Ready => RabbitMqReady && PtlReady;
      
         protected readonly object lockSendDataQueue = new object();
         public Queue<byte[]> sendDataQueue;
@@ -84,61 +94,229 @@ namespace Otm.Server.Broker.Ptl
         {
             Init(config, logger, new TcpClientAdapter());
         }
+        
+        
+        private void ReconnectRabbit()
+        {
+            RabbitMqConnecting = true;
+            try
+            {
+                if (LastRabbitConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
+                {
+                    LastRabbitConnectionTry = DateTime.Now;
+                
+                    Logger.Info()
+                        .Message("Error")
+                        .Property("Class", nameof(IPtlAmqtpBroker))
+                        .Property("Method", nameof(ReconnectRabbit))
+                        .Property("Config", Config.Name)
+                        .Property("Device", Config.SocketHostName)
+                        .Property("Erro Code", string.Empty)
+                        .Property("Message", "Connected Rabbit")
+                        .Property("Date", DateTime.Now)
+                        .Write();
+                    
+                    this.AmqpChannel = CreateChannel(Config.AmqpHostName,
+                        Config.AmqpPort,
+                        Config.AmqpQueueToConsume,
+                        Config.AmqpQueueToProduce,
+                        new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
+                    );
+                    RabbitMqReady = AmqpChannel.IsOpen;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error()
+                    .Message("Error")
+                    .Property("Class", nameof(IPtlAmqtpBroker))
+                    .Property("Method", nameof(ReconnectRabbit))
+                    .Property("Config", Config.Name)
+                    .Property("Device", Config.SocketHostName)
+                    .Property("Erro Code", "EX-CN-RBT")
+                    .Property("Message", ex.Message)
+                    .Property("Date", DateTime.Now)
+                    .Write();
+                RabbitMqReady = false;
+            }
+            
+            
+            RabbitMqConnecting = false;
+        }
+        
+        private void ReconnectPtl()
+        {
+            try
+            {
+                if (LastPtlConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
+                {
+                    Logger.Info()
+                        .Message("Error")
+                        .Property("Class", nameof(IPtlAmqtpBroker))
+                        .Property("Method", nameof(ReconnectPtl))
+                        .Property("Config", Config.Name)
+                        .Property("Device", Config.SocketHostName)
+                        .Property("Erro Code", string.Empty)
+                        .Property("Message", "Reconnect")
+                        .Property("Date", DateTime.Now)
+                        .Write();
+                    LastPtlConnectionTry = DateTime.Now;
+                    
+                    PtlConnecting = true;
+                    if (client == null)
+                    {
+                        client = new TcpClientAdapter();
+                    }
 
+                    if (client.Connected == false)
+                    {
+                        Connect();
+                    }
+                    
+                    PtlReady = client.Connected;
+                    Logger.Info()
+                        .Message("Error")
+                        .Property("Class", nameof(IPtlAmqtpBroker))
+                        .Property("Method", nameof(ReconnectPtl))
+                        .Property("Config", Config.Name)
+                        .Property("Device", Config.SocketHostName)
+                        .Property("Erro Code", string.Empty)
+                        .Property("Message", "Connected PTL")
+                        .Property("Date", DateTime.Now)
+                        .Write();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error()
+                    .Message("Error")
+                    .Property("Class", nameof(IPtlAmqtpBroker))
+                    .Property("Method", nameof(ReconnectPtl))
+                    .Property("Config", Config.Name)
+                    .Property("Device", Config.SocketHostName)
+                    .Property("Erro Code", "EX-CN-PTL") //EX = Exception , CN = Connect, PTL = Ptl
+                    .Property("Message", ex.Message)
+                    .Property("Date", DateTime.Now)
+                    .Write();
+                PtlReady = false;
+            }
+            
+            PtlConnecting = false;
+        }
+        
         public void Start(BackgroundWorker worker)
         {
-            // backgroud worker
             Worker = worker;
 
-            while (true) {
+            while (true)
+            {
                 try
                 {
-                    if (client.Connected)
+                    #region PtlReady
+                    if(PtlConnecting)
+                        continue;
+                        
+                    if (!PtlReady)
+                    {
+                        ReconnectPtl();
+                        continue;
+                    }
+                    
+                    if (client == null || client?.Connected == false)
+                    {
+                        PtlReady = false;
+                        throw new Exception("Client is null!");
+                    }
+                    
+                    if (client?.Connected == false)
+                    {
+                        PtlReady = false;
+                        throw new Exception("Client is not connected!");
+                    }
+                        
+                    #endregion
+
+                    
+                    #region RabbitMqReady
+                    
+                    
+                    if(RabbitMqConnecting)
+                        continue;
+                    
+                    if (!RabbitMqReady)
+                    {
+                        ReconnectRabbit();
+                        //Logger.Info($"Dev {Config.Name}: RabbitMq not ready.");
+                        continue;
+                    }
+                    
+                    if(AmqpChannel == null && AmqpChannel?.IsOpen == false)
+                    {
+                        RabbitMqReady = false;
+                        throw new Exception("AmqpChannel is null!");
+                    }
+                        
+                    if(AmqpChannel.IsOpen == false)
+                    {
+                        RabbitMqReady = false;
+                        throw new Exception("AmqpChannel is not connected!");
+                    }
+                    
+                    
+                    #endregion
+                    
+                    if(PtlReady && RabbitMqReady)
                     {
                         bool received, sent;
-
                         do
                         {
                             received = ReceiveData();
                             sent = SendData();
-                            } while (received || sent);
-                        
-                            Ready = true;
-                    }
-                    else
-                    {
-                        Ready = false;
+                        } while (received || sent);
 
-                        if (!Connecting)
+                        if (LastPtlReceivedData.AddMilliseconds(KEEP_ALIVE_TIMEOUT) < DateTime.Now)
                         {
-                            // se ja tiver passado o delay, tenta reconectar
-                            if (LastConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
-                            {
-                                LastConnectionTry = DateTime.Now;
-                                Connecting = true;
-                                //Verifica se consegue conectar
-                                Connect();
-                                Connecting = false;
-                            }
+                            LastPtlReceivedData = DateTime.Now;
+                            Logger.Error()
+                                .Message("Error")
+                                .Property("Class", nameof(IPtlAmqtpBroker))
+                                .Property("Method", nameof(Start))
+                                .Property("Config", Config.Name)
+                                .Property("Device", Config.SocketHostName)
+                                .Property("Erro Code", "EX-LP-KAT")
+                                .Property("Message", "KEEP ALIVE TIMEOUT.")
+                                .Property("Date", DateTime.Now)
+                                .Write();
+                            PtlReady = false;
                         }
                     }
-
-                    // wait 50ms
-                    /// TODO: wait time must be equals the minimum update rate of tags
+                    
                     var waitEvent = new ManualResetEvent(false);
                     waitEvent.WaitOne(50);
 
                     if (Worker.CancellationPending)
                     {
-                        Ready = false;
+                        RabbitMqReady = false;
+                        PtlReady = false;
                         Stop();
                         return;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Ready = false;
-                    Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
+                    PtlReady = false;
+                    RabbitMqReady = false;
+                    
+                    Logger.Error()
+                        .Message("Error")
+                        .Property("Class", nameof(IPtlAmqtpBroker))
+                        .Property("Method", nameof(Start))
+                        .Property("Config", Config.Name)
+                        .Property("Device", Config.SocketHostName)
+                        .Property("Erro Code", "EX-LP-LOOP")
+                        .Property("Message", ex.Message)
+                        .Property("Date", DateTime.Now)
+                        .Write();
                 }
             }
         }
@@ -284,7 +462,6 @@ namespace Otm.Server.Broker.Ptl
                     }
 
                     var message = Encoding.Default.GetString(obj);
-                    //Logger.Debug($"SendData() Dev {Config.Name}: Sending {message}");
 
                     client.SendData(obj);
 
@@ -295,9 +472,7 @@ namespace Otm.Server.Broker.Ptl
                 if (LastSend.AddMinutes(15) < DateTime.Now)
                 {
                     client.Dispose();
-                    Connect();
-                    //var getFwCmd = GetMessagekeepAlive();
-                    //client.SendData(getFwCmd);
+                    PtlReady = false;
                     this.LastSend = DateTime.Now;
                 }
             }
@@ -307,23 +482,7 @@ namespace Otm.Server.Broker.Ptl
 
         private void Connect()
         {
-            try
-            {
-                client.Connect(Config.SocketHostName, Config.SocketPort);
-
-                if (client.Connected)
-                {
-                    Logger.Debug($"Dev {Config.Name}: Connected.");
-                }
-                else
-                {
-                    Logger.Error($"Dev {Config.Name}: Connection error.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, $"Dev {Config.Name}: Connection error.");
-            }
+            client.Connect(Config.SocketHostName, Config.SocketPort);
         }
 
         public static int SearchBytes(byte[] haystack, byte[] needle)
