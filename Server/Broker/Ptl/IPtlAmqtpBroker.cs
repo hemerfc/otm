@@ -4,14 +4,13 @@ using RabbitMQ.Client.Events;
 using RabbitMQ.Client;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Text;
-using NLog;
-using NLog.Fluent;
 using System;
-using System.Linq.Expressions;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Otm.Server.ContextConfig;
+using Otm.Server.Helpers;
+using ILogger = NLog.ILogger;
 
 namespace Otm.Server.Broker.Ptl
 {
@@ -26,7 +25,7 @@ namespace Otm.Server.Broker.Ptl
 
         private byte STX = 0x02;
         private byte ETX = 0x03;
-        
+
         public BackgroundWorker Worker { get; private set; }
 
         public string Name { get; set; }
@@ -43,20 +42,21 @@ namespace Otm.Server.Broker.Ptl
 
         public double MessagesPerSecond { get; set; }
         public DateTime LastSend { get; private set; } = DateTime.Now;
-        
+
         private bool PtlReady { get; set; }
-        
+
+        private readonly ILogger<IPtlAmqtpBroker> _logger;
         private DateTime LastPtlConnectionTry { get; set; }
         private DateTime LastPtlReceivedData { get; set; }
         private bool PtlConnecting { get; set; }
-        
+
         private bool RabbitMqReady { get; set; }
         private DateTime LastRabbitConnectionTry { get; set; }
         private bool RabbitMqConnecting { get; set; }
-        
+
         private const int KEEP_ALIVE_TIMEOUT = 10000;
         public bool Ready => RabbitMqReady && PtlReady;
-     
+
         protected readonly object lockSendDataQueue = new object();
         public Queue<byte[]> sendDataQueue;
         public IBasicProperties basicProperties;
@@ -86,7 +86,7 @@ namespace Otm.Server.Broker.Ptl
                 Config.AmqpQueueToConsume,
                 Config.AmqpQueueToProduce,
                 new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
-                );
+            );
             this.sendDataQueue = new Queue<byte[]>();
         }
 
@@ -94,74 +94,72 @@ namespace Otm.Server.Broker.Ptl
         {
             Init(config, logger, new TcpClientAdapter());
         }
-        
-        
+
         private void ReconnectRabbit()
         {
             RabbitMqConnecting = true;
+
             try
             {
                 if (LastRabbitConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
                 {
                     LastRabbitConnectionTry = DateTime.Now;
-                
-                    Logger.Info()
-                        .Message("Error")
-                        .Property("Class", nameof(IPtlAmqtpBroker))
-                        .Property("Method", nameof(ReconnectRabbit))
-                        .Property("Config", Config.Name)
-                        .Property("Device", Config.SocketHostName)
-                        .Property("Erro Code", string.Empty)
-                        .Property("Message", "Connected Rabbit")
-                        .Property("Date", DateTime.Now)
-                        .Write();
-                    
-                    this.AmqpChannel = CreateChannel(Config.AmqpHostName,
+
+                    new StructuredLog(
+                        logger: _logger,
+                        logObject: LogMessages.RabbitMq.Connected,
+                        className: nameof(IPtlAmqtpBroker),
+                        methodName: nameof(ReconnectRabbit),
+                        config: Config.Name,
+                        device: Config.SocketHostName
+                    ).Write();
+
+                    this.AmqpChannel = CreateChannel(
+                        Config.AmqpHostName,
                         Config.AmqpPort,
                         Config.AmqpQueueToConsume,
                         Config.AmqpQueueToProduce,
                         new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
                     );
+
                     RabbitMqReady = AmqpChannel.IsOpen;
                 }
             }
             catch (Exception ex)
             {
-                Logger.Error()
-                    .Message("Error")
-                    .Property("Class", nameof(IPtlAmqtpBroker))
-                    .Property("Method", nameof(ReconnectRabbit))
-                    .Property("Config", Config.Name)
-                    .Property("Device", Config.SocketHostName)
-                    .Property("Erro Code", "EX-CN-RBT")
-                    .Property("Message", ex.Message)
-                    .Property("Date", DateTime.Now)
-                    .Write();
+                new StructuredLog(
+                    logger: _logger,
+                    logObject: LogMessages.RabbitMq.Disconnected,
+                    className: nameof(IPtlAmqtpBroker),
+                    methodName: nameof(ReconnectRabbit),
+                    config: Config.Name,
+                    device: Config.SocketHostName
+                ).Write();
+
                 RabbitMqReady = false;
             }
-            
-            
+
             RabbitMqConnecting = false;
         }
-        
+
+
         private void ReconnectPtl()
         {
             try
             {
                 if (LastPtlConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
                 {
-                    Logger.Info()
-                        .Message("Error")
-                        .Property("Class", nameof(IPtlAmqtpBroker))
-                        .Property("Method", nameof(ReconnectPtl))
-                        .Property("Config", Config.Name)
-                        .Property("Device", Config.SocketHostName)
-                        .Property("Erro Code", string.Empty)
-                        .Property("Message", "Reconnect")
-                        .Property("Date", DateTime.Now)
-                        .Write();
+                    new StructuredLog(
+                        logger: _logger,
+                        logObject: LogMessages.Ptl.Reconnected,
+                        className: nameof(IPtlAmqtpBroker),
+                        methodName: nameof(ReconnectPtl),
+                        config: Config.Name,
+                        device: Config.SocketHostName
+                    );
+
                     LastPtlConnectionTry = DateTime.Now;
-                    
+
                     PtlConnecting = true;
                     if (client == null)
                     {
@@ -172,38 +170,35 @@ namespace Otm.Server.Broker.Ptl
                     {
                         Connect();
                     }
-                    
+
                     PtlReady = client.Connected;
-                    Logger.Info()
-                        .Message("Error")
-                        .Property("Class", nameof(IPtlAmqtpBroker))
-                        .Property("Method", nameof(ReconnectPtl))
-                        .Property("Config", Config.Name)
-                        .Property("Device", Config.SocketHostName)
-                        .Property("Erro Code", string.Empty)
-                        .Property("Message", "Connected PTL")
-                        .Property("Date", DateTime.Now)
-                        .Write();
+
+                    new StructuredLog(
+                        logger: _logger,
+                        logObject: LogMessages.Ptl.Connected,
+                        className: nameof(IPtlAmqtpBroker),
+                        methodName: nameof(ReconnectPtl),
+                        config: Config.Name,
+                        device: Config.SocketHostName
+                    ).Write();
                 }
             }
             catch (Exception ex)
             {
-                Logger.Error()
-                    .Message("Error")
-                    .Property("Class", nameof(IPtlAmqtpBroker))
-                    .Property("Method", nameof(ReconnectPtl))
-                    .Property("Config", Config.Name)
-                    .Property("Device", Config.SocketHostName)
-                    .Property("Erro Code", "EX-CN-PTL") //EX = Exception , CN = Connect, PTL = Ptl
-                    .Property("Message", ex.Message)
-                    .Property("Date", DateTime.Now)
-                    .Write();
+                new StructuredLog(
+                    logger: _logger,
+                    logObject: LogMessages.Ptl.Disconnected,
+                    className: nameof(IPtlAmqtpBroker),
+                    methodName: nameof(ReconnectPtl),
+                    config: Config.Name,
+                    device: Config.SocketHostName
+                ).Write();
                 PtlReady = false;
             }
-            
+
             PtlConnecting = false;
         }
-        
+
         public void Start(BackgroundWorker worker)
         {
             Worker = worker;
@@ -213,59 +208,58 @@ namespace Otm.Server.Broker.Ptl
                 try
                 {
                     #region PtlReady
-                    if(PtlConnecting)
+
+                    if (PtlConnecting)
                         continue;
-                        
+
                     if (!PtlReady)
                     {
                         ReconnectPtl();
                         continue;
                     }
-                    
+
                     if (client == null || client?.Connected == false)
                     {
                         PtlReady = false;
                         throw new Exception("Client is null!");
                     }
-                    
+
                     if (client?.Connected == false)
                     {
                         PtlReady = false;
                         throw new Exception("Client is not connected!");
                     }
-                        
+
                     #endregion
 
-                    
+
                     #region RabbitMqReady
-                    
-                    
-                    if(RabbitMqConnecting)
+
+                    if (RabbitMqConnecting)
                         continue;
-                    
+
                     if (!RabbitMqReady)
                     {
                         ReconnectRabbit();
                         //Logger.Info($"Dev {Config.Name}: RabbitMq not ready.");
                         continue;
                     }
-                    
-                    if(AmqpChannel == null && AmqpChannel?.IsOpen == false)
+
+                    if (AmqpChannel == null && AmqpChannel?.IsOpen == false)
                     {
                         RabbitMqReady = false;
                         throw new Exception("AmqpChannel is null!");
                     }
-                        
-                    if(AmqpChannel.IsOpen == false)
+
+                    if (AmqpChannel.IsOpen == false)
                     {
                         RabbitMqReady = false;
                         throw new Exception("AmqpChannel is not connected!");
                     }
-                    
-                    
+
                     #endregion
-                    
-                    if(PtlReady && RabbitMqReady)
+
+                    if (PtlReady && RabbitMqReady)
                     {
                         bool received, sent;
                         do
@@ -277,20 +271,20 @@ namespace Otm.Server.Broker.Ptl
                         if (LastPtlReceivedData.AddMilliseconds(KEEP_ALIVE_TIMEOUT) < DateTime.Now)
                         {
                             LastPtlReceivedData = DateTime.Now;
-                            Logger.Error()
-                                .Message("Error")
-                                .Property("Class", nameof(IPtlAmqtpBroker))
-                                .Property("Method", nameof(Start))
-                                .Property("Config", Config.Name)
-                                .Property("Device", Config.SocketHostName)
-                                .Property("Erro Code", "EX-LP-KAT")
-                                .Property("Message", "KEEP ALIVE TIMEOUT.")
-                                .Property("Date", DateTime.Now)
-                                .Write();
+
+                            new StructuredLog(
+                                logger: _logger,
+                                logObject: LogMessages.Ptl.KeepAlive.Timeout,
+                                className: nameof(IPtlAmqtpBroker),
+                                methodName: nameof(Start),
+                                config: Config.Name,
+                                device: Config.SocketHostName
+                            ).Write();
+
                             PtlReady = false;
                         }
                     }
-                    
+
                     var waitEvent = new ManualResetEvent(false);
                     waitEvent.WaitOne(50);
 
@@ -306,17 +300,15 @@ namespace Otm.Server.Broker.Ptl
                 {
                     PtlReady = false;
                     RabbitMqReady = false;
-                    
-                    Logger.Error()
-                        .Message("Error")
-                        .Property("Class", nameof(IPtlAmqtpBroker))
-                        .Property("Method", nameof(Start))
-                        .Property("Config", Config.Name)
-                        .Property("Device", Config.SocketHostName)
-                        .Property("Erro Code", "EX-LP-LOOP")
-                        .Property("Message", ex.Message)
-                        .Property("Date", DateTime.Now)
-                        .Write();
+
+                    new StructuredLog(
+                        logger: _logger,
+                        logObject: LogMessages.Ptl.KeepAlive.Loop,
+                        className: nameof(IPtlAmqtpBroker),
+                        methodName: nameof(Start),
+                        config: Config.Name,
+                        device: Config.SocketHostName
+                    ).Write();
                 }
             }
         }
@@ -326,7 +318,8 @@ namespace Otm.Server.Broker.Ptl
             throw new NotImplementedException();
         }
 
-        private IModel CreateChannel(string hostName, int port, string queuesToConsume, string queuesToProduce, EventHandler<BasicDeliverEventArgs> onReceived)
+        private IModel CreateChannel(string hostName, int port, string queuesToConsume, string queuesToProduce,
+            EventHandler<BasicDeliverEventArgs> onReceived)
         {
             ConnectionFactory factory = new ConnectionFactory()
             {
@@ -374,31 +367,31 @@ namespace Otm.Server.Broker.Ptl
             foreach (var queueName in queueNames)
             {
                 channel.QueueDeclare(queue: queueName,
-                             durable: true,
-                             exclusive: false,
-                             autoDelete: false,
-                             arguments: null);
+                    durable: true,
+                    exclusive: false,
+                    autoDelete: false,
+                    arguments: null);
 
                 channel.BasicConsume(queue: queueName,
-                                     autoAck: false,
-                                     consumer: consumer);
+                    autoAck: false,
+                    consumer: consumer);
             }
 
             queueNames = queuesToProduce.Split("|");
             foreach (var queueName in queueNames)
             {
                 channel.QueueDeclare(queue: queueName,
-                             durable: true,
-                             exclusive: false,
-                             autoDelete: false,
-                             arguments: null);
+                    durable: true,
+                    exclusive: false,
+                    autoDelete: false,
+                    arguments: null);
             }
 
             return channel;
         }
-       
+
         public void Consumer_Received(object sender, BasicDeliverEventArgs e)
-        {            
+        {
             var body = e.Body.ToArray();
             //var message = Encoding.UTF8.GetString();
 
@@ -496,8 +489,10 @@ namespace Otm.Server.Broker.Ptl
                 {
                     if (needle[k] != haystack[i + k]) break;
                 }
+
                 if (k == len) return i;
             }
+
             return -1;
         }
     }
