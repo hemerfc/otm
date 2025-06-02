@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
-namespace Otm.Server.ContextConfig;
+namespace Otm.Server.OTel;
 
 public class OTelContextManager
 {

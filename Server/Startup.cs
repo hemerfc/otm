@@ -8,7 +8,7 @@ using Microsoft.Extensions.Hosting;
 using System.Linq;
 using Otm.Server.ContextConfig;
 using Otm.Server.Services;
-using OTel;
+using Otm.Server.OTel;
 
 namespace Otm.Server
 {

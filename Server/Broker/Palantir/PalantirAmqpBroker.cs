@@ -23,9 +23,9 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Otm.Server.ContextConfig;
-using OTel.Activities;
-using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
+using Otm.Server.OTel;
+using Otm.Server.OTel.Activities;
 
 namespace Otm.Server.Broker.Palantir
 {
@@ -364,7 +364,7 @@ namespace Otm.Server.Broker.Palantir
                 else if (receiveBuffer.Length > 0)
                     receiveBuffer = Array.Empty<byte>();
 
-                using var activityReceiver = OtmReceiver.ActivitySource.StartActivity("Publish message", ActivityKind.Producer);
+                using var activityReceiver = PalantirActivity.ActivitySource.StartActivity("Publish message", ActivityKind.Producer);
 
                 // envia true para processar novamente sem sleep..
                 received = true;
@@ -404,7 +404,7 @@ namespace Otm.Server.Broker.Palantir
 
                     basicProperties.Headers = new Dictionary<string, object>{};
                     OTelContextManager.Inject(basicProperties.Headers);
-                    OtmReceiver.ConsumedMessages.Add(1);
+                    PalantirActivity.PublishedMessages.Add(1);
                     activityReceiver?.SetTag("message.queue", queueName);
                     activityReceiver?.SetTag("message.drive", Config.Name);
                     activityReceiver?.SetTag("message.body", messageStr);
@@ -609,10 +609,12 @@ namespace Otm.Server.Broker.Palantir
         {
             var body = e.Body.ToArray();
 
-            using var activityReceiver = OtmReceiver.ActivitySource.StartActivity(
+            using var activity = PalantirActivity.ActivitySource.StartActivity(
                 "Send to drive", 
-                ActivityKind.Consumer,
+                ActivityKind.Client,
                 OTelContextManager.Extract(e.BasicProperties.Headers));
+
+            PalantirActivity.ConsumedMessages.Add(1);
 
             // lock para evitar concorrencia na fila
             lock (lockSendDataQueue)
