@@ -98,7 +98,6 @@ namespace Otm.Server.Broker.Palantir
         private IBasicProperties basicProperties;
 
         public bool Connected { get { return client?.Connected ?? false; } }
-        private static readonly TextMapPropagator Propagator = Propagators.DefaultTextMapPropagator;
 
         public void Init(BrokerConfig config, ILogger logger, ITcpClientAdapter tcpClientAdapter = null)
         {
