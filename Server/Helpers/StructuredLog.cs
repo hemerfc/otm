@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Otm.Server.Helpers
 {
@@ -27,7 +28,7 @@ namespace Otm.Server.Helpers
             ErrorCode = Type == LogType.Info ? string.Empty : logObject.Codigo;
             Timestamp = DateTime.Now;
 
-            _logger = logger;
+            _logger = logger ?? NullLogger.Instance;
         }
 
         public LogType Type { get; }

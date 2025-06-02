@@ -1,21 +1,9 @@
-using System;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System.Linq;
-using Microsoft.Extensions.Logging;
-using OpenTelemetry;
-using OpenTelemetry.Exporter;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using Otm.Server.ContextConfig;
-using Otm.Server.OpenTelemetry;
 using Otm.Server.Services;
 using Otm.Server.OTel;
 
@@ -27,10 +15,6 @@ namespace Otm.Server
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
             .AddEnvironmentVariables()
             .Build();
-
-        private readonly bool _openTelemetryEnabled = false;
-        private readonly string _jaegerHost = string.Empty;
-        private readonly int _jaegerPort = 0;
         
         public Startup(IConfiguration configuration)
         {
@@ -41,8 +25,6 @@ namespace Otm.Server
             DeviceService = new DeviceService();
             LogsService = new LogsService();
             TransactionService = new TransactionService();
-            
-            bool.TryParse(_appConfiguration["OpenTelemetry:IsEnabled"], out _openTelemetryEnabled);
         }
 
         public IConfiguration Configuration { get; }

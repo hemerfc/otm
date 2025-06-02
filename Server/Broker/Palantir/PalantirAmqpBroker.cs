@@ -17,6 +17,7 @@ using Otm.Server.OTel.Activities;
 using Otm.Server.Helpers;
 using Microsoft.Extensions.Logging;
 using ILogger = NLog.ILogger;
+using System.Diagnostics;
 
 namespace Otm.Server.Broker.Palantir
 {
@@ -24,8 +25,8 @@ namespace Otm.Server.Broker.Palantir
     {
         public PalantirAmqpBroker(BrokerConfig config, ILogger logger)
         {
-            this.Config = config;
-            this.Logger = logger;
+            Config = config;
+            Logger = logger;
         }
 
         private ILogger Logger;
@@ -186,6 +187,7 @@ namespace Otm.Server.Broker.Palantir
                         if (LastPlcReceivedData.AddMilliseconds(KEEP_ALIVE_TIMEOUT) < DateTime.Now)
                         {
                             LastPlcReceivedData = DateTime.Now;
+
 
                             new StructuredLog(
                                 logger: _logger,
