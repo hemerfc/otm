@@ -17,7 +17,7 @@ using OpenTelemetry.Trace;
 using Otm.Server.ContextConfig;
 using Otm.Server.OpenTelemetry;
 using Otm.Server.Services;
-
+using Otm.Server.OTel;
 
 namespace Otm.Server
 {
@@ -67,63 +67,9 @@ namespace Otm.Server
 
             services.AddSingleton<OtmWorkerService>();
             services.AddHostedService(provider => provider.GetService<OtmWorkerService>());
-            
-            if (_openTelemetryEnabled)
-            {
-                var resourceBuilder = ResourceBuilder.CreateDefault().AddService(
-                    serviceName: TelemetryConstants.ServiceName, 
-                    serviceNamespace: TelemetryConstants.ServiceNameSpace,
-                    serviceVersion: TelemetryConstants.ServiceVersion
-                    );
-                
-                services.AddOpenTelemetry()
-                    .WithTracing(tracingBuilder =>
-                    {
-                        tracingBuilder
-                            .AddAspNetCoreInstrumentation()
-                            .AddOtlpExporter(options => 
-                            {
-                                options.Endpoint = new Uri("http://localhost:4317"); // Nome do serviço no Docker
-                                options.Protocol = OtlpExportProtocol.Grpc;
-                            })
-                            .SetResourceBuilder(resourceBuilder);
-                    })
-                    .WithMetrics(metricsBuilder =>
-                    {
-                        metricsBuilder
-                            .AddMeter(TelemetryConstants.MyAppSource)
-                            .AddOtlpExporter(options =>
-                            {
-                                options.Endpoint = new Uri("http://localhost:4317");
-                                options.Protocol = OtlpExportProtocol.Grpc;
-                            })
-                            .SetResourceBuilder(resourceBuilder)
-                            .AddAspNetCoreInstrumentation();
-                    })
-                    .WithLogging(loggingBuilder =>
-                    {
-                        loggingBuilder
-                            .AddOtlpExporter(options =>
-                            {
-                                options.Endpoint = new Uri("http://localhost:4317");
-                                options.Protocol = OtlpExportProtocol.Grpc;
-                            })
-                            .SetResourceBuilder(resourceBuilder);
-                
-                        // Configuração adicional para capturar logs do ILogger
-                        loggingBuilder.AddConsoleExporter();
-                    });
-                
-                services.AddLogging(logging =>
-                {
-                    logging.AddOpenTelemetry(options =>
-                    {
-                        options.IncludeScopes = true;
-                        options.ParseStateValues = true;
-                        options.IncludeFormattedMessage = true;
-                    });
-                });
-            }
+
+            services.AddOTel("OTM");
+            //services.AddHostedService<OtmWorkerService>();
         }
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
