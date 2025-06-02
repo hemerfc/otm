@@ -1,37 +1,27 @@
-﻿using Jint.Parser;
-using Nest;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using NLog;
-using Otm.Server.Device;
 using Otm.Server.Device.Ptl;
 using Otm.Server.Device.TcpServer;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Channels;
-using System.Threading.Tasks;
 using Otm.Server.ContextConfig;
-using OpenTelemetry.Context.Propagation;
 using Otm.Server.OTel;
 using Otm.Server.OTel.Activities;
+using Otm.Server.Helpers;
+using Microsoft.Extensions.Logging;
+using ILogger = NLog.ILogger;
 
 namespace Otm.Server.Broker.Palantir
 {
     public class PalantirAmqpBroker : IBroker
     {
-
         public PalantirAmqpBroker(BrokerConfig config, ILogger logger)
         {
             this.Config = config;
@@ -51,25 +41,22 @@ namespace Otm.Server.Broker.Palantir
         //private byte[] STX = new byte[] { 0x02 }; 
         //private byte[] ETX = new byte[] { 0x03 };
 
-        
-        
-        
+
         private bool PlcReady { get; set; }
         private DateTime LastPlcConnectionTry { get; set; }
         private DateTime LastPlcReceivedData { get; set; }
         private bool PlcConnecting { get; set; }
-        
+
         private bool RabbitMqReady { get; set; }
         private DateTime LastRabbitConnectionTry { get; set; }
         private bool RabbitMqConnecting { get; set; }
-        
-        
+
+
         //necessario implementar o Ready por conta da interface
         public bool Ready => RabbitMqReady && PlcReady;
-        
-        
-        
 
+
+        private readonly ILogger<PalantirAmqpBroker> _logger;
         public BackgroundWorker Worker { get; private set; }
 
         public string Name { get; set; }
@@ -82,12 +69,13 @@ namespace Otm.Server.Broker.Palantir
         private const int KEEP_ALIVE_TIMEOUT = 10000;
 
         public DateTime LastMessageTime { get; set; }
-        
+
         public DateTime LastSendK01 { get; set; }
 
         public DateTime LastErrorTime { get; set; }
 
         public double MessagesPerSecond { get; set; }
+
         //public bool ClientConnecting { get; private set; }
         //public DateTime LastConnectionTry { get; set; }
         public DateTime LastSend { get; private set; }
@@ -97,7 +85,11 @@ namespace Otm.Server.Broker.Palantir
         private Queue<byte[]> sendDataQueue;
         private IBasicProperties basicProperties;
 
-        public bool Connected { get { return client?.Connected ?? false; } }
+
+        public bool Connected
+        {
+            get { return client?.Connected ?? false; }
+        }
 
         public void Init(BrokerConfig config, ILogger logger, ITcpClientAdapter tcpClientAdapter = null)
         {
@@ -111,7 +103,7 @@ namespace Otm.Server.Broker.Palantir
                 Config.AmqpQueueToConsume,
                 Config.AmqpQueueToProduce,
                 new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
-                );
+            );
             this.sendDataQueue = new Queue<byte[]>();
         }
 
@@ -130,60 +122,59 @@ namespace Otm.Server.Broker.Palantir
                 try
                 {
                     #region PlcReady
-                    if(PlcConnecting)
+
+                    if (PlcConnecting)
                         continue;
-                        
+
                     if (!PlcReady)
                     {
                         //Logger.Info($"Dev {Config.Name}: PLC not ready.");
                         ReconnectPlc();
                         continue;
                     }
-                    
+
                     if (client == null || client?.Connected == false)
                     {
                         PlcReady = false;
                         throw new Exception("Client is null!");
                     }
-                    
+
                     if (client?.Connected == false)
                     {
                         PlcReady = false;
                         throw new Exception("Client is not connected!");
                     }
-                        
+
                     #endregion
 
-                    
+
                     #region RabbitMqReady
-                    
-                    
-                    if(RabbitMqConnecting)
+
+                    if (RabbitMqConnecting)
                         continue;
-                    
+
                     if (!RabbitMqReady)
                     {
                         ReconnectRabbit();
                         //Logger.Info($"Dev {Config.Name}: RabbitMq not ready.");
                         continue;
                     }
-                    
-                    if(AmqpChannel == null && AmqpChannel?.IsOpen == false)
+
+                    if (AmqpChannel == null && AmqpChannel?.IsOpen == false)
                     {
                         RabbitMqReady = false;
                         throw new Exception("AmqpChannel is null!");
                     }
-                        
-                    if(AmqpChannel.IsOpen == false)
+
+                    if (AmqpChannel.IsOpen == false)
                     {
                         RabbitMqReady = false;
                         throw new Exception("AmqpChannel is not connected!");
                     }
-                    
-                    
+
                     #endregion
-                    
-                    if(PlcReady && RabbitMqReady)
+
+                    if (PlcReady && RabbitMqReady)
                     {
                         bool received, sent;
                         do
@@ -195,7 +186,16 @@ namespace Otm.Server.Broker.Palantir
                         if (LastPlcReceivedData.AddMilliseconds(KEEP_ALIVE_TIMEOUT) < DateTime.Now)
                         {
                             LastPlcReceivedData = DateTime.Now;
-                            Logger.Warn($"Dev {Config.Name}: KEEP_ALIVE_TIMEOUT. Setting PlcReady to false...");
+
+                            new StructuredLog(
+                                logger: _logger,
+                                logObject: LogMessages.Plc.KeepAlive.Timeout,
+                                className: nameof(PalantirAmqpBroker),
+                                methodName: nameof(Start),
+                                config: Config.Name,
+                                device: Config.SocketHostName
+                            ).Write();
+
                             PlcReady = false;
                         }
                     }
@@ -217,7 +217,15 @@ namespace Otm.Server.Broker.Palantir
                 {
                     PlcReady = false;
                     RabbitMqReady = false;
-                    Logger.Error($"Dev {Config.Name}: Update Loop Error {ex}");
+
+                    new StructuredLog(
+                        logger: _logger,
+                        logObject: LogMessages.Plc.KeepAlive.Loop,
+                        className: nameof(PalantirAmqpBroker),
+                        methodName: nameof(Start),
+                        config: Config.Name,
+                        device: Config.SocketHostName
+                    ).Write();
                 }
             }
         }
@@ -230,27 +238,40 @@ namespace Otm.Server.Broker.Palantir
                 if (LastRabbitConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
                 {
                     LastRabbitConnectionTry = DateTime.Now;
-                
-                    //if (AmqpChannel == null)
-                    //{
-                    Logger.Info($"Dev {Config.Name}: Reconnecting to RabbitMq.");
+
+                    new StructuredLog(
+                        logger: _logger,
+                        logObject: LogMessages.RabbitMq.Connected,
+                        className: nameof(PalantirAmqpBroker),
+                        methodName: nameof(ReconnectRabbit),
+                        config: Config.Name,
+                        device: Config.SocketHostName
+                    ).Write();
+
                     this.AmqpChannel = CreateChannel(Config.AmqpHostName,
                         Config.AmqpPort,
                         Config.AmqpQueueToConsume,
                         Config.AmqpQueueToProduce,
                         new EventHandler<BasicDeliverEventArgs>(Consumer_Received)
                     );
-                    //}
+
                     RabbitMqReady = AmqpChannel.IsOpen;
                 }
             }
             catch (Exception ex)
             {
-                Logger.Error($"Dev {Config.Name}: Error ReconnectRabbit: {ex}");
+                new StructuredLog(
+                    logger: _logger,
+                    logObject: LogMessages.RabbitMq.Disconnected,
+                    className: nameof(PalantirAmqpBroker),
+                    methodName: nameof(ReconnectRabbit),
+                    config: Config.Name,
+                    device: Config.SocketHostName
+                ).Write();
+
                 RabbitMqReady = false;
             }
-            
-            
+
             RabbitMqConnecting = false;
         }
 
@@ -261,7 +282,7 @@ namespace Otm.Server.Broker.Palantir
                 if (LastPlcConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
                 {
                     LastPlcConnectionTry = DateTime.Now;
-                    
+
                     PlcConnecting = true;
                     if (client == null)
                     {
@@ -270,24 +291,38 @@ namespace Otm.Server.Broker.Palantir
 
                     if (client.Connected == false)
                     {
-                        Logger.Info($"Dev {Config.Name}: Reconnecting to PLC.");
+                        new StructuredLog(
+                            logger: _logger,
+                            logObject: LogMessages.Plc.Connected,
+                            className: nameof(PalantirAmqpBroker),
+                            methodName: nameof(ReconnectRabbit),
+                            config: Config.Name,
+                            device: Config.SocketHostName
+                        ).Write();
+
                         Connect();
                     }
-                    
+
                     PlcReady = client.Connected;
                     Logger.Info($"Dev {Config.Name}: PlcReady: {PlcReady}");
                 }
             }
             catch (Exception ex)
             {
-                Logger.Error($"Dev {Config.Name}: Error ReconnectPlc: {ex}");
+                new StructuredLog(
+                    logger: _logger,
+                    logObject: LogMessages.Plc.Disconnected,
+                    className: nameof(PalantirAmqpBroker),
+                    methodName: nameof(ReconnectRabbit),
+                    config: Config.Name,
+                    device: Config.SocketHostName
+                ).Write();
                 PlcReady = false;
             }
-            
+
             PlcConnecting = false;
         }
-        
-        
+
 
         public void Stop()
         {
@@ -299,9 +334,9 @@ namespace Otm.Server.Broker.Palantir
         {
             var received = false;
 
-           // 456,2024-02-02<ETX><STX>R01,23,667
+            // 456,2024-02-02<ETX><STX>R01,23,667
             var recv = client.GetData();
-            
+
             if (recv != null && recv.Length > 0)
             {
                 //Logger.Info($"ReceiveData(): Drive: '{Config.Driver}'. Device: '{Config.Name}'. Received: '{recv}'.\tString: '{ASCIIEncoding.ASCII.GetString(recv)}'\t ByteArray: '{string.Join(", ", recv)}'");
@@ -344,9 +379,9 @@ namespace Otm.Server.Broker.Palantir
                         // se encontrou apenas um STX em uma posição maior que 0, 
                         if (stxPos > 0)
                         {
-                            
                             receiveBuffer = receiveBuffer[(stxPos)..];
                         }
+
                         // retorna false para aguardar o restante da mensagem chegar
                         return false;
                     }
@@ -369,7 +404,6 @@ namespace Otm.Server.Broker.Palantir
                 received = true;
                 try
                 {
-
                     // pega a mensagem do buffer
                     //<STX>R01,PLC01,22,456,2024-02-02<ETX><STX>R01,23,667
                     //<STX>P01,EST01,22,456,2024-02-02<ETX><STX>R01,23,667
@@ -383,9 +417,9 @@ namespace Otm.Server.Broker.Palantir
                     {
                         var messageType = messageStr.Split(",")[0];
                         var messageOrigem = messageStr.Split(",")[1];
-                        
+
                         queueName = messageOrigem;
-                        
+
                         //Caso a mensagem seja do próprio drive, o nome da fila é o nome do drive + o tipo da mensagem para evitar conflitos de nomes de filas
                         if (Config.Name == messageOrigem)
                         {
@@ -397,8 +431,16 @@ namespace Otm.Server.Broker.Palantir
                         var messageType = messageStr.Split(",").First();
                         queueName = messageType;
                     }
-                    
-                    Logger.Info($"ReceiveData(): Drive: {Config.Name}. Message: {messageStr}");
+
+                    new StructuredLog(
+                        logger: _logger,
+                        logObject: LogMessages.Plc.ReceiveData.MessagePublished,
+                        className: nameof(PalantirAmqpBroker),
+                        methodName: nameof(ReceiveData),
+                        config: Config.Name,
+                        device: Config.SocketHostName
+                    ).Write();
+
                     var json = JsonConvert.SerializeObject(new { Body = messageStr });
 
                     basicProperties.Headers = new Dictionary<string, object>{};
@@ -415,7 +457,6 @@ namespace Otm.Server.Broker.Palantir
                     activityReceiver?.SetStatus(ActivityStatusCode.Error, e.Message);
                     throw;
                 }
-
             }
 
             return received;
@@ -432,8 +473,10 @@ namespace Otm.Server.Broker.Palantir
                 {
                     if (needle[k] != haystack[i + k]) break;
                 }
+
                 if (k == len) return i;
             }
+
             return -1;
         }
 
@@ -468,104 +511,201 @@ namespace Otm.Server.Broker.Palantir
         }
 
         public bool SendData()
+{
+    var sent = false;
+
+    if (sendDataQueue.Count > 0)
+    {
+        lock (lockSendDataQueue)
         {
-            var sent = false;
+            var totalLength = 0;
 
-            if (sendDataQueue.Count > 0)
-                lock (lockSendDataQueue)
-                {
-                        var totalLength = 0;
-                        foreach (var it in sendDataQueue)
-                        {
-                            if (it == null)
-                            {
-                                Logger.Error($"SendData: {Config.Name}: it was NULL");
-                                continue;
-                            }
-
-                            totalLength += it.Length;
-                        }
-
-                        Logger.Info($"SendData: {Config.Name}: totalLength {totalLength}");
-                        var obj = new byte[totalLength];
-                        var pos = 0;
-                        
-                        while (sendDataQueue.Count > 0)
-                        {
-                            var it = sendDataQueue.Dequeue();
-                            Array.Copy(it, 0, obj, pos, it.Length);
-                            pos += it.Length;
-                        }
-
-                        var message = Encoding.Default.GetString(obj);
-                        Logger.Info($"SendData: {Config.Name}: MessageJson {message}");
-
-                        string pattern = @"\{[^{}]+\}";
-
-                        Regex regex = new Regex(pattern);
-
-                        MatchCollection matches = regex.Matches(message);
-
-                        Logger.Info($"SendData: {Config.Name}: MatchCollection {matches}");
-                        foreach (Match match in matches)
-                        {
-                            Logger.Info($"SendData: {Config.Name}: Message {match}");
-                            Match conteudo = Regex.Match(match.ToString(), @"""body"":\s*""([^""]*)""");
-
-                            // Adiciona o byte 2 no início da mensagem
-                            byte[] startByte = new byte[] { 2 };
-                            byte[] messageStart = startByte.Concat(Encoding.Default.GetBytes(conteudo.Groups[1].Value)).ToArray();
-
-                            // Adiciona o byte 3 no final da mensagem
-                            byte[] endByte = new byte[] { 3 };
-                            byte[] messageBytes = messageStart.Concat(endByte).ToArray();
-
-
-                            Logger.Info($"SendData: {Config.Name}: Client {client.Connected}");
-                            client.SendData(messageBytes);
-                            
-                            Logger.Info($"SendData():    Drive: {Config.Name}: MessageSendToDevice: {conteudo.Groups[1].Value}");
-                        }
-                        
-                        this.LastSend = DateTime.Now;
-                }
-            else
+            foreach (var it in sendDataQueue)
             {
-                if (LastSend.AddSeconds(10) < DateTime.Now)
+                if (it == null)
                 {
-                    var getFwCmd = new byte[] { 2,3 };
-                    client.SendData(getFwCmd);
-                    this.LastSend = DateTime.Now;
+                    // Logger.Error($"SendData: {Config.Name}: it was NULL");
+                    new StructuredLog(
+                        _logger,
+                        LogMessages.Plc.SendData.NullItem,
+                        nameof(PalantirAmqpBroker),
+                        nameof(SendData),
+                        Config.Name,
+                        Config.SocketHostName
+                    ).Write();
+
+                    continue;
                 }
+
+                totalLength += it.Length;
             }
 
-            return sent;
+            // Logger.Info($"SendData: {Config.Name}: totalLength {totalLength}");
+            new StructuredLog(
+                _logger,
+                LogMessages.Plc.SendData.TotalLength,
+                nameof(PalantirAmqpBroker),
+                nameof(SendData),
+                Config.Name,
+                Config.SocketHostName
+            ).Write();
+
+            var obj = new byte[totalLength];
+            var pos = 0;
+
+            while (sendDataQueue.Count > 0)
+            {
+                var it = sendDataQueue.Dequeue();
+                Array.Copy(it, 0, obj, pos, it.Length);
+                pos += it.Length;
+            }
+
+            var message = Encoding.Default.GetString(obj);
+
+            // Logger.Info($"SendData: {Config.Name}: MessageJson {message}");
+            new StructuredLog(
+                _logger,
+                LogMessages.Plc.SendData.MessageJson,
+                nameof(PalantirAmqpBroker),
+                nameof(SendData),
+                Config.Name,
+                Config.SocketHostName
+            ).Write();
+
+            string pattern = @"\{[^{}]+\}";
+            Regex regex = new Regex(pattern);
+            MatchCollection matches = regex.Matches(message);
+
+            // Logger.Info($"SendData: {Config.Name}: MatchCollection {matches}");
+            new StructuredLog(
+                _logger,
+                LogMessages.Plc.SendData.MatchCollection,
+                nameof(PalantirAmqpBroker),
+                nameof(SendData),
+                Config.Name,
+                Config.SocketHostName
+            ).Write();
+
+            foreach (Match match in matches)
+            {
+                // Logger.Info($"SendData: {Config.Name}: Message {match}");
+                new StructuredLog(
+                    _logger,
+                    LogMessages.Plc.SendData.MatchItem,
+                    nameof(PalantirAmqpBroker),
+                    nameof(SendData),
+                    Config.Name,
+                    Config.SocketHostName
+                ).Write();
+
+                Match conteudo = Regex.Match(match.ToString(), @"""body"":\s*""([^""]*)""");
+
+                // Adiciona o byte 2 no início da mensagem
+                byte[] startByte = new byte[] { 2 };
+                byte[] messageStart = startByte.Concat(Encoding.Default.GetBytes(conteudo.Groups[1].Value)).ToArray();
+
+                // Adiciona o byte 3 no final da mensagem
+                byte[] endByte = new byte[] { 3 };
+                byte[] messageBytes = messageStart.Concat(endByte).ToArray();
+
+                // Logger.Info($"SendData: {Config.Name}: Client {client.Connected}");
+                new StructuredLog(
+                    _logger,
+                    LogMessages.Plc.SendData.ClientConnection,
+                    nameof(PalantirAmqpBroker),
+                    nameof(SendData),
+                    Config.Name,
+                    Config.SocketHostName
+                ).Write();
+
+                client.SendData(messageBytes);
+
+                // Logger.Info($"SendData():    Drive: {Config.Name}: MessageSendToDevice: {conteudo.Groups[1].Value}");
+                new StructuredLog(
+                    _logger,
+                    LogMessages.Plc.SendData.MessageSent,
+                    nameof(PalantirAmqpBroker),
+                    nameof(SendData),
+                    Config.Name,
+                    Config.SocketHostName
+                ).Write();
+            }
+
+            this.LastSend = DateTime.Now;
         }
+    }
+    else
+    {
+        if (LastSend.AddSeconds(10) < DateTime.Now)
+        {
+            var getFwCmd = new byte[] { 2, 3 };
+            client.SendData(getFwCmd);
+            this.LastSend = DateTime.Now;
+        }
+    }
+
+    return sent;
+}
+
 
         private void Connect()
         {
             try
             {
-                
-                Logger.Debug($"Dev {Config.Name}: Conecting to '{Config.SocketHostName}:{Config.SocketPort}'.");
+                // Logger.Debug($"Dev {Config.Name}: Conecting to '{Config.SocketHostName}:{Config.SocketPort}'.");
+                new StructuredLog(
+                    _logger,
+                    LogMessages.Plc.ConnectionAttempt,
+                    nameof(PalantirAmqpBroker),
+                    nameof(Connect),
+                    Config.Name,
+                    Config.SocketHostName
+                ).Write();
+
                 client.Connect(Config.SocketHostName, Config.SocketPort);
 
                 if (client.Connected)
                 {
-                    Logger.Debug($"Dev {Config.Name}: Connected.");
+                    // Logger.Debug($"Dev {Config.Name}: Connected.");
+                    new StructuredLog(
+                        _logger,
+                        LogMessages.Plc.Connected,
+                        nameof(PalantirAmqpBroker),
+                        nameof(Connect),
+                        Config.Name,
+                        Config.SocketHostName
+                    ).Write();
                 }
                 else
                 {
-                    Logger.Error($"Dev {Config.Name}: Connection error.");
+                    // Logger.Error($"Dev {Config.Name}: Connection error.");
+                    new StructuredLog(
+                        _logger,
+                        LogMessages.Plc.ConnectionFailed,
+                        nameof(PalantirAmqpBroker),
+                        nameof(Connect),
+                        Config.Name,
+                        Config.SocketHostName
+                    ).Write();
                 }
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, $"Dev {Config.Name}: Connection error.");
+                // Logger.Error(ex, $"Dev {Config.Name}: Connection error.");
+                new StructuredLog(
+                    _logger,
+                    LogMessages.Plc.ConnectionFailed,
+                    nameof(PalantirAmqpBroker),
+                    nameof(Connect),
+                    Config.Name,
+                    Config.SocketHostName
+                ).Write();
             }
         }
 
-        private IModel CreateChannel(string hostName, int port, string queuesToConsume, string queuesToProduce, EventHandler<BasicDeliverEventArgs> onReceived)
+
+        private IModel CreateChannel(string hostName, int port, string queuesToConsume, string queuesToProduce,
+            EventHandler<BasicDeliverEventArgs> onReceived)
         {
             var factory = new ConnectionFactory() { HostName = hostName, Port = port };
             var connection = factory.CreateConnection();
@@ -581,24 +721,24 @@ namespace Otm.Server.Broker.Palantir
             foreach (var queueName in queueNames)
             {
                 channel.QueueDeclare(queue: queueName,
-                             durable: true,
-                             exclusive: false,
-                             autoDelete: false,
-                             arguments: null);
+                    durable: true,
+                    exclusive: false,
+                    autoDelete: false,
+                    arguments: null);
 
                 channel.BasicConsume(queue: queueName,
-                                     autoAck: false,
-                                     consumer: consumer);
+                    autoAck: false,
+                    consumer: consumer);
             }
 
             queueNames = queuesToProduce.Split("|");
             foreach (var queueName in queueNames)
             {
                 channel.QueueDeclare(queue: queueName,
-                             durable: true,
-                             exclusive: false,
-                             autoDelete: false,
-                             arguments: null);
+                    durable: true,
+                    exclusive: false,
+                    autoDelete: false,
+                    arguments: null);
             }
 
             return channel;
@@ -620,10 +760,9 @@ namespace Otm.Server.Broker.Palantir
             {
                 sendDataQueue.Enqueue(body);
             }
-            
+
             var consumer = (sender as IBasicConsumer).Model;
             consumer.BasicAck(deliveryTag: e.DeliveryTag, multiple: false);
-
         }
     }
 }
