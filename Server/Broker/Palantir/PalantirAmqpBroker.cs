@@ -12,9 +12,12 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Otm.Server.ContextConfig;
+using Otm.Server.OTel;
+using Otm.Server.OTel.Activities;
 using Otm.Server.Helpers;
 using Microsoft.Extensions.Logging;
 using ILogger = NLog.ILogger;
+using System.Diagnostics;
 
 namespace Otm.Server.Broker.Palantir
 {
@@ -22,8 +25,8 @@ namespace Otm.Server.Broker.Palantir
     {
         public PalantirAmqpBroker(BrokerConfig config, ILogger logger)
         {
-            this.Config = config;
-            this.Logger = logger;
+            Config = config;
+            Logger = logger;
         }
 
         private ILogger Logger;
@@ -184,6 +187,7 @@ namespace Otm.Server.Broker.Palantir
                         if (LastPlcReceivedData.AddMilliseconds(KEEP_ALIVE_TIMEOUT) < DateTime.Now)
                         {
                             LastPlcReceivedData = DateTime.Now;
+
 
                             new StructuredLog(
                                 logger: _logger,
@@ -396,6 +400,8 @@ namespace Otm.Server.Broker.Palantir
                 else if (receiveBuffer.Length > 0)
                     receiveBuffer = Array.Empty<byte>();
 
+                using var activityReceiver = PalantirActivity.ActivitySource.StartActivity("Publish message", ActivityKind.Producer);
+
                 // envia true para processar novamente sem sleep..
                 received = true;
                 try
@@ -439,11 +445,18 @@ namespace Otm.Server.Broker.Palantir
 
                     var json = JsonConvert.SerializeObject(new { Body = messageStr });
 
+                    basicProperties.Headers = new Dictionary<string, object>{};
+                    OTelContextManager.Inject(basicProperties.Headers);
+                    PalantirActivity.PublishedMessages.Add(1);
+                    activityReceiver?.SetTag("message.queue", queueName);
+                    activityReceiver?.SetTag("message.drive", Config.Name);
+                    activityReceiver?.SetTag("message.body", messageStr);
 
                     AmqpChannel.BasicPublish("", queueName, true, basicProperties, Encoding.ASCII.GetBytes(json));
                 }
                 catch (Exception e)
                 {
+                    activityReceiver?.SetStatus(ActivityStatusCode.Error, e.Message);
                     throw;
                 }
             }
@@ -736,6 +749,13 @@ namespace Otm.Server.Broker.Palantir
         public void Consumer_Received(object sender, BasicDeliverEventArgs e)
         {
             var body = e.Body.ToArray();
+
+            using var activity = PalantirActivity.ActivitySource.StartActivity(
+                "Send to drive", 
+                ActivityKind.Client,
+                OTelContextManager.Extract(e.BasicProperties.Headers));
+
+            PalantirActivity.ConsumedMessages.Add(1);
 
             // lock para evitar concorrencia na fila
             lock (lockSendDataQueue)
