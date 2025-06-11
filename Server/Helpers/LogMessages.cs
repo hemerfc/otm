@@ -5,13 +5,13 @@
         public static class RabbitMq
         {
             public static readonly LogObject Connected =
-                new(string.Empty, "RabbitMQ successfully connected.", LogType.Info);
+                new(string.Empty, "RabbitMQ successfully connected.", LogType.Debug);
 
             public static readonly LogObject Disconnected =
-                new(ErrorCodes.RabbitMq.ConnectionError, "Failed to connect to Rabbit.", LogType.Error);
+                new(ErrorCodes.RabbitMq.ConnectionError, "Failed to connect to Rabbit.", LogType.Debug);
 
             public static readonly LogObject NotReady =
-                new(string.Empty, "RabbitMQ not ready.", LogType.Info);
+                new(string.Empty, "RabbitMQ not ready.", LogType.Error);
 
             public static readonly LogObject ChannelNull =
                 new(ErrorCodes.RabbitMq.ChannelNull, "AMQP Channel is null.", LogType.Error);
@@ -37,7 +37,7 @@
                     new(ErrorCodes.Ptl.KeepAliveTimeout, "Keep alive timeout (PTL).", LogType.Error);
 
                 public static readonly LogObject Loop =
-                    new(string.Empty, "Keep alive loop (PTL).", LogType.Info);
+                    new(string.Empty, "Keep alive loop (PTL).", LogType.Debug);
             }
         }
 
@@ -53,7 +53,7 @@
                 new(string.Empty, "Reconnecting to PLC.", LogType.Info);
 
             public static readonly LogObject NotReady =
-                new(string.Empty, "PLC not ready.", LogType.Info);
+                new(string.Empty, "PLC not ready.", LogType.Error);
 
             public static readonly LogObject ClientNull =
                 new(ErrorCodes.Plc.ClientNull, "PLC client is null.", LogType.Error);
@@ -68,7 +68,7 @@
                         LogType.Info);
 
                 public static readonly LogObject Loop =
-                    new(string.Empty, "Keep alive loop (PLC).", LogType.Info);
+                    new(string.Empty, "Keep alive loop (PLC).", LogType.Debug);
             }
 
             public static class ReceiveData
@@ -83,26 +83,26 @@
                     new(ErrorCodes.Plc.SendDataNullItem, "SendData(): Null item in queue.", LogType.Error);
 
                 public static readonly LogObject TotalLength =
-                    new(string.Empty, "SendData(): Total length calculated.", LogType.Info);
+                    new(string.Empty, "SendData(): Total length calculated.", LogType.Debug);
 
                 public static readonly LogObject MessageJson =
-                    new(string.Empty, "SendData(): Message JSON extracted.", LogType.Info);
+                    new(string.Empty, "SendData(): Message JSON extracted.", LogType.Debug);
 
                 public static readonly LogObject MatchCollection =
-                    new(string.Empty, "SendData(): Regex matches extracted.", LogType.Info);
+                    new(string.Empty, "SendData(): Regex matches extracted.", LogType.Debug);
 
                 public static readonly LogObject MatchItem =
-                    new(string.Empty, "SendData(): Message body match processed.", LogType.Info);
+                    new(string.Empty, "SendData(): Message body match processed.", LogType.Debug);
 
                 public static readonly LogObject ClientConnection =
-                    new(string.Empty, "SendData(): Client connection status.", LogType.Info);
+                    new(string.Empty, "SendData(): Client connection status.", LogType.Debug);
 
                 public static readonly LogObject MessageSent =
                     new(string.Empty, "SendData(): Message sent to device.", LogType.Info);
             }
 
             public static readonly LogObject ConnectionAttempt =
-                new(string.Empty, "Attempting to connect to PLC.", LogType.Info);
+                new(string.Empty, "Attempting to connect to PLC.", LogType.Debug);
 
             public static readonly LogObject ConnectionFailed =
                 new(ErrorCodes.Plc.ConnectionError, "Failed to connect to PLC.", LogType.Error);

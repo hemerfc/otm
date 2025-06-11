@@ -106,11 +106,11 @@ namespace Otm.Server.Broker.Ptl
                     LastRabbitConnectionTry = DateTime.Now;
 
                     new StructuredLog(
-                        logger: _logger,
                         logObject: LogMessages.RabbitMq.Connected,
                         className: nameof(IPtlAmqtpBroker),
                         methodName: nameof(ReconnectRabbit),
                         config: Config.Name,
+                        Logger.Name,
                         device: Config.SocketHostName
                     ).Write();
 
@@ -128,11 +128,11 @@ namespace Otm.Server.Broker.Ptl
             catch (Exception ex)
             {
                 new StructuredLog(
-                    logger: _logger,
                     logObject: LogMessages.RabbitMq.Disconnected,
                     className: nameof(IPtlAmqtpBroker),
                     methodName: nameof(ReconnectRabbit),
                     config: Config.Name,
+                    Logger.Name,
                     device: Config.SocketHostName
                 ).Write();
 
@@ -150,11 +150,11 @@ namespace Otm.Server.Broker.Ptl
                 if (LastPtlConnectionTry.AddMilliseconds(RECONNECT_DELAY) < DateTime.Now)
                 {
                     new StructuredLog(
-                        logger: _logger,
                         logObject: LogMessages.Ptl.Reconnected,
                         className: nameof(IPtlAmqtpBroker),
                         methodName: nameof(ReconnectPtl),
                         config: Config.Name,
+                        Logger.Name,
                         device: Config.SocketHostName
                     );
 
@@ -174,11 +174,11 @@ namespace Otm.Server.Broker.Ptl
                     PtlReady = client.Connected;
 
                     new StructuredLog(
-                        logger: _logger,
                         logObject: LogMessages.Ptl.Connected,
                         className: nameof(IPtlAmqtpBroker),
                         methodName: nameof(ReconnectPtl),
                         config: Config.Name,
+                        Logger.Name,
                         device: Config.SocketHostName
                     ).Write();
                 }
@@ -186,11 +186,11 @@ namespace Otm.Server.Broker.Ptl
             catch (Exception ex)
             {
                 new StructuredLog(
-                    logger: _logger,
                     logObject: LogMessages.Ptl.Disconnected,
                     className: nameof(IPtlAmqtpBroker),
                     methodName: nameof(ReconnectPtl),
                     config: Config.Name,
+                    Logger.Name,
                     device: Config.SocketHostName
                 ).Write();
                 PtlReady = false;
@@ -273,11 +273,11 @@ namespace Otm.Server.Broker.Ptl
                             LastPtlReceivedData = DateTime.Now;
 
                             new StructuredLog(
-                                logger: _logger,
                                 logObject: LogMessages.Ptl.KeepAlive.Timeout,
                                 className: nameof(IPtlAmqtpBroker),
                                 methodName: nameof(Start),
                                 config: Config.Name,
+                                Logger.Name,
                                 device: Config.SocketHostName
                             ).Write();
 
@@ -302,11 +302,11 @@ namespace Otm.Server.Broker.Ptl
                     RabbitMqReady = false;
 
                     new StructuredLog(
-                        logger: _logger,
                         logObject: LogMessages.Ptl.KeepAlive.Loop,
                         className: nameof(IPtlAmqtpBroker),
                         methodName: nameof(Start),
                         config: Config.Name,
+                        Logger.Name,
                         device: Config.SocketHostName
                     ).Write();
                 }

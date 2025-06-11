@@ -190,11 +190,11 @@ namespace Otm.Server.Broker.Palantir
 
 
                             new StructuredLog(
-                                logger: _logger,
                                 logObject: LogMessages.Plc.KeepAlive.Timeout,
                                 className: nameof(PalantirAmqpBroker),
                                 methodName: nameof(Start),
                                 config: Config.Name,
+                                loggerName:Logger.Name,
                                 device: Config.SocketHostName
                             ).Write();
 
@@ -221,11 +221,11 @@ namespace Otm.Server.Broker.Palantir
                     RabbitMqReady = false;
 
                     new StructuredLog(
-                        logger: _logger,
                         logObject: LogMessages.Plc.KeepAlive.Loop,
                         className: nameof(PalantirAmqpBroker),
                         methodName: nameof(Start),
                         config: Config.Name,
+                        loggerName:Logger.Name,
                         device: Config.SocketHostName
                     ).Write();
                 }
@@ -242,11 +242,11 @@ namespace Otm.Server.Broker.Palantir
                     LastRabbitConnectionTry = DateTime.Now;
 
                     new StructuredLog(
-                        logger: _logger,
                         logObject: LogMessages.RabbitMq.Connected,
                         className: nameof(PalantirAmqpBroker),
                         methodName: nameof(ReconnectRabbit),
                         config: Config.Name,
+                        loggerName:Logger.Name,
                         device: Config.SocketHostName
                     ).Write();
 
@@ -263,11 +263,11 @@ namespace Otm.Server.Broker.Palantir
             catch (Exception ex)
             {
                 new StructuredLog(
-                    logger: _logger,
                     logObject: LogMessages.RabbitMq.Disconnected,
                     className: nameof(PalantirAmqpBroker),
                     methodName: nameof(ReconnectRabbit),
                     config: Config.Name,
+                    loggerName:Logger.Name,
                     device: Config.SocketHostName
                 ).Write();
 
@@ -294,11 +294,11 @@ namespace Otm.Server.Broker.Palantir
                     if (client.Connected == false)
                     {
                         new StructuredLog(
-                            logger: _logger,
                             logObject: LogMessages.Plc.Connected,
                             className: nameof(PalantirAmqpBroker),
                             methodName: nameof(ReconnectRabbit),
                             config: Config.Name,
+                            loggerName:Logger.Name,
                             device: Config.SocketHostName
                         ).Write();
 
@@ -312,11 +312,11 @@ namespace Otm.Server.Broker.Palantir
             catch (Exception ex)
             {
                 new StructuredLog(
-                    logger: _logger,
                     logObject: LogMessages.Plc.Disconnected,
                     className: nameof(PalantirAmqpBroker),
                     methodName: nameof(ReconnectRabbit),
                     config: Config.Name,
+                    loggerName:Logger.Name,
                     device: Config.SocketHostName
                 ).Write();
                 PlcReady = false;
@@ -435,12 +435,13 @@ namespace Otm.Server.Broker.Palantir
                     }
 
                     new StructuredLog(
-                        logger: _logger,
                         logObject: LogMessages.Plc.ReceiveData.MessagePublished,
                         className: nameof(PalantirAmqpBroker),
                         methodName: nameof(ReceiveData),
                         config: Config.Name,
-                        device: Config.SocketHostName
+                        loggerName:Logger.Name,
+                        device: Config.SocketHostName,
+                        messageStr
                     ).Write();
 
                     var json = JsonConvert.SerializeObject(new { Body = messageStr });
@@ -528,11 +529,11 @@ namespace Otm.Server.Broker.Palantir
                 {
                     // Logger.Error($"SendData: {Config.Name}: it was NULL");
                     new StructuredLog(
-                        _logger,
                         LogMessages.Plc.SendData.NullItem,
                         nameof(PalantirAmqpBroker),
                         nameof(SendData),
                         Config.Name,
+                        Logger.Name,
                         Config.SocketHostName
                     ).Write();
 
@@ -544,11 +545,11 @@ namespace Otm.Server.Broker.Palantir
 
             // Logger.Info($"SendData: {Config.Name}: totalLength {totalLength}");
             new StructuredLog(
-                _logger,
                 LogMessages.Plc.SendData.TotalLength,
                 nameof(PalantirAmqpBroker),
                 nameof(SendData),
                 Config.Name,
+                Logger.Name,
                 Config.SocketHostName
             ).Write();
 
@@ -566,11 +567,11 @@ namespace Otm.Server.Broker.Palantir
 
             // Logger.Info($"SendData: {Config.Name}: MessageJson {message}");
             new StructuredLog(
-                _logger,
                 LogMessages.Plc.SendData.MessageJson,
                 nameof(PalantirAmqpBroker),
                 nameof(SendData),
                 Config.Name,
+                Logger.Name,
                 Config.SocketHostName
             ).Write();
 
@@ -580,11 +581,11 @@ namespace Otm.Server.Broker.Palantir
 
             // Logger.Info($"SendData: {Config.Name}: MatchCollection {matches}");
             new StructuredLog(
-                _logger,
                 LogMessages.Plc.SendData.MatchCollection,
                 nameof(PalantirAmqpBroker),
                 nameof(SendData),
                 Config.Name,
+                Logger.Name,
                 Config.SocketHostName
             ).Write();
 
@@ -592,11 +593,11 @@ namespace Otm.Server.Broker.Palantir
             {
                 // Logger.Info($"SendData: {Config.Name}: Message {match}");
                 new StructuredLog(
-                    _logger,
                     LogMessages.Plc.SendData.MatchItem,
                     nameof(PalantirAmqpBroker),
                     nameof(SendData),
                     Config.Name,
+                    Logger.Name,
                     Config.SocketHostName
                 ).Write();
 
@@ -612,11 +613,11 @@ namespace Otm.Server.Broker.Palantir
 
                 // Logger.Info($"SendData: {Config.Name}: Client {client.Connected}");
                 new StructuredLog(
-                    _logger,
                     LogMessages.Plc.SendData.ClientConnection,
                     nameof(PalantirAmqpBroker),
                     nameof(SendData),
                     Config.Name,
+                    Logger.Name,
                     Config.SocketHostName
                 ).Write();
 
@@ -624,11 +625,11 @@ namespace Otm.Server.Broker.Palantir
 
                 // Logger.Info($"SendData():    Drive: {Config.Name}: MessageSendToDevice: {conteudo.Groups[1].Value}");
                 new StructuredLog(
-                    _logger,
                     LogMessages.Plc.SendData.MessageSent,
                     nameof(PalantirAmqpBroker),
                     nameof(SendData),
                     Config.Name,
+                    Logger.Name,
                     Config.SocketHostName
                 ).Write();
             }
@@ -656,11 +657,11 @@ namespace Otm.Server.Broker.Palantir
             {
                 // Logger.Debug($"Dev {Config.Name}: Conecting to '{Config.SocketHostName}:{Config.SocketPort}'.");
                 new StructuredLog(
-                    _logger,
                     LogMessages.Plc.ConnectionAttempt,
                     nameof(PalantirAmqpBroker),
                     nameof(Connect),
                     Config.Name,
+                    Logger.Name,
                     Config.SocketHostName
                 ).Write();
 
@@ -670,11 +671,11 @@ namespace Otm.Server.Broker.Palantir
                 {
                     // Logger.Debug($"Dev {Config.Name}: Connected.");
                     new StructuredLog(
-                        _logger,
                         LogMessages.Plc.Connected,
                         nameof(PalantirAmqpBroker),
                         nameof(Connect),
                         Config.Name,
+                        Logger.Name,
                         Config.SocketHostName
                     ).Write();
                 }
@@ -682,11 +683,11 @@ namespace Otm.Server.Broker.Palantir
                 {
                     // Logger.Error($"Dev {Config.Name}: Connection error.");
                     new StructuredLog(
-                        _logger,
                         LogMessages.Plc.ConnectionFailed,
                         nameof(PalantirAmqpBroker),
                         nameof(Connect),
                         Config.Name,
+                        Logger.Name,
                         Config.SocketHostName
                     ).Write();
                 }
@@ -695,11 +696,11 @@ namespace Otm.Server.Broker.Palantir
             {
                 // Logger.Error(ex, $"Dev {Config.Name}: Connection error.");
                 new StructuredLog(
-                    _logger,
                     LogMessages.Plc.ConnectionFailed,
                     nameof(PalantirAmqpBroker),
                     nameof(Connect),
                     Config.Name,
+                    Logger.Name,
                     Config.SocketHostName
                 ).Write();
             }

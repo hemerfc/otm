@@ -1,20 +1,19 @@
 ﻿using System;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
+using NLog;
+using NLog.Fluent;
 
 namespace Otm.Server.Helpers
 {
     public class StructuredLog
     {
-        private readonly ILogger _logger;
-
         public StructuredLog(
-            ILogger logger,
             LogObject logObject,
             string className,
             string methodName,
             string config,
-            string device)
+            string loggerName,
+            string device,
+            string value = null)
         {
             if (logObject.LogType == LogType.Error && string.IsNullOrWhiteSpace(logObject.Codigo))
                 throw new ArgumentException("Erro Code é obrigatório para logs do tipo Error.");
@@ -23,46 +22,52 @@ namespace Otm.Server.Helpers
             ClassName = className;
             MethodName = methodName;
             Config = config;
+            LoggerName = loggerName;
             Device = device;
             Message = logObject.Mensagem;
             ErrorCode = Type == LogType.Info ? string.Empty : logObject.Codigo;
             Timestamp = DateTime.Now;
-
-            _logger = logger ?? NullLogger.Instance;
+            Value = value ?? string.Empty;
         }
 
         public LogType Type { get; }
         public string ClassName { get; }
         public string MethodName { get; }
         public string Config { get; }
+        public string LoggerName { get; }
         public string Device { get; }
         public string Message { get; }
         public string ErrorCode { get; }
         public DateTime Timestamp { get; }
 
+        public String Value { get; }
+
         public void Write()
         {
-            var logEntry = new
+            var logger = LogManager.GetLogger(LoggerName);
+
+            var logEvent = new LogEventInfo
             {
-                Class = ClassName,
-                Method = MethodName,
-                Config,
-                Device,
-                ErroCode = ErrorCode,
-                Message,
-                Timestamp
+                Level = Type switch
+                {
+                    LogType.Info => LogLevel.Info,
+                    LogType.Error => LogLevel.Error,
+                    LogType.Warning => LogLevel.Warn,
+                    LogType.Debug => LogLevel.Debug,
+                    _ => throw new ArgumentOutOfRangeException(nameof(Type), Type, "Tipo de log não suportado.")
+                },
+                Message = Message
             };
 
-            if (Type == LogType.Info)
-                _logger.LogInformation("{@Log}", logEntry);
-            else if (Type == LogType.Error)
-                _logger.LogError("{@Log}", logEntry);
-            else if (Type == LogType.Warning)
-                _logger.LogWarning("{@Log}", logEntry);
-            else if (Type == LogType.Debug)
-                _logger.LogDebug("{@Log}", logEntry);
-            else
-                throw new ArgumentOutOfRangeException(nameof(Type), Type, "Tipo de log não suportado.");
+            logEvent.Properties["Class"] = ClassName;
+            logEvent.Properties["Method"] = MethodName;
+            logEvent.Properties["Config"] = Config;
+            logEvent.Properties["Device"] = Device;
+            logEvent.Properties["ErrorCode"] = ErrorCode;
+            logEvent.Properties["Timestamp"] = Timestamp;
+            logEvent.Properties["Value"] = Value;
+
+            logger.Log(logEvent);
         }
     }
 }
